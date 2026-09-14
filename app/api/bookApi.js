@@ -1,0 +1,260 @@
+/**
+ * backend-book 서재(도서/문장수집) API 클라이언트 (CLIAR-186).
+ *
+ * backend-book은 backend-auth와 동일한 Cognito JWT를 검증하고, 모든 서재 데이터는
+ * 토큰의 sub(memberId)로 사용자별 스코프가 걸린다. 따라서 authApi의 authFetch를
+ * 그대로 재사용해 Authorization 헤더 첨부 + 401 refresh 재시도 인프라를 공유한다.
+ *
+ * 주의: backend-book은 도서의 색상/두께(시각 정보)를 저장하지 않는다.
+ *       해당 값은 프론트에서 bookVisuals(localStorage)로 임시 보관한다(후속 티켓에서
+ *       백엔드 DB 필드 추가 시 이관).
+ */
+
+import { authFetch } from './authApi';
+
+// ── 상태 매핑: 프론트 한글 상태 ↔ 백엔드 ReadingStatus enum ──
+// 백엔드는 PLANNED / READING / COMPLETED 3가지만 지원한다.
+// '잠시 멈춤'은 대응 enum이 없어 READING으로 매핑한다(백엔드에 PAUSED 추가되면 조정).
+const STATUS_TO_READING = {
+  시작전: 'PLANNED',
+  읽는중: 'READING',
+  '읽는 중': 'READING',
+  '잠시 멈춤': 'READING',
+  완독: 'COMPLETED',
+};
+
+const READING_TO_STATUS = {
+  PLANNED: '시작전',
+  READING: '읽는 중',
+  COMPLETED: '완독',
+};
+
+export function toReadingStatus(krStatus) {
+  return STATUS_TO_READING[krStatus] || 'PLANNED';
+}
+
+export function toKoreanStatus(readingStatus) {
+  return READING_TO_STATUS[readingStatus] || '시작전';
+}
+
+// ── 도서 ──
+
+/**
+ * 내 서재의 모든 도서를 조회한다(페이지네이션 전체 순회, 최대 페이지 크기 100).
+ * @returns {Promise<Array>} LibraryBookSummary 배열
+ */
+export async function listLibraryBooks() {
+  const size = 100;
+  let page = 0;
+  const all = [];
+  for (; ;) {
+    const res = await authFetch(`/library/books?page=${page}&size=${size}`);
+    if (Array.isArray(res?.books)) all.push(...res.books);
+    const totalPages = res?.totalPages ?? 1;
+    if (page + 1 >= totalPages) break;
+    page += 1;
+  }
+  return all;
+}
+
+/**
+ * ISBN으로 도서 정보 조회 (backend-book BookDiscoveryController).
+ *
+ * GET /api/v1/books/search?isbn=... → { alreadyRegistered, libraryBook, book }
+ *  - alreadyRegistered=true : 이미 내 서재에 있는 책. libraryBook(LibraryBookDetailResponse)이 온다.
+ *  - alreadyRegistered=false: 알라딘 조회 결과 book(ExternalBook). 어디에도 없으면 book도 null.
+ *
+ * 두 DTO 모두 title/author/isbn/publisher/totalPages/coverUrl을 갖고 있어 하나로 합쳐
+ * 돌려준다(장르·bookId는 서재 도서에만 있다).
+ *
+ * @param {string} isbn - 하이픈 없는 ISBN 문자열
+ * @returns {Promise<{alreadyRegistered: boolean, bookId: any, book: object|null}>}
+ */
+export async function searchBookByIsbn(isbn) {
+  const res = await authFetch(`/books/search?isbn=${encodeURIComponent(isbn)}`);
+
+  return {
+    alreadyRegistered: Boolean(res?.alreadyRegistered),
+    bookId: res?.libraryBook?.bookId ?? null,
+    book: normalizeBookInfo(res?.libraryBook ?? res?.book, isbn),
+  };
+}
+
+/**
+ * 도서 조회 결과를 등록 화면이 쓰는 형태로 정규화한다.
+ *
+ * 같은 모양의 데이터가 두 경로로 들어온다 — 프론트가 부른 /books/search 응답과,
+ * backend-record가 /ocr/covers 안에서 대신 조회해 함께 내려주는 book 필드다.
+ * 둘 다 backend-book의 DTO라 필드가 같으므로 여기 한 곳에서 처리한다.
+ *
+ * @param {object|null|undefined} found - LibraryBookDetailResponse 또는 ExternalBook
+ * @param {string} [fallbackIsbn] - 응답에 isbn이 없을 때 채울 값
+ * @returns {object|null}
+ */
+export function normalizeBookInfo(found, fallbackIsbn = '') {
+  if (!found) return null;
+
+  return {
+    title: found.title ?? '',
+    author: found.author ?? '',
+    isbn: found.isbn ?? fallbackIsbn,
+    publisher: found.publisher ?? null,
+    publishedDate: found.publishedDate ?? null,
+    totalPages: found.totalPages ?? null,
+    coverUrl: found.coverUrl ?? null,
+    // 서재에 있는 책이면 저장된 장르를 그대로 쓸 수 있다 (알라딘 결과엔 없음).
+    genre: found.genre ?? null,
+  };
+}
+
+/**
+ * 도서 상세 조회 (목록엔 없는 currentPage/totalPages/isbn 등 포함).
+ */
+export function getLibraryBook(bookId) {
+  return authFetch(`/library/books/${bookId}`);
+}
+
+/**
+ * 도서 등록. shelfId 미전달 시 백엔드가 기본 책장에 자동 배치한다.
+ * 색상/두께 등 시각 정보는 백엔드가 저장하지 않으므로 전송하지 않는다.
+ *
+ * genre는 선택 필드로, 미전달 시 'NONE'(미지정)으로 저장된다 (CLIAR-241).
+ * 알라딘 검색은 장르를 주지 않으므로 값은 backend-discovery의 분류 API
+ * (genreApi.classifyGenre) 결과나 사용자가 고른 값을 넘긴다.
+ */
+export function createLibraryBook({
+  title,
+  author,
+  totalPages = null,
+  readingStatus = 'PLANNED',
+  genre = 'NONE',
+}) {
+  return authFetch('/library/books', {
+    method: 'POST',
+    body: {
+      title,
+      author,
+      isbn: null,
+      genre,
+      publisher: null,
+      publishedDate: null,
+      totalPages,
+      coverUrl: null,
+      readingStatus,
+      shelfId: null,
+    },
+  });
+}
+
+/**
+ * 도서 메타데이터 수정. backend-book PATCH는 전체 페이로드를 요구하므로
+ * 호출부가 기존 상세값 + 변경값을 합쳐 전달해야 한다.
+ */
+export function updateLibraryBookMeta(bookId, meta) {
+  const {
+    title,
+    author,
+    isbn = null,
+    genre = 'NONE',
+    publisher = null,
+    publishedDate = null,
+    coverUrl = null,
+    readingStatus = 'PLANNED',
+    totalPages = null,
+  } = meta;
+  return authFetch(`/library/books/${bookId}`, {
+    method: 'PATCH',
+    body: { title, author, isbn, genre, publisher, publishedDate, coverUrl, readingStatus, totalPages },
+  });
+}
+
+/**
+ * 독서 진행도(현재 페이지) 갱신.
+ */
+export function updateReadingProgress(bookId, currentPage, totalPages = null) {
+  return authFetch(`/library/books/${bookId}/progress`, {
+    method: 'PATCH',
+    body: { currentPage, totalPages },
+  });
+}
+
+export function deleteLibraryBook(bookId) {
+  return authFetch(`/library/books/${bookId}`, { method: 'DELETE' });
+}
+
+// ── 문장수집(scrap) ──
+
+/**
+ * 문장 목록 조회 기본 페이지 크기 (CLIAR-241).
+ * backend-book의 기본값과 동일하게 20개씩 가져온다.
+ */
+export const SCRAP_PAGE_SIZE = 20;
+
+export function getScrap(scrapId) {
+  return authFetch(`/library/scraps/${scrapId}`);
+}
+
+/**
+ * 특정 도서의 문장 목록을 페이지 단위로 조회한다 (CLIAR-241).
+ *
+ * backend-book의 GET /library/books/{bookId}/scraps는 page/size(기본 20, 최대 100)
+ * 페이징을 지원하고 createdAt 오름차순으로 정렬해 준다. 응답의 ScrapSummary에는
+ * memo가 없으므로(상세 조회 전용) 이 함수는 요청 1회로 끝나며, memo가 필요한
+ * 호출부가 별도로 getScrap을 호출해 채운다.
+ *
+ * @param {number|string} bookId
+ * @param {object} [options]
+ * @param {number} [options.page=0] - 0-based 페이지 번호
+ * @param {number} [options.size=20] - 페이지 크기 (백엔드 허용 범위 1~100)
+ * @returns {Promise<{scraps: Array, page: number, size: number, totalElements: number, totalPages: number}>}
+ */
+export function listScrapsPage(bookId, { page = 0, size = SCRAP_PAGE_SIZE } = {}) {
+  return authFetch(`/library/books/${bookId}/scraps?page=${page}&size=${size}`);
+}
+
+/**
+ * 특정 도서의 문장 목록 조회.
+ * 목록(ScrapSummary)에는 memo가 없어, memo까지 필요하므로 각 scrap 상세를 함께 조회한다.
+ * (문장 개수가 많지 않은 개인 서재 특성상 허용. 후속에 목록 응답에 memo 포함 시 최적화)
+ * @returns {Promise<Array<{scrapId, sentence, pageNumber, memo}>>}
+ */
+export async function listScraps(bookId) {
+  const size = 100;
+  let page = 0;
+  const summaries = [];
+  for (; ;) {
+    const res = await authFetch(`/library/books/${bookId}/scraps?page=${page}&size=${size}`);
+    if (Array.isArray(res?.scraps)) summaries.push(...res.scraps);
+    const totalPages = res?.totalPages ?? 1;
+    if (page + 1 >= totalPages) break;
+    page += 1;
+  }
+  return Promise.all(summaries.map((s) => getScrap(s.scrapId)));
+}
+
+/**
+ * 문장 스크랩 생성.
+ * backend-book은 scrapImageUrl을 필수(non-blank)로 요구한다. 스크랩 원본 이미지는
+ * backend-record가 OCR 시 S3에 업로드해 URL을 만들어 주므로, 그 URL을 그대로 넘긴다.
+ */
+export function createScrap(bookId, { sentence, pageNumber = null, memo = null, scrapImageUrl }) {
+  return authFetch(`/library/books/${bookId}/scraps`, {
+    method: 'POST',
+    body: { sentence, pageNumber, scrapImageUrl, memo },
+  });
+}
+
+/**
+ * 문장 스크랩 수정. PATCH도 scrapImageUrl을 필수로 요구하므로,
+ * 호출부가 기존 스크랩의 scrapImageUrl을 함께 전달해야 한다.
+ */
+export function updateScrap(scrapId, { sentence, pageNumber = null, memo = null, scrapImageUrl }) {
+  return authFetch(`/library/scraps/${scrapId}`, {
+    method: 'PATCH',
+    body: { sentence, pageNumber, scrapImageUrl, memo },
+  });
+}
+
+export function deleteScrap(scrapId) {
+  return authFetch(`/library/scraps/${scrapId}`, { method: 'DELETE' });
+}

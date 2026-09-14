@@ -1,0 +1,29 @@
+# 이미지 원본(고해상도 소스). 배포 산출물이 아니며 WebP로 변환해 사용하므로 추적하지 않는다.
+# 커서/프로필 에셋을 다시 만들 때 필요한 원본을 로컬에 보관하는 용도.
+design-src/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 고해상도 커서 원본은 리사이즈 후 커밋됨 (300x300px, ~47KB)
