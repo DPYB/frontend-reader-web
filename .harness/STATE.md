@@ -10,3 +10,4 @@
 - DPYB 조직 듀얼 백엔드(`backend-core-api`, `backend-ai-agent`) 프록시 개편
 - DPYB 바이브 코딩 하네스(`.harness/`, `AGENTS.md`) 및 워크플로우 구성
 - DPYB 컨벤션 분할 커밋 및 `develop` 브랜치 최초 원격 푸시 완료
+- 개발 단계용 인증 우회 스위치(`VITE_AUTH_BYPASS`) 도입 — dev에서 로그인 무조건 통과
