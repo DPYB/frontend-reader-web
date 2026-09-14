@@ -10,6 +10,7 @@ import {
   getMe,
 } from '../api/authApi';
 import { clearChatSession } from './librarianStore';
+import { AUTH_BYPASS, BYPASS_MEMBER } from './authBypass';
 
 /**
  * 인증 전역 상태 (CLIAR-163).
@@ -23,7 +24,8 @@ import { clearChatSession } from './librarianStore';
  */
 export function AuthProvider({ children }) {
   const [member, setMember] = useState(null);
-  const [status, setStatus] = useState('loading');
+  // 우회 모드에서는 복원할 세션이 없으므로 'loading' 없이 로그인 화면부터 시작한다.
+  const [status, setStatus] = useState(AUTH_BYPASS ? 'unauthenticated' : 'loading');
 
   // refresh 실패(세션 만료) 시 상태 초기화
   useEffect(() => {
@@ -37,6 +39,8 @@ export function AuthProvider({ children }) {
 
   // 세션 시작 시 access_token 복원 시도 (refresh 쿠키 기반)
   useEffect(() => {
+    // 개발용 우회 모드: 백엔드 호출 없이 로그인 화면에서 대기
+    if (AUTH_BYPASS) return;
     let cancelled = false;
     (async () => {
       const refreshed = await refreshAccessToken();
@@ -64,6 +68,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async ({ email, password }) => {
+    // 개발용 우회 모드: 입력값과 무관하게 가짜 회원으로 즉시 통과
+    if (AUTH_BYPASS) {
+      const data = { member: { ...BYPASS_MEMBER, email: email || BYPASS_MEMBER.email } };
+      setMember(data.member);
+      setStatus('authenticated');
+      return data;
+    }
     const data = await apiLogin({ email, password });
     setMember(data?.member ?? null);
     setStatus('authenticated');
@@ -71,7 +82,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await apiLogout();
+    // 우회 모드에서는 서버 세션이 없으므로 로컬 상태만 정리한다.
+    if (!AUTH_BYPASS) await apiLogout();
     clearChatSession();
     setMember(null);
     setStatus('unauthenticated');

@@ -186,3 +186,19 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   z-index: 10;
 }
+
+/* 개발용 인증 우회 안내 배지 (화면 좌측 상단) */
+.login-dev-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(42, 24, 9, 0.8);
+  color: #ffd9a0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  pointer-events: none;
+  z-index: 10;
+}
