@@ -20,13 +20,30 @@
   line-height: 1.6;
 }
 
-/* 사서가 추가되면 자동으로 열이 늘어나는 그리드 */
+/*
+ * 카드 4개가 항상 한 줄에 나란히 놓이고, 5번째부터 다음 줄로 내려가는 고정 4열 그리드.
+ * (기존 auto-fill은 뷰포트 폭에 따라 열 수가 유동적이라 4개째부터 줄바꿈이 보장되지 않았다)
+ * 좁은 화면에서는 미디어 쿼리로 2열 → 1열로 줄여 카드 내용(성격·독서 성향 등 긴 문단)이
+ * 눌리지 않게 한다.
+ */
 .lp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1180px;
+}
+
+@media (max-width: 1024px) {
+  .lp-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .lp-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .lp-card {
@@ -155,6 +172,28 @@
   border-color: var(--accent);
 }
 
+/* MBTI + 한 줄 소개 */
+.lp-oneliner {
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.lp-mbti {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
 /* 메타 정보 */
 .lp-meta {
   width: 100%;
@@ -183,6 +222,47 @@
   margin: 0;
   text-align: right;
   line-height: 1.5;
+}
+
+/* 성격/독서 성향/말투·행동 (기획 페르소나 문서) */
+.lp-persona {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.lp-persona-row dt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.lp-persona-row dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.55;
+  text-align: left;
+}
+
+/* 페르소나 핵심 문장 */
+.lp-catchphrase {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
 }
 
 /* 선택 버튼 */

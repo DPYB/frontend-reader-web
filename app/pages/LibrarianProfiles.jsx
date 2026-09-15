@@ -88,6 +88,14 @@ export default function LibrarianProfiles() {
                 )}
               </div>
 
+              {/* MBTI + 한 줄 소개 */}
+              {(lib.mbti || lib.oneLiner) && (
+                <p className="lp-oneliner">
+                  {lib.mbti && <span className="lp-mbti">{lib.mbti}</span>}
+                  {lib.oneLiner}
+                </p>
+              )}
+
               <dl className="lp-meta">
                 <div className="lp-meta-row">
                   <dt>종</dt>
@@ -102,6 +110,33 @@ export default function LibrarianProfiles() {
                   <dd>{lib.persona}</dd>
                 </div>
               </dl>
+
+              {/* 성격/독서 성향/말투·행동 (기획 페르소나 문서 반영) */}
+              {(lib.personality || lib.readingStyle || lib.speechStyle) && (
+                <dl className="lp-persona">
+                  {lib.personality && (
+                    <div className="lp-persona-row">
+                      <dt>성격</dt>
+                      <dd>{lib.personality}</dd>
+                    </div>
+                  )}
+                  {lib.readingStyle && (
+                    <div className="lp-persona-row">
+                      <dt>독서 성향</dt>
+                      <dd>{lib.readingStyle}</dd>
+                    </div>
+                  )}
+                  {lib.speechStyle && (
+                    <div className="lp-persona-row">
+                      <dt>말투·행동</dt>
+                      <dd>{lib.speechStyle}</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+
+              {/* 페르소나 핵심 문장 */}
+              {lib.catchphrase && <p className="lp-catchphrase">“{lib.catchphrase}”</p>}
 
               <button
                 className="lp-select-btn"

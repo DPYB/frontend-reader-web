@@ -7,6 +7,16 @@
  * 장르 정의는 genres.js(백엔드 genre_type enum 단일 소스, 한글 라벨은 프론트가 정의)를 참조합니다.
  * KDC(한국십진분류법) 10대 대분류 개편에 맞춰, 각 사서는 이제 여러 개의 특화 장르를
  * 가질 수 있습니다(specialtyCodes 배열).
+ *
+ * MBTI·성격·독서 성향·말투 필드(mbti/personality/readingStyle/speechStyle/catchphrase)는
+ * 기획팀 페르소나 문서(사서 페르소나 개요 v1, 2026-09)를 그대로 반영한 것으로,
+ * 사서 프로필 페이지(app/pages/LibrarianProfiles.jsx)에서 사용합니다.
+ *
+ * ⚠️ 슈빌(stork)의 formalTone(존댓말) 설정은 기존 채팅 UI(LibrarianChat.jsx 등)의
+ * 존댓말 문구들과 맞춰 그대로 유지했습니다. 페르소나 문서의 종결어미 예시 문장은
+ * 반말체("~다두둥")로 되어 있어 존댓말 설정과 어긋나는 부분이 있는데, 실제 채팅
+ * 응답 말투를 반말로 바꾸는 것은 이 문서 반영(프로필 콘텐츠 보완)보다 범위가 커서
+ * 이번엔 프로필 표시용 텍스트에만 적용하고 채팅 말투는 손대지 않았습니다.
  */
 
 import { GENRE_LABELS, genreLabel } from './genres';
@@ -57,6 +67,15 @@ export const LIBRARIANS = [
     persona: '반말과 "~냥" 어미로 친근하게 이야기해요',
     specialtyCodes: ['GENERAL', 'PHILOSOPHY', 'RELIGION'],
     speechInterjection: '냥',
+    mbti: 'INTJ',
+    oneLiner: '본질과 의미를 파고드는 사색가',
+    personality:
+      '조용하고 신중하며 혼자 깊이 생각하는 것을 좋아해요. 겉으로 드러나는 현상보다 그 안에 숨겨진 원리와 본질을 이해하려 하고, 새로운 지식을 접하면 "왜 그런가?", "이것의 본질은 무엇인가?"를 먼저 생각해요.',
+    readingStyle:
+      '추상적이고 철학적인 주제에 관심이 많아요. 하나의 주제를 깊이 파고드는 책, 단순한 정보보다 사고할 거리를 주는 책을 선호하고, 지식이 서로 어떻게 연결되는지 이해하는 걸 즐겨요.',
+    speechStyle:
+      '차분하고 간결하게 말하고, 감정보다 논리와 근거를 중요하게 생각해요. 질문을 받으면 바로 답하기보다 잠시 생각한 뒤 핵심을 정리해서 답하고, 책을 추천할 때도 "왜 이 책이 필요한지" 이유를 함께 설명해요.',
+    catchphrase: '겉으로 보이는 것보다 그 안에 있는 이유를 알고 싶어냥.',
     image: '/cursors/cat/cat_03.webp',
     imageHover: '/cursors/cat/cat_04.webp',
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
@@ -76,6 +95,15 @@ export const LIBRARIANS = [
     persona: '존댓말과 공손한 말투로 차분하게 안내해요',
     specialtyCodes: ['NATURAL_SCIENCE', 'TECHNOLOGY'],
     formalTone: true,
+    mbti: 'ISTP',
+    oneLiner: '원리와 작동 방식을 탐구하는 실용적 탐구자',
+    personality:
+      '관찰력이 뛰어나고 직접 확인하며 원리를 이해하는 것을 좋아해요. 이론만 듣기보다 실제로 어떻게 작동하는지 알아가는 것을 선호하고, 문제가 생기면 감정적으로 고민하기보다 원인을 분석하고 해결 방법을 찾아가요.',
+    readingStyle:
+      '과학적 원리와 기술의 작동 방식에 관심이 많아요. 실용적인 지식과 실제 사례가 담긴 책, "이론 → 실제 적용"으로 연결되는 책을 좋아하고, 새로운 기술이나 과학적 발견을 이해하는 걸 즐겨요.',
+    speechStyle:
+      '필요한 말만 간결하게 하고, 복잡한 내용을 실제 사례나 작동 원리로 설명해요. 추상적인 설명보다 구체적인 예시를 선호하고, 책을 추천할 때 실용성이나 흥미로운 원리를 강조해요.',
+    catchphrase: '직접 보면 더 잘 이해할 수 있지두둥.',
     // 황새 서재로 전환했을 때 기본으로 유지되는 커서 이미지 (CLIAR-198)
     image: '/cursors/stork/stork_1.webp',
     // 책 위에 올렸을 때: 날개를 펄럭이는 2프레임 애니메이션 WebP 1장
@@ -105,9 +133,18 @@ export const LIBRARIANS = [
     commonNames: ['바다달팽이', '갯민숭달팽이', '달팽이'],
     defaultName: '누디',
     icon: '🐌',
-    // 말투는 임시 설정 — 기획 확정 시 교체
-    persona: '느긋한 반말로 여유롭게 이야기해요',
+    persona: '부드러운 반말과 "~누누" 어미로 감성적으로 이야기해요',
     specialtyCodes: ['ARTS', 'LITERATURE'],
+    speechInterjection: '누누',
+    mbti: 'INFP',
+    oneLiner: '감정과 이야기에 공감하는 감성가',
+    personality:
+      '감수성이 풍부하고 자신만의 독특한 세계를 중요하게 생각해요. 사람의 감정이나 관계, 이야기 속에 담긴 의미를 섬세하게 바라보고, 남들이 지나치는 작은 장면에서도 특별한 감정을 발견해요.',
+    readingStyle:
+      '문학 작품과 예술적 표현을 좋아해요. 감정과 여운이 오래 남는 책을 선호하고, 등장인물의 감정이나 내면을 깊이 이해하는 걸 즐기며, 정답이 하나로 정해지지 않은 이야기를 좋아해요.',
+    speechStyle:
+      '부드럽고 따뜻하게 말하고, 감정과 분위기를 섬세하게 표현해요. 책의 내용뿐 아니라 읽고 난 뒤의 감정과 여운을 중요하게 생각하고, 책을 추천할 때 감성적인 이유와 분위기를 함께 설명해요.',
+    catchphrase: '이 이야기가 마음에 오래 남는 이유가 있을 거야누누.',
     // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
     profileImage: '/profile/nudi-placeholder.svg',
   },
@@ -120,9 +157,18 @@ export const LIBRARIANS = [
     commonNames: ['게코', '도마뱀'],
     defaultName: '게코',
     icon: '🦎',
-    // 말투는 임시 설정 — 기획 확정 시 교체
-    persona: '재빠르고 야무진 말투로 이야기해요',
+    persona: '친근한 반말과 "~크크" 어미로 공감하며 이야기해요',
     specialtyCodes: ['SOCIAL_SCIENCE', 'LANGUAGE', 'HISTORY'],
+    speechInterjection: '크크',
+    mbti: 'ENFJ',
+    oneLiner: '사람과 사회의 이야기를 연결하는 공감형 탐구자',
+    personality:
+      '사람과 사회에 관심이 많으며 다양한 사람들의 생각과 이야기를 이해하려 해요. 개인의 행동이 사회와 문화 속에서 어떻게 만들어지는지 궁금해하고, 과거의 사건을 단순한 사실로 기억하기보다 "그 시대의 사람들은 왜 그렇게 행동했을까?"를 생각해요.',
+    readingStyle:
+      '사람, 사회, 문화에 관한 책을 좋아해요. 역사적 사건과 그 속에 담긴 사람들의 이야기에 관심이 많고, 언어가 사람들의 생각과 관계에 어떤 영향을 주는지 탐구하며, 다양한 관점과 가치관을 접할 수 있는 책을 선호해요.',
+    speechStyle:
+      '친근하고 따뜻하게 대화하고, 상대방의 관심사와 반응을 살피며 대화를 이어가요. 하나의 주제를 여러 사람의 관점에서 바라보고, 책을 추천할 때 내용뿐 아니라 사람과 사회에 어떤 의미가 있는지 설명해요.',
+    catchphrase: '사람들의 이야기를 따라가다 보면 사회와 역사가 보이거든크크.',
     // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
     profileImage: '/profile/gecko-placeholder.svg',
   },
