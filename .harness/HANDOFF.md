@@ -106,3 +106,21 @@
   `app/pages/LibrarianProfiles.jsx`(말투 행·MBTI 배지 제거, 아코디언 도입),
   `app/pages/LibrarianProfiles.css`(`.lp-mbti` 제거, `.lp-details`/`.lp-details-summary` 추가)
 - `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+
+## 2026-09-15: 독서 리포트 라이트 모드 대비 수정 + 구분자 & → 가운뎃점
+- 라이트 모드에서 리포트 카드·월 선택 드롭다운 등이 어둡게 떠 안 보이던 문제 해결:
+  - 원인은 `MonthlyReport.css`가 앱 테마에 없는 `--bg-card` 변수와 다크 계열 하드코딩
+    fallback(`#0f172a`, `#1e293b`, `#334155` 등)을 써서, 라이트 테마에서도 다크 슬레이트
+    색이 그대로 적용된 것
+  - 모든 색을 앱 테마 변수(`--bg`/`--code-bg`/`--border`/`--text`/`--text-h`/`--accent*`)로
+    교체. 표면 위계를 페이지(--bg) < 시트(--code-bg) < 카드(--bg) < 내부 박스(--code-bg)로
+    번갈아 두어 라이트/다크 양쪽에서 카드가 구분되게 함
+  - 월 선택 `<select>`와 `option`에 테마 배경/글자색을 명시(일부 브라우저가 option에 배경을
+    상속하지 않아 라이트에서 흰 바탕+흰 글씨가 되는 것 방지)
+  - `MonthlyReport.jsx`의 인라인 `var(--accent, #818cf8)` fallback도 정리
+  - 사용자가 예시로 든 다크 계열 accent(#10b981/#f59e0b), 버튼 흰 글씨, @media print 블록은
+    의도된 값이라 유지
+- 카드 제목 구분자 " & "를 가운뎃점 " · "로 교체 (03·04·05·07번 카드 4곳)
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+- ⚠️ 브라우저에서 라이트/다크·사서별(고양이/황새 테마) 실제 렌더링 육안 확인은 미완 —
+  코드상 테마 변수로 통일했으나 실제 대비는 화면 확인 권장
