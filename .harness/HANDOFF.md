@@ -22,3 +22,14 @@
 - `npm run lint`, `npm run typecheck`, `npm run build` 검증 완료
 
 **다음 세션 시작 시**: 신규 백엔드 스펙에 맞춘 '사서 토론 모드 UI' 및 '독서 타이머 기능' 와꾸와 연동 작업 착수
+
+**다음 세션 시작 시**: 새 저장소 `DPYB/frontend-reader-web` 원격 연결 후 브랜치 보호 규칙 확인 및 점진적 TypeScript 변환(도메인 타입, API 모듈 순) 착수
+
+## 2026-09-15: 개발 단계용 인증 우회 스위치 도입
+- 인증 백엔드 미연동 상태에서 로그인 화면에 막혀 서재/등록/마이페이지를 확인할 수 없던 문제 해소
+- `app/store/authBypass.js` 신설 — `VITE_AUTH_BYPASS`(true/false/미설정) 판정과 가짜 회원(`BYPASS_MEMBER`) 정의
+- `AuthProvider`: 우회 시 refresh 복원 스킵, `login()`은 API 호출 없이 즉시 authenticated, `logout()`은 로컬 상태만 정리
+- `LoginPage`: 우회 시 이메일/비밀번호 입력 검증 없이 로그인 버튼 활성화 + 좌측 상단에 개발 모드 배지 표시
+- 기본값을 `import.meta.env.DEV`로 두어 프로덕션 빌드에는 우회가 실리지 않도록 방어
+
+**다음 세션 시작 시**: 인증 백엔드 연동이 끝나면 `BACKLOG.md`의 우회 제거 항목을 처리(`authBypass.js` 및 분기 삭제)

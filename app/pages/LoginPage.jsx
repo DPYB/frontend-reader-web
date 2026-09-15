@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
+import { AUTH_BYPASS } from '../store/authBypass';
 import { ApiError } from '../api/authApi';
 import './LoginPage.css';
 
@@ -89,7 +90,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isLoginEnabled = email.trim().length > 0 && userPw.trim().length > 0 && !loading;
+  // 개발용 우회 모드에서는 입력값 없이도 로그인 버튼이 눌리도록 검증을 건너뛴다.
+  const isLoginEnabled =
+    !loading && (AUTH_BYPASS || (email.trim().length > 0 && userPw.trim().length > 0));
 
   const handleEyeClick = useCallback(() => {
     setEyeActive(true);
@@ -242,6 +245,13 @@ export default function LoginPage() {
 
       {/* 로그인 에러 메시지 */}
       {error && <div className="login-error">{error}</div>}
+
+      {/* 개발용 인증 우회 안내 (실제 로그인 연동 시 사라짐) */}
+      {AUTH_BYPASS && (
+        <div className="login-dev-badge">
+          개발 모드: 아무 값으로도 로그인됩니다 🐾
+        </div>
+      )}
     </div>
   );
 }

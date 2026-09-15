@@ -5,3 +5,4 @@
 - [ ] 3D 서재 렌더링 번들 사이즈 최적화 (Three.js dynamic import 코드 스플리팅)
 - [ ] PWA(Progressive Web App) 오프라인 캐싱 및 설치 지원 검토
 - [ ] ESLint React 19 호환 룰셋 미세 조정 (set-state-in-effect warning 정리)
+- [ ] 개발용 인증 우회 제거 — 인증 백엔드 연동 완료 후 `app/store/authBypass.js`와 `AuthProvider`/`LoginPage` 분기, `VITE_AUTH_BYPASS` 삭제
