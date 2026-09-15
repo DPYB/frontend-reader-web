@@ -88,13 +88,8 @@ export default function LibrarianProfiles() {
                 )}
               </div>
 
-              {/* MBTI + 한 줄 소개 */}
-              {(lib.mbti || lib.oneLiner) && (
-                <p className="lp-oneliner">
-                  {lib.mbti && <span className="lp-mbti">{lib.mbti}</span>}
-                  {lib.oneLiner}
-                </p>
-              )}
+              {/* 한 줄 소개 */}
+              {lib.oneLiner && <p className="lp-oneliner">{lib.oneLiner}</p>}
 
               <dl className="lp-meta">
                 <div className="lp-meta-row">
@@ -105,29 +100,31 @@ export default function LibrarianProfiles() {
                   <dt>특화 장르</dt>
                   <dd>{genreLabelForLibrarian(lib)}</dd>
                 </div>
-                <div className="lp-meta-row">
-                  <dt>말투</dt>
-                  <dd>{lib.persona}</dd>
-                </div>
               </dl>
 
-              {/* 성격/독서 성향 (기획 페르소나 문서 반영). 말투·행동 설명 문단은 빼고,
-                  아래 catchphrase(대표 어미 예시 문장)만 노출한다 (사용자 요청, 2026-09) */}
+              {/*
+                성격/독서 성향 (기획 페르소나 문서 반영)은 문단이 길어 카드가 과도하게
+                늘어나므로 <details>로 접어 둔다 (사용자 요청, 2026-09). 기본은 닫힌 상태이며
+                <summary> 클릭으로 펼친다. 네이티브 엘리먼트라 별도 상태 관리가 필요 없다.
+              */}
               {(lib.personality || lib.readingStyle) && (
-                <dl className="lp-persona">
-                  {lib.personality && (
-                    <div className="lp-persona-row">
-                      <dt>성격</dt>
-                      <dd>{lib.personality}</dd>
-                    </div>
-                  )}
-                  {lib.readingStyle && (
-                    <div className="lp-persona-row">
-                      <dt>독서 성향</dt>
-                      <dd>{lib.readingStyle}</dd>
-                    </div>
-                  )}
-                </dl>
+                <details className="lp-details">
+                  <summary className="lp-details-summary">성격 · 독서 성향 보기</summary>
+                  <dl className="lp-persona">
+                    {lib.personality && (
+                      <div className="lp-persona-row">
+                        <dt>성격</dt>
+                        <dd>{lib.personality}</dd>
+                      </div>
+                    )}
+                    {lib.readingStyle && (
+                      <div className="lp-persona-row">
+                        <dt>독서 성향</dt>
+                        <dd>{lib.readingStyle}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </details>
               )}
 
               {/* 페르소나 핵심 문장(말투 예시) */}

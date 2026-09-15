@@ -172,26 +172,13 @@
   border-color: var(--accent);
 }
 
-/* MBTI + 한 줄 소개 */
+/* 한 줄 소개 */
 .lp-oneliner {
   width: 100%;
   text-align: center;
   font-size: 15px;
   color: var(--text);
   line-height: 1.5;
-}
-
-.lp-mbti {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  color: var(--text-h);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 /* 메타 정보 */
@@ -224,15 +211,52 @@
   line-height: 1.5;
 }
 
-/* 성격/독서 성향 (기획 페르소나 문서) */
+/*
+ * 성격/독서 성향 아코디언 (기획 페르소나 문서). 문단이 길어 카드가 늘어나는 걸
+ * 막기 위해 <details>로 접어 두고 기본은 닫힌 상태로 시작한다.
+ */
+.lp-details {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.lp-details-summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  padding: 4px 0;
+  /* 브라우저 기본 화살표 마커를 지우고 아래 커스텀 화살표로 대체 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.lp-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 펼침 상태를 나타내는 화살표. details[open]일 때 180도 회전한다 */
+.lp-details-summary::after {
+  content: '▾';
+  font-size: 12px;
+  transition: transform 0.15s;
+}
+
+.lp-details[open] .lp-details-summary::after {
+  transform: rotate(180deg);
+}
+
 .lp-persona {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 0;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
+  margin: 8px 0 0;
 }
 
 .lp-persona-row dt {

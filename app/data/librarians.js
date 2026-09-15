@@ -8,10 +8,12 @@
  * KDC(한국십진분류법) 10대 대분류 개편에 맞춰, 각 사서는 이제 여러 개의 특화 장르를
  * 가질 수 있습니다(specialtyCodes 배열).
  *
- * MBTI·성격·독서 성향·말투 필드(mbti/personality/readingStyle/catchphrase)는
- * 기획팀 페르소나 문서(사서 페르소나 개요 v1, 2026-09)를 그대로 반영한 것으로,
- * 사서 프로필 페이지(app/pages/LibrarianProfiles.jsx)에서 사용합니다.
- * (말투·행동 설명 문단은 프로필에서 빼고, 대표 어미 예시 문장인 catchphrase만 노출합니다)
+ * 페르소나 필드(oneLiner/personality/readingStyle/catchphrase)는 기획팀 페르소나
+ * 문서(사서 페르소나 개요 v1, 2026-09)를 반영한 것으로, 사서 프로필 페이지
+ * (app/pages/LibrarianProfiles.jsx)에서 사용합니다.
+ * (MBTI, 말투·행동 설명 문단(persona/speechStyle)은 프로필에서 노출하지 않습니다. 대표
+ * 어미 예시 문장인 catchphrase만 노출하고, 성격/독서 성향은 문단이 길어 <details>
+ * 아코디언으로 접어 둡니다 — 사용자 요청, 2026-09)
  *
  * 종결어미(speechInterjection)는 "~냥"처럼 단어에 바로 붙이지 않고 "무슨 책을 읽고
  * 있어 냥?"처럼 앞말과 띄어 씁니다. catchphrase를 포함한 모든 어미 예시 문구가
@@ -72,7 +74,6 @@ export const LIBRARIANS = [
     persona: '반말과 "~냥" 어미로 친근하게 이야기해요',
     specialtyCodes: ['GENERAL', 'PHILOSOPHY', 'RELIGION'],
     speechInterjection: '냥',
-    mbti: 'INTJ',
     oneLiner: '본질과 의미를 파고드는 사색가',
     personality:
       '조용하고 신중하며 혼자 깊이 생각하는 것을 좋아해요. 겉으로 드러나는 현상보다 그 안에 숨겨진 원리와 본질을 이해하려 하고, 새로운 지식을 접하면 "왜 그런가?", "이것의 본질은 무엇인가?"를 먼저 생각해요.',
@@ -98,7 +99,6 @@ export const LIBRARIANS = [
     persona: '존댓말과 공손한 말투로 차분하게 안내해요',
     specialtyCodes: ['NATURAL_SCIENCE', 'TECHNOLOGY'],
     formalTone: true,
-    mbti: 'ISTP',
     oneLiner: '원리와 작동 방식을 탐구하는 실용적 탐구자',
     personality:
       '관찰력이 뛰어나고 직접 확인하며 원리를 이해하는 것을 좋아해요. 이론만 듣기보다 실제로 어떻게 작동하는지 알아가는 것을 선호하고, 문제가 생기면 감정적으로 고민하기보다 원인을 분석하고 해결 방법을 찾아가요.',
@@ -137,7 +137,6 @@ export const LIBRARIANS = [
     persona: '부드러운 반말과 "~누누" 어미로 감성적으로 이야기해요',
     specialtyCodes: ['ARTS', 'LITERATURE'],
     speechInterjection: '누누',
-    mbti: 'INFP',
     oneLiner: '감정과 이야기에 공감하는 감성가',
     personality:
       '감수성이 풍부하고 자신만의 독특한 세계를 중요하게 생각해요. 사람의 감정이나 관계, 이야기 속에 담긴 의미를 섬세하게 바라보고, 남들이 지나치는 작은 장면에서도 특별한 감정을 발견해요.',
@@ -159,7 +158,6 @@ export const LIBRARIANS = [
     persona: '친근한 반말과 "~크크" 어미로 공감하며 이야기해요',
     specialtyCodes: ['SOCIAL_SCIENCE', 'LANGUAGE', 'HISTORY'],
     speechInterjection: '크크',
-    mbti: 'ENFJ',
     oneLiner: '사람과 사회의 이야기를 연결하는 공감형 탐구자',
     personality:
       '사람과 사회에 관심이 많으며 다양한 사람들의 생각과 이야기를 이해하려 해요. 개인의 행동이 사회와 문화 속에서 어떻게 만들어지는지 궁금해하고, 과거의 사건을 단순한 사실로 기억하기보다 "그 시대의 사람들은 왜 그렇게 행동했을까?"를 생각해요.',

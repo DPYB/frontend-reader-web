@@ -94,3 +94,15 @@
   대표 어미 예시 문장인 `catchphrase`만 프로필에 남김 (사용자 요청)
 - `app/pages/LibrarianProfiles.jsx`: 말투·행동 `<dd>` 렌더링 제거
 - `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+
+## 2026-09-15: 사서 프로필 카드 정리 (말투/MBTI 제거, 성격·독서성향 아코디언)
+- 사용자 피드백 반영:
+  - 특화 장르 아래 '말투'(persona) 행 제거 — `persona` 데이터 필드도 사용처가 없어 함께 삭제
+  - MBTI 표시 제거 — 프로필의 MBTI 배지와 `.lp-mbti` 스타일, 각 사서의 `mbti` 데이터 필드 삭제
+    (한 줄 소개 `oneLiner`는 유지)
+  - 성격·독서 성향은 문단이 길어 `<details>`/`<summary>` 네이티브 아코디언으로 접어 둠
+    (기본 닫힘, "성격 · 독서 성향 보기" 클릭 시 펼침). 커스텀 화살표(▾) 마커 스타일 추가
+- 변경 파일: `app/data/librarians.js`(persona·mbti 필드 및 헤더 주석 정리),
+  `app/pages/LibrarianProfiles.jsx`(말투 행·MBTI 배지 제거, 아코디언 도입),
+  `app/pages/LibrarianProfiles.css`(`.lp-mbti` 제거, `.lp-details`/`.lp-details-summary` 추가)
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
