@@ -62,3 +62,23 @@
 맞춘 뒤 `librarians.js`의 `typeCode`를 교체. 누디·게코의 실제 프로필 일러스트·3D 서재 커서
 스프라이트·전용 배경이 나오면 placeholder를 교체하고 `shelfLayout.js`/`LibraryScene.jsx`에
 배치를 추가.
+
+## 2026-09-15: 사서 프로필 페르소나 콘텐츠 보완 + 카드 4열 고정 그리드
+- 기획팀 "사서 페르소나 개요" 문서를 반영해 `app/data/librarians.js`의 각 사서에 필드 추가:
+  `mbti`, `oneLiner`(한 줄 요약), `personality`(성격), `readingStyle`(독서 성향),
+  `speechStyle`(말투·행동), `catchphrase`(페르소나 핵심 문장)
+  - 블루 INTJ(사색가) / 슈빌 ISTP(실용적 탐구자) / 누디 INFP(감성가) / 게코 ENFJ(공감형 탐구자)
+  - 종결어미(`speechInterjection`)도 문서에 맞춰 갱신: 누디 '누누', 게코 '크크' (기존 미지정 → 확정)
+  - ⚠️ 문서의 종결어미 예시 문장은 반말체("~다두둥")인데 슈빌의 기존 `formalTone: true`
+    (존댓말 채팅 UI)와 어긋난다. 이번엔 프로필 표시 텍스트만 반영하고 채팅 응답 말투는
+    건드리지 않았음 — 필요 시 별도 작업으로 슈빌 존댓말 정책을 재검토해야 함
+- `app/pages/LibrarianProfiles.jsx`: MBTI 배지 + 한 줄 소개, 성격/독서 성향/말투·행동 섹션,
+  페르소나 핵심 문장(인용구 스타일)을 카드에 추가 렌더링
+- `app/pages/LibrarianProfiles.css`: 그리드를 `auto-fill`(가변 열)에서 `repeat(4, 1fr)` 고정
+  4열로 변경해 카드 4개가 항상 한 줄에 나란히 놓이고 5번째부터 다음 줄로 내려가도록 함.
+  1024px 이하 2열, 560px 이하 1열 반응형 유지. 새로 추가된 텍스트 섹션에 맞는 스타일
+  (`.lp-oneliner`, `.lp-mbti`, `.lp-persona`, `.lp-catchphrase`) 추가
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+
+**다음 세션 시작 시**: 슈빌의 존댓말(`formalTone`) 정책과 페르소나 문서의 반말 종결어미
+예시가 어긋나는 부분을 기획팀과 재확인 필요.
