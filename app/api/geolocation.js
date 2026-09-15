@@ -81,3 +81,54 @@ export function getUserLocation({ timeout = 15000 } = {}) {
 
   return requestPromise;
 }
+
+/**
+ * Open-Meteo WMO 날씨 코드를 서비스 표준 condition 문자열로 매핑합니다.
+ * ('clear' | 'cloudy' | 'rainy' | 'snowy' | 'stormy' | 'foggy')
+ */
+function wmoCodeToCondition(code) {
+  if (code == null) return null;
+  if (code === 0 || code === 1) return 'clear';
+  if (code === 2 || code === 3) return 'cloudy';
+  if (code === 45 || code === 48) return 'foggy';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rainy';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snowy';
+  if (code >= 95 && code <= 99) return 'stormy';
+  return 'clear';
+}
+
+let cachedWeatherCondition = null;
+
+/**
+ * 사용자 위치 기반으로 현재 날씨 condition 문자열을 조회합니다.
+ * 위치 권한 미허용, 타임아웃, 오프라인 시 null을 반환합니다.
+ *
+ * @returns {Promise<'clear'|'cloudy'|'rainy'|'snowy'|'stormy'|'foggy'|null>}
+ */
+export async function getWeatherCondition() {
+  if (cachedWeatherCondition) {
+    return cachedWeatherCondition;
+  }
+
+  try {
+    const loc = await getUserLocation({ timeout: 5000 });
+    if (!loc || !isValidCoords(loc.latitude, loc.longitude)) {
+      return null;
+    }
+
+    // 클라이언트 사이드 Open-Meteo 경량 조회 (인증 불필요, 1-2초 내 응답)
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=weather_code`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const condition = wmoCodeToCondition(data?.current?.weather_code);
+    if (condition) {
+      cachedWeatherCondition = condition;
+      return condition;
+    }
+    return null;
+  } catch (err) {
+    console.warn('[geolocation] 날씨 조건 조회 실패 (null로 폴백):', err.message);
+    return null;
+  }
+}

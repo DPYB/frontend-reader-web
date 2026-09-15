@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
-import { createOcrSentence } from '../../api/recordApi';
+import { createOcrSentence, createReadingRecord } from '../../api/recordApi';
+import { getWeatherCondition } from '../../api/geolocation';
 import { ApiError } from '../../api/authApi';
 import WebcamCaptureModal from './WebcamCaptureModal';
 import LoadingSequence from '../../components/LoadingSequence';
@@ -131,6 +132,18 @@ export default function SentenceCollectModal({ book, onClose }) {
         await editScrap(editingQuoteId, { text, memo, page, scrapImageUrl: pendingImageUrl });
       } else {
         await addScrap(book.bookId, { text, memo, page, scrapImageUrl: pendingImageUrl });
+        // 신규 문장/감상 기록 작성 시 현재 날씨 condition 획득 후 POST /api/v1/records 연동 (위치 미허용 시 null)
+        try {
+          const weather = await getWeatherCondition();
+          await createReadingRecord({
+            bookId: book.bookId,
+            content: memo ? `${text}\n\n[메모] ${memo}` : text,
+            weather: weather || null,
+          });
+        } catch (recordErr) {
+          // 백엔드 기록 전송 실패는 스크랩 저장을 방해하지 않도록 안전하게 로깅 처리
+          console.warn('[SentenceCollectModal] 독서 기록(날씨 포함) 전송 알림:', recordErr?.message);
+        }
       }
       resetForm();
       await reloadQuotes();

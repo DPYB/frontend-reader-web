@@ -127,3 +127,44 @@ export async function createOcrCover({ imageFile, modelId = null }) {
     raw: res,
   };
 }
+
+/**
+ * 독서 기록(감상문) 작성 API 호출 (POST /api/v1/records).
+ *
+ * @param {object} params
+ * @param {number|string} params.bookId - 대상 서재 도서 ID
+ * @param {string} params.content - 감상문 본문 내용
+ * @param {string|null} [params.weather=null] - 날씨 조건 ('clear', 'rainy', 'cloudy' 등, 미허용 시 null)
+ * @param {number|null} [params.rating=null] - 평점 (1~5)
+ * @param {string|null} [params.title=null] - 감상문 제목 (선택)
+ * @returns {Promise<object>} 생성된 독서 기록 응답
+ */
+export async function createReadingRecord({
+  bookId,
+  content,
+  weather = null,
+  rating = null,
+  title = null,
+}) {
+  return authFetch('/records', {
+    method: 'POST',
+    body: {
+      book_id: bookId,
+      content,
+      weather: weather || null,
+      rating,
+      title,
+    },
+  });
+}
+
+/**
+ * 특정 도서의 독서 기록(감상문) 목록 조회 (GET /api/v1/records?book_id=...).
+ *
+ * @param {number|string} bookId
+ * @returns {Promise<Array>} 독서 기록 목록
+ */
+export async function fetchReadingRecords(bookId) {
+  const query = bookId ? `?book_id=${encodeURIComponent(bookId)}` : '';
+  return authFetch(`/records${query}`);
+}

@@ -10,3 +10,4 @@
 - DPYB 조직 듀얼 백엔드(`backend-core-api`, `backend-ai-agent`) 프록시 개편
 - DPYB 바이브 코딩 하네스(`.harness/`, `AGENTS.md`) 및 워크플로우 구성
 - DPYB 컨벤션 분할 커밋 및 `develop` 브랜치 최초 원격 푸시 완료
+- 월간 독서 리포트 뷰(01~07번 카드 레이아웃), 독서 기록 날씨 조건(`weather`) 전송 및 사서 맞춤형 원클릭 PDF 다운로드 기능 구현
