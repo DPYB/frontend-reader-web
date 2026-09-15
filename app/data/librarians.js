@@ -2,11 +2,11 @@
  * 사서 캐릭터 및 무드 레지스트리.
  * 백엔드(backend-librarian/app/librarian/librarians.py)와 동기화된 데이터입니다.
  *
- * 날씨/시간대/기분 정보는 두 사서 모두 활용 가능 (더 이상 stork만의 전유물이 아님).
- * cat: 반말·"~냥" 어미, 친근하고 사교적. 모든 장르 추천 가능하며 미스터리·스릴러 장르에 특화(더 상세)
- * stork: 존댓말·공손체("~두둥"), 차분하고 정중함. 모든 장르 추천 가능하며 비즈니스·경제 장르에 특화(더 상세)
+ * 날씨/시간대/기분 정보는 모든 사서가 활용 가능합니다.
  *
  * 장르 정의는 genres.js(백엔드 genre_type enum 단일 소스, 한글 라벨은 프론트가 정의)를 참조합니다.
+ * KDC(한국십진분류법) 10대 대분류 개편에 맞춰, 각 사서는 이제 여러 개의 특화 장르를
+ * 가질 수 있습니다(specialtyCodes 배열).
  */
 
 import { GENRE_LABELS, genreLabel } from './genres';
@@ -17,21 +17,46 @@ export const GENRES = GENRE_LABELS;
 // 무드 목록 — 백엔드 curation/mood.py의 무드 enum과 동기화
 export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling', 'calm'];
 
-// 사서 캐릭터 2종 (백엔드 LIBRARIAN_REGISTRY와 1:1 대응)
-// typeCode:      DB librarian_type enum (RUSSIAN_BLUE | SHOEBILL)
-// species:       사서 종(품종) 표시명
-// defaultName:    가입 직후 기본 사서 이름 — 사서 프로필에서 사용자가 변경 가능
-// specialtyCode: 해당 사서가 특히 자세히 다루는 genre_type enum code
+/*
+ * 사서별 3D 서재 진입 시 강조 글로우 색상 (다크/라이트). LibraryScene.jsx의
+ * GLOW_COLOR와 짝을 이루는 참고용 팔레트 — 실제 값은 그 파일에서 관리한다.
+ * 여기 주석으로만 남겨 사서 추가 시 어디를 함께 챙겨야 하는지 표시한다.
+ *   nudi: 핑크/마젠타 계열, gecko: 초록 계열
+ */
+
+// 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY와 대응)
+// typeCode:       DB librarian_type enum
+//   - RUSSIAN_BLUE, SHOEBILL은 백엔드에 이미 등록되어 있음
+//   - SEA_SLUG, GECKO는 임시값이다. 백엔드 librarian_type enum에 아직 없으므로
+//     백엔드 팀과 확정한 뒤 실제 값으로 교체해야 한다 (신규 사서 2종 추가 작업).
+// species:        사서 종(품종) 표시명
+// commonNames:     채팅에서 사서를 부르는 통칭 키워드(품종명과 별개로 쓰는 일상어).
+//                  예: 러시안블루를 '고양이'로, 슈빌을 '황새'로 부르는 경우.
+// defaultName:     가입 직후 기본 사서 이름 — 사서 프로필에서 사용자가 변경 가능
+// specialtyCodes:  해당 사서가 특히 자세히 다루는 genre_type enum code 목록 (KDC 대분류)
+// speechInterjection: 답변 말미에 붙는 사서 고유 감탄사/어미(없으면 미부착)
+// formalTone:      true면 존댓말·격식체 UI 문구(예: LibrarianCursor 말풍선)를 사용
+//
+// ⚠️ 임시 데이터 안내 (누디/게코):
+//   - profileImage는 실제 일러스트가 나오기 전까지 쓰는 placeholder SVG다.
+//   - image/imageHover(3D 서재 커서 스프라이트)는 아직 없어 미지정 상태이며,
+//     LibrarianCursor가 자동으로 icon 이모지로 대체 표시한다.
+//   - 3D 서재 배경/카메라(shelfLayout.js)도 전용 배치가 없어 고양이 서재 배치로
+//     대체 표시된다. 전용 배경 그림과 커서 스프라이트가 준비되면 shelfLayout.js의
+//     CAMERA_BY_LIBRARIAN/SHELVES_BY_LIBRARIAN, LibraryScene.jsx의 BG_SRC 분기,
+//     GLOW_COLOR에 각각 항목을 추가해야 한다.
 export const LIBRARIANS = [
   {
     id: 'cat',
     typeCode: 'RUSSIAN_BLUE',
     name: '블루 사서',
     species: '러시안블루',
+    commonNames: ['고양이'],
     defaultName: '블루',
     icon: '🐱',
     persona: '반말과 "~냥" 어미로 친근하게 이야기해요',
-    specialtyCode: 'MYSTERY_THRILLER',
+    specialtyCodes: ['GENERAL', 'PHILOSOPHY', 'RELIGION'],
+    speechInterjection: '냥',
     image: '/cursors/cat/cat_03.webp',
     imageHover: '/cursors/cat/cat_04.webp',
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
@@ -45,10 +70,12 @@ export const LIBRARIANS = [
     typeCode: 'SHOEBILL',
     name: '슈빌 사서',
     species: '슈빌',
+    commonNames: ['황새'],
     defaultName: '슈빌',
     icon: '🪿',
     persona: '존댓말과 공손한 말투로 차분하게 안내해요',
-    specialtyCode: 'BUSINESS_ECONOMICS',
+    specialtyCodes: ['NATURAL_SCIENCE', 'TECHNOLOGY'],
+    formalTone: true,
     // 황새 서재로 전환했을 때 기본으로 유지되는 커서 이미지 (CLIAR-198)
     image: '/cursors/stork/stork_1.webp',
     // 책 위에 올렸을 때: 날개를 펄럭이는 2프레임 애니메이션 WebP 1장
@@ -68,12 +95,43 @@ export const LIBRARIANS = [
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
     profileImage: '/profile/stork.webp',
   },
+  {
+    id: 'nudi',
+    // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
+    typeCode: 'SEA_SLUG',
+    name: '누디 사서',
+    // 바다달팽이(갯민숭달팽이) — 사용자 요청으로 신규 추가
+    species: '바다달팽이(갯민숭달팽이)',
+    commonNames: ['바다달팽이', '갯민숭달팽이', '달팽이'],
+    defaultName: '누디',
+    icon: '🐌',
+    // 말투는 임시 설정 — 기획 확정 시 교체
+    persona: '느긋한 반말로 여유롭게 이야기해요',
+    specialtyCodes: ['ARTS', 'LITERATURE'],
+    // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
+    profileImage: '/profile/nudi-placeholder.svg',
+  },
+  {
+    id: 'gecko',
+    // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
+    typeCode: 'GECKO',
+    name: '게코 사서',
+    species: '게코',
+    commonNames: ['게코', '도마뱀'],
+    defaultName: '게코',
+    icon: '🦎',
+    // 말투는 임시 설정 — 기획 확정 시 교체
+    persona: '재빠르고 야무진 말투로 이야기해요',
+    specialtyCodes: ['SOCIAL_SCIENCE', 'LANGUAGE', 'HISTORY'],
+    // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
+    profileImage: '/profile/gecko-placeholder.svg',
+  },
 ].map((l) => ({
   ...l,
-  // 특화 장르 한글 라벨 (파생)
-  specialtyGenre: genreLabel(l.specialtyCode),
-  // "○○ 장르 추천" 형태의 표시 문구 (파생)
-  specialty: `${genreLabel(l.specialtyCode)} 장르 추천`,
+  // 특화 장르 한글 라벨 (파생) — 여러 장르는 '·'로 이어붙인다 (예: '총류·철학·종교')
+  specialtyGenre: l.specialtyCodes.map(genreLabel).filter(Boolean).join('·'),
+  // "○○·○○ 장르 추천" 형태의 표시 문구 (파생)
+  specialty: `${l.specialtyCodes.map(genreLabel).filter(Boolean).join('·')} 장르 추천`,
 }));
 
 export const DEFAULT_LIBRARIAN_ID = 'cat';
@@ -83,7 +141,7 @@ export function getLibrarian(id) {
 }
 
 /**
- * 사서의 특화 장르 표시 라벨 ("미스터리·스릴러 장르 추천" → "미스터리·스릴러").
+ * 사서의 특화 장르 표시 라벨 ("총류·철학·종교 장르 추천" → "총류·철학·종교").
  * @param {object} librarian
  * @returns {string}
  */
@@ -93,7 +151,8 @@ export function genreLabelForLibrarian(librarian) {
 
 /**
  * 사서 이름(사용자 지정 이름 포함)이나 캐릭터 키워드로 사서를 찾습니다.
- * 채팅에서 "슈빌 사서", "블루 사서", "황새", "고양이" 등을 입력했을 때 전환 대상을 감지하는 데 사용합니다.
+ * 채팅에서 "슈빌 사서", "블루 사서", "황새", "고양이", "게코" 등을 입력했을 때
+ * 전환 대상을 감지하는 데 사용합니다.
  *
  * @param {string} text - 사용자 입력
  * @param {Record<string,string>} [names] - { [id]: 사용자 지정 이름 }
@@ -104,14 +163,16 @@ export function findLibrarianByKeyword(text, names = {}) {
   if (!t) return null;
 
   for (const lib of LIBRARIANS) {
+    const withoutTitle = lib.name.replace(/\s*사서$/, ''); // '블루 사서' → '블루'
+    const commonNames = lib.commonNames || [];
     const keywords = [
       names[lib.id],
       lib.defaultName,
       lib.name,
       lib.species,
-      lib.name.replace(/\s*사서$/, ''), // '블루 사서' → '블루'
-      lib.id === 'cat' ? '고양이 사서' : '황새 사서',
-      lib.id === 'cat' ? '고양이' : '황새',
+      withoutTitle,
+      ...commonNames,
+      ...commonNames.map((n) => `${n} 사서`),
     ]
       .filter(Boolean)
       .map((k) => k.toLowerCase());
@@ -127,7 +188,9 @@ export function findLibrarianByKeyword(text, names = {}) {
  */
 export function librarianForGenre(genre) {
   return (
-    LIBRARIANS.find((l) => l.specialtyCode === genre || l.specialtyGenre === genre) || null
+    LIBRARIANS.find((l) => l.specialtyCodes.includes(genre)) ||
+    LIBRARIANS.find((l) => l.specialtyGenre.split('·').includes(genre)) ||
+    null
   );
 }
 
