@@ -63,6 +63,7 @@ export default function Gnb() {
             <div className="gnb-menu">
                 <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>내 서재</NavLink>
                 <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>책 등록</NavLink>
+                <NavLink to="/reports" className={({ isActive }) => (isActive ? 'on' : undefined)}>독서 리포트</NavLink>
                 <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'on' : undefined)}>마이페이지</NavLink>
             </div>
 

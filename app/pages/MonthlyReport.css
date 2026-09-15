@@ -1,0 +1,496 @@
+/* ==========================================================================
+   Monthly Report View Layout & Theme Styling
+   와꾸 구조 및 카드 그리드 와이어프레임
+   ========================================================================== */
+
+.report-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 36px 20px 80px;
+  color: var(--text-h, #e2e8f0);
+}
+
+/* Header & Controls */
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border, #334155);
+}
+
+.report-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-title .librarian-badge {
+  font-size: 15px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-bg, rgba(99, 102, 241, 0.15));
+  border: 1px solid var(--accent-border, rgba(99, 102, 241, 0.35));
+  color: var(--accent, #818cf8);
+}
+
+.report-subtitle {
+  font-size: 15px;
+  color: var(--text, #94a3b8);
+  margin: 0;
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-month-select {
+  padding: 8px 12px;
+  background: var(--bg-card, #1e293b);
+  border: 1px solid var(--border, #334155);
+  color: var(--text-h, #f8fafc);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.report-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: var(--accent, #6366f1);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.report-download-btn:hover {
+  opacity: 0.92;
+}
+
+.report-download-btn:active {
+  transform: scale(0.98);
+}
+
+.report-download-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Report Paper/Sheet Area for PDF Capture */
+.report-paper {
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--border, #1e293b);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Section Card Frame */
+.report-card {
+  background: var(--bg-card, #1e293b);
+  border: 1px solid var(--border, #334155);
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.report-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border, #334155);
+}
+
+.report-card-num {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent, #818cf8);
+  background: var(--accent-bg, rgba(99, 102, 241, 0.12));
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.report-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-h, #f8fafc);
+}
+
+/* 01. Overview Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.overview-stat-box {
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.overview-stat-label {
+  font-size: 13px;
+  color: var(--text, #94a3b8);
+  margin-bottom: 6px;
+}
+
+.overview-stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent, #818cf8);
+}
+
+.overview-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+/* 02. Rhythm Grid (Day, Time, Weather) */
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.rhythm-subcard {
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.rhythm-subcard-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #94a3b8);
+  margin-bottom: 12px;
+}
+
+.rhythm-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.rhythm-bar-label {
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.rhythm-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border, #334155);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rhythm-bar-fill {
+  height: 100%;
+  background: var(--accent, #6366f1);
+  border-radius: 999px;
+}
+
+.rhythm-bar-count {
+  width: 32px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-h, #e2e8f0);
+}
+
+/* 03. Taste (Tags & Discussion) */
+.taste-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.taste-tag {
+  background: var(--accent-bg, rgba(99, 102, 241, 0.15));
+  border: 1px solid var(--accent-border, rgba(99, 102, 241, 0.3));
+  color: var(--accent, #818cf8);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.taste-keywords-box {
+  background: var(--bg, #0f172a);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.taste-keywords-label {
+  font-size: 13px;
+  color: var(--text, #94a3b8);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.taste-keywords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.taste-kw-chip {
+  background: var(--border, #334155);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* 04. Balance */
+.balance-gauge-track {
+  height: 16px;
+  background: var(--bg, #0f172a);
+  border-radius: 999px;
+  border: 1px solid var(--border, #334155);
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: flex;
+}
+
+.balance-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #6366f1);
+}
+
+.balance-analysis-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text, #94a3b8);
+}
+
+/* 05. Reading Footprint (Scraps & Books) */
+.footprint-scraps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.scrap-quote-card {
+  background: var(--bg, #0f172a);
+  border-left: 3px solid var(--accent, #6366f1);
+  border-radius: 0 8px 8px 0;
+  padding: 14px;
+}
+
+.scrap-quote-text {
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.scrap-quote-book {
+  font-size: 12px;
+  color: var(--text, #94a3b8);
+  text-align: right;
+}
+
+/* 06. AI Librarian Persona Speech Bubble */
+.librarian-discovery-wrap {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.librarian-avatar-box {
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.librarian-avatar-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent, #6366f1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.librarian-avatar-name {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 6px;
+  color: var(--text-h, #f8fafc);
+}
+
+.speech-bubble {
+  position: relative;
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--accent-border, #4f46e5);
+  border-radius: 12px;
+  padding: 18px 22px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-h, #f8fafc);
+  flex: 1;
+}
+
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: -8px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg, #0f172a);
+  border-left: 1px solid var(--accent-border, #4f46e5);
+  border-bottom: 1px solid var(--accent-border, #4f46e5);
+  transform: rotate(45deg);
+}
+
+/* 07. Prescription Recommendations */
+.prescription-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.prescription-book-card {
+  display: flex;
+  gap: 14px;
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.prescription-book-cover {
+  width: 70px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--border, #334155);
+  flex-shrink: 0;
+}
+
+.prescription-book-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.prescription-book-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h, #f8fafc);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.prescription-book-author {
+  font-size: 13px;
+  color: var(--text, #94a3b8);
+  margin: 0;
+}
+
+.prescription-book-reason {
+  font-size: 12px;
+  color: var(--accent, #818cf8);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   CSS Print Media Styles (PDF 및 브라우저 인쇄 전용)
+   ========================================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* GNB 및 비인쇄 요소 숨김 */
+  .gnb,
+  .report-actions,
+  .report-download-btn,
+  .report-month-select {
+    display: none !important;
+  }
+
+  .report-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-paper {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    gap: 20px !important;
+  }
+
+  .report-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #111827 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-card-title,
+  .overview-stat-val,
+  .librarian-avatar-name {
+    color: #0f172a !important;
+  }
+
+  .speech-bubble {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+  }
+
+  .speech-bubble::before {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+  }
+}

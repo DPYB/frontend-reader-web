@@ -4,6 +4,8 @@
 
 | 날짜 | 결정 | 이유 / 대안 비교 |
 | :--- | :--- | :--- |
+| 2026-09-15 | 월간 리포트 PDF 다운로드에 `html2canvas` + `jspdf` 조합 및 CSS Print Media 병행 채택 | 별도의 서버 렌더링(Puppeteer 등) 비용 없이 브라우저 클라이언트 사이드에서 즉시 사서명 커스텀 파일명(`{사서이름}_사서의_월간_독서_리포트.pdf`)으로 내보낼 수 있으며, 브라우저 표준 인쇄(Ctrl+P / Command+P) 시에도 깔끔하게 출력되도록 Print Media Query를 동시 지원함. |
+| 2026-09-15 | 독서 감상 기록 작성 시 Open-Meteo 연동 날씨 condition 획득 및 페이로드(`weather`) 전달 | 브라우저 Geolocation 기반 좌표를 표준 WMO 날씨 코드로 변환해 백엔드(`POST /api/v1/records`)로 넘겨주며, 사용자 위치 미허용 시에는 안전하게 `null`로 폴백되도록 설계함. |
 | 2026-09-14 | Next.js 대신 React + Vite + TypeScript 유지 결정 | Three.js(3D 뷰) 및 Tesseract.js(WASM OCR)는 브라우저 전용 기술로 SSR 실익이 없고, 서비스 대부분이 인증 기반 Private SPA이므로 Vite 정적 배포가 비용/안정성 측면에서 압도적으로 유리함. |
 | 2026-09-14 | `src/` 디렉터리를 `app/`으로 구조 변경 | DPYB 조직 표준 및 직관적인 도메인 엔트리 구조 채택. |
 | 2026-09-14 | 시각 에셋 독립 라이선스(`ASSETS_LICENSE.md`) 및 UI 방어 적용 | 퍼블릭 저장소 정책 하에서 팀원의 일러스트 저작권을 법적/기술적으로 보호하기 위해 우클릭/드래그 차단 및 독점 저작권 공지 도입. |

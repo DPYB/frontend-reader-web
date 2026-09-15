@@ -49,7 +49,9 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api/v1/chat': proxy(AI_API),
         '/api/v1/classify-genre': proxy(AI_API),
+        '/api/v1/reports': proxy(AI_API),
         '/api/v1/ocr': proxy(RECORD_API),
+        '/api/v1/records': proxy(MAIN_API),
         '/api/v1/books': proxy(BOOK_API),
         '/api/v1/library': proxy(BOOK_API),
         '/api/v1/librarians': proxy(BOOK_API),
