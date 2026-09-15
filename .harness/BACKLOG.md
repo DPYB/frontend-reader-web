@@ -8,4 +8,4 @@
 - [ ] 개발용 인증 우회 제거 — 인증 백엔드 연동 완료 후 `app/store/authBypass.js`와 `AuthProvider`/`LoginPage` 분기, `VITE_AUTH_BYPASS` 삭제
 - [ ] 신규 사서 누디(바다달팽이)·게코의 `librarian_type` enum 값(`SEA_SLUG`/`GECKO`)을 백엔드와 확정 후 `librarians.js`의 `typeCode` 교체
 - [ ] 누디·게코의 실제 프로필 일러스트, 3D 서재 커서 스프라이트(image/imageHover), 전용 서재 배경·카메라 배치(shelfLayout.js) 및 글로우 컬러(LibraryScene.jsx) 추가 — 현재는 placeholder SVG + 고양이 서재 배치로 대체 표시 중
-- [ ] 누디·게코의 말투(persona)·감탄사(speechInterjection)는 임시 설정 — 캐릭터 기획 확정 시 교체
+- [ ] 슈빌(stork)의 `formalTone`(존댓말 채팅 UI) 정책과 페르소나 문서의 반말 종결어미("~두둥") 예시가 어긋남 — 기획팀과 말투 정책 재확인 필요

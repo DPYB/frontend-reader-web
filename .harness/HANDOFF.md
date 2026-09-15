@@ -62,3 +62,47 @@
 맞춘 뒤 `librarians.js`의 `typeCode`를 교체. 누디·게코의 실제 프로필 일러스트·3D 서재 커서
 스프라이트·전용 배경이 나오면 placeholder를 교체하고 `shelfLayout.js`/`LibraryScene.jsx`에
 배치를 추가.
+
+## 2026-09-15: 사서 프로필 페르소나 콘텐츠 보완 + 카드 4열 고정 그리드
+- 기획팀 "사서 페르소나 개요" 문서를 반영해 `app/data/librarians.js`의 각 사서에 필드 추가:
+  `mbti`, `oneLiner`(한 줄 요약), `personality`(성격), `readingStyle`(독서 성향),
+  `speechStyle`(말투·행동), `catchphrase`(페르소나 핵심 문장)
+  - 블루 INTJ(사색가) / 슈빌 ISTP(실용적 탐구자) / 누디 INFP(감성가) / 게코 ENFJ(공감형 탐구자)
+  - 종결어미(`speechInterjection`)도 문서에 맞춰 갱신: 누디 '누누', 게코 '크크' (기존 미지정 → 확정)
+  - ⚠️ 문서의 종결어미 예시 문장은 반말체("~다두둥")인데 슈빌의 기존 `formalTone: true`
+    (존댓말 채팅 UI)와 어긋난다. 이번엔 프로필 표시 텍스트만 반영하고 채팅 응답 말투는
+    건드리지 않았음 — 필요 시 별도 작업으로 슈빌 존댓말 정책을 재검토해야 함
+- `app/pages/LibrarianProfiles.jsx`: MBTI 배지 + 한 줄 소개, 성격/독서 성향/말투·행동 섹션,
+  페르소나 핵심 문장(인용구 스타일)을 카드에 추가 렌더링
+- `app/pages/LibrarianProfiles.css`: 그리드를 `auto-fill`(가변 열)에서 `repeat(4, 1fr)` 고정
+  4열로 변경해 카드 4개가 항상 한 줄에 나란히 놓이고 5번째부터 다음 줄로 내려가도록 함.
+  1024px 이하 2열, 560px 이하 1열 반응형 유지. 새로 추가된 텍스트 섹션에 맞는 스타일
+  (`.lp-oneliner`, `.lp-mbti`, `.lp-persona`, `.lp-catchphrase`) 추가
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+
+**다음 세션 시작 시**: 슈빌의 존댓말(`formalTone`) 정책과 페르소나 문서의 반말 종결어미
+예시가 어긋나는 부분을 기획팀과 재확인 필요.
+
+## 2026-09-15: 사서 어미 띄어쓰기 통일 + 프로필 카드 말투·행동 문단 제거
+- 사용자 피드백 반영: 사서 종결어미(냥/두둥/누누/크크)를 단어에 바로 붙이지 않고
+  앞말과 띄어 쓰도록 전체 수정 (예: "무엇을 찾아드릴까요냥?" → "무엇을 찾아드릴까요 냥?")
+  - `app/data/librarians.js`의 `catchphrase` 4건, `app/features/room/chatEngine.js`,
+    `app/features/room/LibrarianChat.jsx`, `app/features/room/LibrarianCursor.jsx`,
+    `app/pages/MonthlyReport.jsx`의 어미 부착 문구를 모두 띄어쓰기로 통일
+  - `docs/*.md`(설계 문서)의 예시 문구는 과거 결정 기록이라 손대지 않음
+- `app/data/librarians.js`: 프로필에 노출하던 `speechStyle`(말투·행동 설명 문단) 필드 제거.
+  대표 어미 예시 문장인 `catchphrase`만 프로필에 남김 (사용자 요청)
+- `app/pages/LibrarianProfiles.jsx`: 말투·행동 `<dd>` 렌더링 제거
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
+
+## 2026-09-15: 사서 프로필 카드 정리 (말투/MBTI 제거, 성격·독서성향 아코디언)
+- 사용자 피드백 반영:
+  - 특화 장르 아래 '말투'(persona) 행 제거 — `persona` 데이터 필드도 사용처가 없어 함께 삭제
+  - MBTI 표시 제거 — 프로필의 MBTI 배지와 `.lp-mbti` 스타일, 각 사서의 `mbti` 데이터 필드 삭제
+    (한 줄 소개 `oneLiner`는 유지)
+  - 성격·독서 성향은 문단이 길어 `<details>`/`<summary>` 네이티브 아코디언으로 접어 둠
+    (기본 닫힘, "성격 · 독서 성향 보기" 클릭 시 펼침). 커스텀 화살표(▾) 마커 스타일 추가
+- 변경 파일: `app/data/librarians.js`(persona·mbti 필드 및 헤더 주석 정리),
+  `app/pages/LibrarianProfiles.jsx`(말투 행·MBTI 배지 제거, 아코디언 도입),
+  `app/pages/LibrarianProfiles.css`(`.lp-mbti` 제거, `.lp-details`/`.lp-details-summary` 추가)
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인

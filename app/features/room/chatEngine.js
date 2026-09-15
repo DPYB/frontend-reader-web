@@ -18,7 +18,7 @@ function titleList(books, max = 4) {
  */
 export function answerQuestion({ text, mode, books, librarian, librarianNames = {} }) {
   const q = text.trim();
-  if (!q) return { text: '무엇을 찾아드릴까요냥? 🐾' };
+  if (!q) return { text: '무엇을 찾아드릴까요 냥? 🐾' };
 
   // 인사
   if (q.includes('안녕') || /^(hi|hello)/i.test(q)) {
