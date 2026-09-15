@@ -46,8 +46,8 @@ export function answerQuestion({ text, mode, books, librarian, librarianNames = 
 
   // ── 도서 추천 ──
   if (isRecommend) {
-    // 감지된 장르(code) → 없으면 현재 사서의 특화 장르
-    const targetCode = detectGenreCode(q) || librarian.specialtyCode;
+    // 감지된 장르(code) → 없으면 현재 사서의 특화 장르(여러 개 중 첫 번째)
+    const targetCode = detectGenreCode(q) || librarian.specialtyCodes[0];
     const targetGenre = genreLabel(targetCode);
     const matches = books.filter((b) => b.genre === targetGenre);
 
@@ -57,11 +57,11 @@ export function answerQuestion({ text, mode, books, librarian, librarianNames = 
       };
     }
 
-    const suffix = librarian.id === 'cat' ? '냥' : '';
+    const suffix = librarian.speechInterjection || '';
     const base = `지금 서재에서 ${targetGenre} 책으로는 ${titleList(matches)} 이 있어요${suffix} 📚 마음에 드는 책 한 권 골라보시겠어요? 🐾`;
 
     // 다른 사서의 특화 장르면, 그 사서가 더 자세하다고 안내 (강제 아님)
-    if (targetCode !== librarian.specialtyCode) {
+    if (!librarian.specialtyCodes.includes(targetCode)) {
       const other = librarianForGenre(targetCode);
       if (other && other.id !== librarian.id) {
         return {

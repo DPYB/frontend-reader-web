@@ -1,39 +1,60 @@
 /**
  * 장르 정의 단일 소스 (Single Source of Truth).
  *
- * 백엔드 genre_type enum(DB 스키마)과 1:1 대응합니다.
- * 백엔드는 영문 enum만 관리하며, 한글 라벨/검색 별칭은 프론트에서 자유롭게 정의합니다(CLIAR-139).
+ * 백엔드 genre_type enum(DB 스키마, app/models/enums.py의 GenreType)과 1:1 대응합니다.
+ * KDC(한국십진분류법) 10대 대분류를 그대로 채택한 체계로, 백엔드가 국립중앙도서관
+ * KDC 분류기호(kdc_to_genre)나 자유 텍스트(parse_to_genre_and_subject)를 이 10개
+ * 값 중 하나로 정규화해 저장합니다. 한글 라벨/검색 별칭은 프론트에서 자유롭게
+ * 정의합니다(CLIAR-139).
  *
  *   code:    백엔드 enum 값 (저장/전송 시 사용)
- *   label:   UI 한글 표기 (표시 시 사용)
- *   aliases: 검색·추천 키워드 매칭용 (로컬 fallback detectGenre 등)
+ *   label:   UI 한글 표기 (표시 시 사용, 백엔드 GENRE_KOREAN_NAMES와 동일)
+ *   aliases: 검색·추천 키워드 매칭용 (로컬 fallback detectGenre 등, 백엔드
+ *            GENRE_KEYWORD_MAPPING의 세부 키워드를 대분류 수준으로 흡수)
  *
- * 병합/신규 라벨 결정 (프론트 정의, 확정본):
- *   - POETRY_DRAMA: 기존 '시' 흡수 → '시·희곡'
- *   - HUMANITIES: 기존 '심리학'·'철학' 흡수 → '인문학'
- *   - MYSTERY_THRILLER: 기존 '추리'·'스릴러'·'공포' 흡수 → '미스터리·스릴러' (cat 특화)
- *   - BUSINESS_ECONOMICS: '비즈니스·경제' (stork 특화)
- *   - 기존 프론트 전용 장르('여행'·'힐링'·'모험')는 enum 대응이 없어 제거
- *   - RELIGION('종교')·COMPUTER_IT('IT·컴퓨터')는 신규 추가
+ * 이전엔 프론트 전용 세부 장르(소설·에세이·판타지 등 15종)를 썼으나, KDC 10대
+ * 분류로 전면 교체했습니다(사서 특화 장르 개편). 세부 주제(예: 'SF', '에세이')는
+ * 백엔드 book.subject 필드로 별도 관리되며 이 파일의 범위가 아닙니다.
  */
 
 // 'NONE'은 미지정 값이라 선택 목록에서 제외
 export const GENRE_DEFS = [
-  { code: 'LITERARY_FICTION', label: '소설', aliases: ['소설', '문학', 'novel', 'fiction'] },
-  { code: 'ESSAY', label: '에세이', aliases: ['에세이', '산문', 'essay'] },
-  { code: 'POETRY_DRAMA', label: '시·희곡', aliases: ['시', '시집', '희곡', 'poetry', 'poem', 'drama'] },
-  { code: 'SELF_HELP', label: '자기계발', aliases: ['자기계발', '자기 계발', '자기개발', 'self-help'] },
-  { code: 'HUMANITIES', label: '인문학', aliases: ['인문학', '인문', '심리', '심리학', '철학', 'humanities', 'psychology', 'philosophy'] },
-  { code: 'MYSTERY_THRILLER', label: '미스터리·스릴러', aliases: ['미스터리', '스릴러', '추리', '탐정', '공포', '호러', 'mystery', 'thriller', 'detective', 'horror'] },
-  { code: 'FANTASY', label: '판타지', aliases: ['판타지', 'fantasy'] },
-  { code: 'SCIENCE_FICTION', label: 'SF', aliases: ['sf', '에스에프', '공상과학', 'sci-fi', 'science fiction'] },
-  { code: 'ROMANCE', label: '로맨스', aliases: ['로맨스', '로맨', '연애', 'romance'] },
-  { code: 'HISTORY', label: '역사', aliases: ['역사', 'history'] },
-  { code: 'SCIENCE', label: '과학', aliases: ['과학', 'science'] },
-  { code: 'ARTS', label: '예술', aliases: ['예술', '미술', 'art', 'arts'] },
-  { code: 'BUSINESS_ECONOMICS', label: '비즈니스·경제', aliases: ['비즈니스', '경영', '경제', 'business', 'economics'] },
+  { code: 'GENERAL', label: '총류', aliases: ['총류', '총류/교양', 'general', '백과사전', '사전'] },
+  {
+    code: 'PHILOSOPHY',
+    label: '철학',
+    aliases: ['철학', '철학/사상', '인문', '인문학', '심리', '심리학', '자기계발', 'philosophy', 'humanities', 'psychology'],
+  },
   { code: 'RELIGION', label: '종교', aliases: ['종교', 'religion'] },
-  { code: 'COMPUTER_IT', label: 'IT·컴퓨터', aliases: ['it', '컴퓨터', '프로그래밍', '개발', 'computer', 'programming'] },
+  {
+    code: 'SOCIAL_SCIENCE',
+    label: '사회과학',
+    aliases: ['사회과학', '사회', '사회학', '경제', '경영', '경제/경영', '비즈니스', 'business', 'economics', 'social_science'],
+  },
+  {
+    code: 'NATURAL_SCIENCE',
+    label: '자연과학',
+    // '과학'만 단독으로 넣으면 '과학소설(SF)'처럼 문학 세부 키워드와 겹쳐 오분류될 수 있어 제외
+    aliases: ['자연과학', 'natural_science'],
+  },
+  {
+    code: 'TECHNOLOGY',
+    label: '기술과학',
+    aliases: ['기술과학', '기술', '기술/공학', '공학', '컴퓨터', 'it', 'it/컴퓨터', '프로그래밍', 'technology', '건강', '의학', '요리', '육아'],
+  },
+  { code: 'ARTS', label: '예술', aliases: ['예술', '미술', '음악', 'art', 'arts'] },
+  { code: 'LANGUAGE', label: '언어', aliases: ['언어', '어학', 'language'] },
+  {
+    code: 'LITERATURE',
+    label: '문학',
+    aliases: [
+      '문학', '소설', '한국소설', '에세이', '산문', '수필', '시', '시집', '희곡', '시·희곡',
+      '추리', '미스터리', '스릴러', '판타지', '로맨스', 'sf', '에스에프', '과학소설',
+      'literature', 'fiction', 'novel', 'essay', 'poetry', 'mystery', 'thriller', 'fantasy', 'romance',
+      'science fiction', 'science_fiction',
+    ],
+  },
+  { code: 'HISTORY', label: '역사', aliases: ['역사', '지리', '여행', 'history'] },
 ];
 
 // 미지정 값 (백엔드 default)
