@@ -140,7 +140,7 @@ export default function MonthlyReport() {
     reportData.librarianDiscovery?.message ||
     (isStork
       ? `독자님의 ${month}월 독서는 깊은 사색과 절제된 집중이 깃들어 있었습니다. 비 오는 날과 심야 시간에 특히 철학적 문장에 많은 흔적을 남기셨더군요. 언제나 품격 있는 독서 여정을 제가 정성껏 보좌하겠습니다.`
-      : `집사님의 ${month}월 독서는 호기심과 모험이 넘쳐났다냥! 🐾 특히 주말 밤마다 책에 푹 빠져서 스크랩을 잔뜩 남겼어냥. 내가 골라준 다음 달 처방 책도 마음에 쏙 들 거다냥! 🐟📖`);
+      : `집사님의 ${month}월 독서는 호기심과 모험이 넘쳐났다 냥! 🐾 특히 주말 밤마다 책에 푹 빠져서 스크랩을 잔뜩 남겼어 냥. 내가 골라준 다음 달 처방 책도 마음에 쏙 들 거다 냥! 🐟📖`);
 
   const { overview, rhythm, taste, balance, footprint, prescription } = reportData;
 

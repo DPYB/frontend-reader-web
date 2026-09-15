@@ -82,3 +82,15 @@
 
 **다음 세션 시작 시**: 슈빌의 존댓말(`formalTone`) 정책과 페르소나 문서의 반말 종결어미
 예시가 어긋나는 부분을 기획팀과 재확인 필요.
+
+## 2026-09-15: 사서 어미 띄어쓰기 통일 + 프로필 카드 말투·행동 문단 제거
+- 사용자 피드백 반영: 사서 종결어미(냥/두둥/누누/크크)를 단어에 바로 붙이지 않고
+  앞말과 띄어 쓰도록 전체 수정 (예: "무엇을 찾아드릴까요냥?" → "무엇을 찾아드릴까요 냥?")
+  - `app/data/librarians.js`의 `catchphrase` 4건, `app/features/room/chatEngine.js`,
+    `app/features/room/LibrarianChat.jsx`, `app/features/room/LibrarianCursor.jsx`,
+    `app/pages/MonthlyReport.jsx`의 어미 부착 문구를 모두 띄어쓰기로 통일
+  - `docs/*.md`(설계 문서)의 예시 문구는 과거 결정 기록이라 손대지 않음
+- `app/data/librarians.js`: 프로필에 노출하던 `speechStyle`(말투·행동 설명 문단) 필드 제거.
+  대표 어미 예시 문장인 `catchphrase`만 프로필에 남김 (사용자 요청)
+- `app/pages/LibrarianProfiles.jsx`: 말투·행동 `<dd>` 렌더링 제거
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인

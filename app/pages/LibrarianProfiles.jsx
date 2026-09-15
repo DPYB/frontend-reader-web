@@ -111,8 +111,9 @@ export default function LibrarianProfiles() {
                 </div>
               </dl>
 
-              {/* 성격/독서 성향/말투·행동 (기획 페르소나 문서 반영) */}
-              {(lib.personality || lib.readingStyle || lib.speechStyle) && (
+              {/* 성격/독서 성향 (기획 페르소나 문서 반영). 말투·행동 설명 문단은 빼고,
+                  아래 catchphrase(대표 어미 예시 문장)만 노출한다 (사용자 요청, 2026-09) */}
+              {(lib.personality || lib.readingStyle) && (
                 <dl className="lp-persona">
                   {lib.personality && (
                     <div className="lp-persona-row">
@@ -126,16 +127,10 @@ export default function LibrarianProfiles() {
                       <dd>{lib.readingStyle}</dd>
                     </div>
                   )}
-                  {lib.speechStyle && (
-                    <div className="lp-persona-row">
-                      <dt>말투·행동</dt>
-                      <dd>{lib.speechStyle}</dd>
-                    </div>
-                  )}
                 </dl>
               )}
 
-              {/* 페르소나 핵심 문장 */}
+              {/* 페르소나 핵심 문장(말투 예시) */}
               {lib.catchphrase && <p className="lp-catchphrase">“{lib.catchphrase}”</p>}
 
               <button
