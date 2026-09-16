@@ -10,6 +10,8 @@ import WeatherMoodBadge from './WeatherMoodBadge';
 import { useLibrarian, loadSavedChatSession, saveChatSession } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import LoadingSequence from '../../components/LoadingSequence';
+import { DEBATE_PERSONAS } from '../../data/debatePersonas';
+import './LibrarianChat.css';
 
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
 const MAX_MESSAGE_LENGTH = 2000;
@@ -103,6 +105,18 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     if (saved?.open !== undefined) return saved.open;
     return Boolean(answer?.text);
   });
+
+  // 사서 패널 모드: 'chat' (일반 대화) | 'library' (내 서재 빠른 조회) | 'debate' (사서 토론)
+  const [chatMode, setChatMode] = useState('chat');
+
+  // 내 서재 조회 모드 상태 (검색어, 상태 필터)
+  const [libraryQuery, setLibraryQuery] = useState('');
+  const [libraryFilter, setLibraryFilter] = useState('ALL'); // 'ALL' | 'READING' | 'COMPLETED' | 'PLANNED'
+
+  // 토론 모드 대상 도서 및 선택된 토론자 (4인 오마주: DEBATE_CRITIC, DEBATE_STORYTELLER, DEBATE_COUNSELOR, DEBATE_OBSERVER)
+  const [debateBookId, setDebateBookId] = useState('');
+  const [debaterPersona, setDebaterPersona] = useState('DEBATE_CRITIC');
+
   const [input, setInput] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -171,6 +185,35 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
     return [];
   }, [backendLibraryBooks, answerText, loading, books]);
+
+  // 1-1. 내 서재 빠른 조회 모드 전용 필터링 목록 (Core API 데이터 기반 즉시 키워드 필터)
+  const filteredLibraryBooks = useMemo(() => {
+    const rawQuery = libraryQuery.trim();
+
+    return books.filter((b) => {
+      // 1. 명시적 상태 필터 매칭
+      if (libraryFilter === 'READING' && b.status !== '읽는 중') return false;
+      if (libraryFilter === 'COMPLETED' && b.status !== '완독') return false;
+      if (libraryFilter === 'PLANNED' && b.status !== '시작전') return false;
+
+      if (!rawQuery) return true;
+
+      const q = rawQuery.toLowerCase();
+      const normQ = normalizeTitle(q);
+      const title = (b.title || '').toLowerCase();
+      const normTitle = normalizeTitle(b.title);
+      const author = (b.author || '').toLowerCase();
+      const normAuthor = normalizeTitle(b.author);
+
+      // 단순 문자열 또는 공백/특수문자 무시 제목/저자 매칭
+      return (
+        title.includes(q) ||
+        author.includes(q) ||
+        normTitle.includes(normQ) ||
+        normAuthor.includes(normQ)
+      );
+    });
+  }, [books, libraryFilter, libraryQuery]);
 
   // 2. 외부 도서 추천: 백엔드 recommended_books 구조화 배열 직접 활용 (CLIAR-229)
   const backendRecommendedBooks = useMemo(
@@ -275,12 +318,16 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     const location = await getUserLocation();
 
     // 도서 등록 자동 입력 연동 플로우: 동기 요청(stream: false) 사용 (CLIAR-229)
+    const isDebate = chatMode === 'debate';
     const result = await sendChatMessage({
       message,
       sessionId,
       librarianId: targetLibrarianId,
       latitude: location?.latitude,
       longitude: location?.longitude,
+      mode: isDebate ? 'debate' : 'chat',
+      persona: isDebate ? debaterPersona : null,
+      bookId: isDebate ? debateBookId || null : null,
     });
 
     if (result) {
@@ -374,15 +421,164 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         flexDirection: 'column',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontWeight: 700 }}>
           {librarian.icon} {librarian.displayName || librarian.name}
         </span>
         <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer' }}>✕</button>
       </div>
 
+      {/* 모드 전환 탭: [ 📚 내 서재 | 💬 일반 대화 | 💡 사서 토론 ] */}
+      <div className="lc-mode-tabs">
+        <button
+          type="button"
+          className={`lc-mode-tab ${chatMode === 'library' ? 'active' : ''}`}
+          onClick={() => setChatMode('library')}
+        >
+          📚 내 서재
+        </button>
+        <button
+          type="button"
+          className={`lc-mode-tab ${chatMode === 'chat' ? 'active' : ''}`}
+          onClick={() => setChatMode('chat')}
+        >
+          💬 대화·추천
+        </button>
+        <button
+          type="button"
+          className={`lc-mode-tab ${chatMode === 'debate' ? 'active' : ''}`}
+          onClick={() => setChatMode('debate')}
+        >
+          💡 사서 토론
+        </button>
+      </div>
+
+      {/* 📚 모드 1: 내 서재 빠른 조회 모드 (Core API 데이터 기반 즉시 응답) */}
+      {chatMode === 'library' && (
+        <div className="lc-library-view">
+          <input
+            type="text"
+            className="lc-library-search-input"
+            value={libraryQuery}
+            onChange={(e) => setLibraryQuery(e.target.value)}
+            placeholder="내 서재 책 제목 또는 저자 검색..."
+          />
+          <div className="lc-library-filter-pills">
+            <button
+              type="button"
+              className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
+              onClick={() => setLibraryFilter('ALL')}
+            >
+              전체 ({books.length})
+            </button>
+            <button
+              type="button"
+              className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
+              onClick={() => setLibraryFilter('READING')}
+            >
+              읽는 중
+            </button>
+            <button
+              type="button"
+              className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
+              onClick={() => setLibraryFilter('COMPLETED')}
+            >
+              완독
+            </button>
+            <button
+              type="button"
+              className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
+              onClick={() => setLibraryFilter('PLANNED')}
+            >
+              시작 전
+            </button>
+          </div>
+
+          <div className="lc-library-list">
+            {filteredLibraryBooks.length === 0 ? (
+              <div className="lc-library-empty">
+                {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
+              </div>
+            ) : (
+              filteredLibraryBooks.map((b) => (
+                <div key={b.bookId || b.id} className="lc-library-item">
+                  <div className="lc-library-item-info">
+                    <span className="lc-library-item-title">{b.title}</span>
+                    <div className="lc-library-item-meta">
+                      {b.author && <span>{b.author}</span>}
+                      <span className="lc-library-item-badge">{b.status}</span>
+                      {b.progress != null && <span>{b.progress}%</span>}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="lc-library-open-btn"
+                    onClick={() => handleOpenDetail(b)}
+                  >
+                    책 열기 ➔
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 💡 모드 2: 사서 토론 모드 상단 배너 & 대상 도서 선택기 */}
+      {chatMode === 'debate' && (
+        <div className="lc-debate-view">
+          <div className="lc-debate-banner">
+            <span className="lc-debate-badge">DEBATE</span>
+            <span>사서와 함께 깊이 있는 독서 토론을 나눠보세요.</span>
+          </div>
+
+          <div className="lc-debate-book-selector">
+            <label className="lc-debate-label">토론 대상 도서 선택</label>
+            <select
+              className="lc-debate-select"
+              value={debateBookId}
+              onChange={(e) => setDebateBookId(e.target.value)}
+              disabled={loading}
+            >
+              <option value="">(선택 안 함 - 일반 주제 토론)</option>
+              {books.map((b) => (
+                <option key={b.bookId || b.id} value={b.bookId || b.id}>
+                  {b.title} ({b.status})
+                </option>
+              ))}
+            </select>
+
+            <label className="lc-debate-label" style={{ marginTop: 8 }}>
+              토론 상대 선택 (AI 토론 파트너 4인)
+            </label>
+            <div className="lc-debater-grid">
+              {DEBATE_PERSONAS.map((dp) => {
+                const isSelected = debaterPersona === dp.id;
+                return (
+                  <button
+                    key={dp.id}
+                    type="button"
+                    className={`lc-debater-card ${isSelected ? 'active' : ''}`}
+                    onClick={() => setDebaterPersona(dp.id)}
+                    disabled={loading}
+                  >
+                    <div className="lc-debater-header">
+                      <span className="lc-debater-icon">{dp.icon}</span>
+                      <span className="lc-debater-name">{dp.name}</span>
+                      <span className="lc-debater-tag">{dp.tag}</span>
+                    </div>
+                    <span className="lc-debater-title">{dp.title}</span>
+                    <span className="lc-debater-desc">{dp.oneLiner}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 사서 변경 버튼 (전문 장르 벗어난 추천일 때) */}
-      {answer?.switchTo && (
+      {chatMode !== 'library' && answer?.switchTo && (
         <button
           onClick={() => handleSwitchClick(answer.switchTo.id)}
           style={{
@@ -396,35 +592,104 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         </button>
       )}
 
-      {/* 질문 팁 안내 (모드 선택 없이 자유롭게 질문 → 백엔드 오케스트레이터가 알아서 처리) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
-        <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
-          <span
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
-              borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
-            }}
-          >
-            ?
-          </span>
-          {showHelp && (
-            <div
+      {/* 질문 팁 안내 (모드별 가이드) */}
+      {chatMode === 'chat' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
+          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
+            <span
               style={{
-                position: 'absolute', bottom: '130%', right: 0, width: 230, background: 'var(--bg)',
-                border: '1px solid var(--border)', borderRadius: 8, padding: 10,
-                boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
+                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
               }}
             >
-              <strong>💬 이렇게 물어보세요</strong>
-              <br />
-              · 따뜻하고 힐링되는 소설 추천해줘
-              <br />· 오늘 날씨에 어울리는 책 있어?
-              <br />· 내 서재에서 김영하 책 찾아줘
-              <br />· 아몬드라는 책 있어?
-            </div>
-          )}
+              ?
+            </span>
+            {showHelp && (
+              <div
+                style={{
+                  position: 'absolute', bottom: '130%', right: 0, width: 230, background: 'var(--bg)',
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
+                }}
+              >
+                <strong>💬 이렇게 물어보세요</strong>
+                <br />
+                · 따뜻하고 힐링되는 소설 추천해줘
+                <br />· 오늘 날씨에 어울리는 책 있어?
+                <br />· 아몬드라는 책 어때?
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* 내 서재 자연어 질의 팁 안내 */}
+      {chatMode === 'library' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
+          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
+            <span
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
+                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
+              }}
+            >
+              ?
+            </span>
+            {showHelp && (
+              <div
+                style={{
+                  position: 'absolute', bottom: '130%', right: 0, width: 250, background: 'var(--bg)',
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
+                }}
+              >
+                <strong>📚 AI 서재 검색 가이드</strong>
+                <br />
+                · 상단 입력창: 제목/저자 즉시 필터
+                <br />
+                · 하단 메시지: AI 자연어 질의
+                <br />
+                <em>(예: "읽고 있는 책 보여줘", "김영하 작가 책 있어?")</em>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 토론 팁 안내 (토론 모드일 때 표시) */}
+      {chatMode === 'debate' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
+          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
+            <span
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
+                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
+              }}
+            >
+              ?
+            </span>
+            {showHelp && (
+              <div
+                style={{
+                  position: 'absolute', bottom: '130%', right: 0, width: 260, background: 'var(--bg)',
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
+                }}
+              >
+                <strong>💡 토론 모드 가이드</strong>
+                <br />
+                · <strong>평론가(이동진)</strong>: 미학적 구조, 복선, 별점 및 화두
+                <br />
+                · <strong>이야기꾼(설민석)</strong>: 시대 배경, 역사적 딜레마와 교훈
+                <br />
+                · <strong>상담사(오은영)</strong>: 인물 심리 분석과 마음 돌봄
+                <br />
+                · <strong>관찰가(강형욱)</strong>: 본능 분석과 환경 결핍, 행동 시그널
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285) */}
       {loading && (
@@ -609,14 +874,22 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         </div>
       )}
 
-      {/* 입력 */}
+      {/* 메시지 입력창 (내 서재 자연어 질의, 대화·추천, 토론 모드 공통 지원) */}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
             maxLength={MAX_MESSAGE_LENGTH}
-            placeholder={loading ? '사서가 답변 중...' : '무엇이든 물어보세요 (추천·검색·날씨 등)'}
+            placeholder={
+              loading
+                ? (chatMode === 'debate' ? '토론 답변을 생각하는 중...' : '답변을 생각하는 중...')
+                : chatMode === 'debate'
+                  ? `${(DEBATE_PERSONAS.find((p) => p.id === debaterPersona)?.name || '토론자')}에게 책에 대한 생각이나 질문을 던져보세요`
+                  : chatMode === 'library'
+                    ? '내 서재에 대해 자연어로 물어보세요 (예: 읽고 있는 책 보여줘)'
+                    : '무엇이든 물어보세요 (추천·검색·날씨 등)'
+            }
             disabled={loading}
             // CLIAR-301: 질문 입력창도 답변 박스와 같은 표면(배경·테두리)을 공유
             style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--answer-border)', background: 'var(--answer-bg)', color: 'var(--text-h)', opacity: loading ? 0.6 : 1 }}
