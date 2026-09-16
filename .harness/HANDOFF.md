@@ -191,3 +191,23 @@
 - `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건) 통과 확인
 
 
+
+## 2026-09-15: 누디 프로필 이미지 파일명 정규화 + 전역 이미지 저장/복제 방지
+- 누디 프로필 이미지: 새로 올린 `public/profile/nudi.JPG`(대문자 확장자)를 소문자
+  `nudi.jpg`로 정규화. 코드(`librarians.js`)는 `/profile/nudi.jpg`를 참조하는데 대문자
+  파일명은 Windows(대소문자 무시)에선 떠도 CI·프로덕션(Linux, 대소문자 구분)에서 404가
+  나므로 실파일을 소문자로 맞춤. (게코는 이미 소문자라 문제 없음)
+- 이미지 무단 저장/복제 방지 강화(모든 UI 이미지 대상):
+  - `app/main.jsx`: 기존 `<img>` 우클릭 차단을 확장. `contextmenu`를 캡처 단계에서
+    가로채 <img>/SVG <image>/<picture>/<canvas>/`.protected-asset`뿐 아니라
+    CSS background-image가 실제로 적용된 요소(서재 배경·로그인 배경 등)에서도 차단.
+    이미지를 바탕화면으로 끌어 저장하는 경로를 막기 위해 `dragstart`도 캡처 차단
+  - `app/index.css`: img/picture/svg/canvas/.protected-asset에 user-drag:none,
+    user-select:none, -webkit-touch-callout:none(iOS 롱프레스 저장 메뉴 차단) 추가.
+    pointer-events는 건드리지 않아 버튼·링크 클릭은 그대로 동작
+  - ⚠️ 완벽한 방지는 불가능(개발자도구·스크린샷 등). 일반적인 우클릭 저장/드래그
+    저장/롱프레스 저장 경로를 막는 수준
+- 검증: `npx tsc --noEmit` 통과, `npx eslint .` 기존 warning 5건만(0 errors),
+  `npm run build` 성공 및 dist/profile에 nudi.jpg(소문자) 포함 확인
+- ⚠️ 누디 "내 서재" 테마 배경 이미지(snail2)는 워크스페이스에서 찾지 못해 이번에
+  반영하지 못함 — 사용자에게 파일 위치 재확인 요청 예정 (BACKLOG에 남김)
