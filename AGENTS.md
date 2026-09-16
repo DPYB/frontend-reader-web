@@ -34,6 +34,8 @@
 - **3D 인터랙션**: Three.js, `@react-three/fiber`, `@react-three/drei` 기반 서재 렌더링
 - **에셋 보호 정책**: 모든 시각 에셋(일러스트, 버튼, 커서 등)은 독점 저작물(`ASSETS_LICENSE.md`)이며 무단 도용 및 복제를 엄격히 금지함. 고해상도 디자인 원본(`design-src/`)은 gitignore 유지.
 - **백엔드 연동**: DPYB 조직의 듀얼 백엔드 구조 (`MAIN_BACKEND_URL`: core-api, `AI_BACKEND_URL`: ai-agent) 연동
+- **AI 자가 검증 필수**: 코드 수정 직후 반드시 `npx tsc --noEmit`와 `npm run lint -- --fix`를 터미널에서 실행하고, 에러나 경고가 0개가 될 때까지 스스로 터미널 로그를 보고 코드를 고칠 것.
+- **꼼수 금지**: `any` 타입, `@ts-ignore`, 인라인 스타일 절대 사용 금지.
 
 ## 5. 브랜치 & 커밋 컨벤션
 [DPYB `.github` 레포의 02-git-conventions.md](https://github.com/DPYB/.github/blob/main/docs/02-git-conventions.md)를 따른다.
