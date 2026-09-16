@@ -122,8 +122,10 @@ export async function sendChatMessage({
     const data = await response.json();
     const libraryBooks = data.library_books || data.libraryBooks || [];
     const recommendedBooks = data.recommended_books || data.recommendedBooks || [];
+    const isConcluded = Boolean(data.is_concluded ?? data.isConcluded ?? false);
+    const debateSummary = data.debate_summary ?? data.debateSummary ?? null;
     return {
-      text: data.message,
+      text: data.message || data.reply || '',
       switchTo: data.switch_to ?? null,
       sessionId: data.session_id,
       signals: data.signals ?? null,
@@ -131,6 +133,10 @@ export async function sendChatMessage({
       library_books: libraryBooks,
       recommendedBooks,
       recommended_books: recommendedBooks,
+      isConcluded,
+      is_concluded: isConcluded,
+      debateSummary,
+      debate_summary: debateSummary,
     };
   } catch (err) {
     console.warn('[chatApi] 백엔드 연결 실패, 로컬 fallback 사용:', err.message);
