@@ -8,6 +8,7 @@ import { useTheme } from '../../store/themeStore';
 import LibrarianChat from './LibrarianChat';
 import LibrarianCursor from './LibrarianCursor';
 import BookDetail from './BookDetail';
+import ReadingTimerModal from './ReadingTimerModal';
 import { getLibrarian } from '../../data/librarians';
 import { useLibrarian, loadSavedChatSession } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
@@ -137,6 +138,7 @@ export default function LibraryScene() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [selectedId, setSelectedId] = useState(null);
+  const [showTimer, setShowTimer] = useState(false);
   // CLIAR-280: 책 위에 커서를 올리면(클릭 없이) 제목/저자를 말풍선으로 보여준다.
   const [hoveredBook, setHoveredBook] = useState(null);
   const [calibrating, setCalibrating] = useState(false);
@@ -600,6 +602,45 @@ export default function LibraryScene() {
                 setSelectedId(bookOrId);
               }
             }
+          }}
+        />
+      )}
+
+      {/* 독서 타이머 플로팅 버튼 (우측 상단 사서 대화창 위 또는 좌측 하단) */}
+      {!calibrating && (
+        <button
+          onClick={() => setShowTimer(true)}
+          title="독서 집중 타이머 시작"
+          style={{
+            position: 'fixed',
+            right: 'min(16px, 2vw)',
+            bottom: 'min(76px, calc(2vh + 60px))',
+            zIndex: 19,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            borderRadius: 999,
+            border: '1px solid var(--accent-border)',
+            background: 'var(--bg)',
+            color: 'var(--text-h)',
+            fontWeight: 700,
+            fontSize: 15,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 20 }}>⏱️</span>
+          독서 타이머
+        </button>
+      )}
+
+      {/* 독서 집중 타이머 모달 */}
+      {showTimer && (
+        <ReadingTimerModal
+          onClose={() => setShowTimer(false)}
+          onOpenBookDetail={(book) => {
+            if (book) setSelectedId(book.id || book.bookId);
           }}
         />
       )}

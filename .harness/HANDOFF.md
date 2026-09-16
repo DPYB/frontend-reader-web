@@ -137,3 +137,30 @@
 - 남은 후속: 3D 서재용 커서 스프라이트(image/imageHover)와 전용 서재 배경은 아직 없음(BACKLOG 유지)
 - `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 및 dist/profile에
   새 이미지 포함 확인
+
+## 2026-09-16: 독서 집중 타이머 기능(스톱워치/뽀모도로) 및 코어 서버 연동 구현
+- 독서 집중 타이머 모달 컴포넌트(`ReadingTimerModal.jsx`, `ReadingTimerModal.css`) 구현:
+  - 서재 화면 우측 하단 플로팅 액션 버튼(FAB) 및 도서 상세 화면(`BookDetail.jsx`) '독서 타이머' 버튼 진입점 제공
+  - 스톱워치(자유 카운트업) 모드 및 뽀모도로(15분/25분/50분 집중 인터벌 카운트다운) 모드 지원
+  - 타이머 시작, 일시정지, 리셋, 독서 완료 인터랙션 및 상태 표시 펄스 애니메이션
+- 독서 완료 후 페이지 및 기록 저장 연계:
+  - 읽은 시간(분 단위) 자동 산출 및 어디까지 읽었는지 현재 페이지 입력란 제공
+  - 한 줄 감상 및 날씨 조건 자동 첨부 지원
+  - 코어 서버 API 연동: 진행률 갱신(`saveReadingProgress`) 및 독서 기록 작성(`POST /api/v1/records`) 동시 호출
+  - 저장 완료 시 전역 서재 상태(`reload()`) 동기화
+- `npm run typecheck`, `npm run lint`(기존 경고 5건만 유지), `npm run build` 통과 확인
+
+## 2026-09-16: 사서 챗봇 내 Core API 내 서재 빠른 조회 모드 & AI 토론 모드 UI 구현
+- 사서 챗봇(`LibrarianChat.jsx`, `LibrarianChat.css`) 상단 3개 모드 탭 구성:
+  - `[ 📚 내 서재 | 💬 대화·추천 | 💡 사서 토론 ]`
+- **📚 내 서재 빠른 조회 모드 (Core API 즉시 필터 & 백엔드 AI 에이전트 자연어 질의 지원)**:
+  - 상단 검색창: 코어 서버 서재 데이터(`booksStore`) 기반으로 LLM 호출 대기 없이 제목/저자 즉시 필터링 및 진행률 렌더링
+  - 하단 메시지 입력창: 내 서재 모드에서도 입력창을 노출하여 사용자가 자연어("읽고 있는 책 목록 보여줘", "김영하 작가 책 있어?" 등)로 질문 시 AI 백엔드 에이전트(`search_my_library`)로 전송되어 지능적인 질의응답 및 결과 카드 서빙
+  - 목록 및 답변 카드에서 [책 열기 ➔] 원클릭 시 3D 서재 도서 상세 팝업(`BookDetail`) 즉시 연동
+- **💡 사서 토론 모드 (AI Agent 4인 전문 토론자 연동)**:
+  - AI 에이전트 백엔드(`backend-ai-agent`)의 4인 토론 파트너(`DEBATE_CRITIC`: 평론가/이동진 오마주, `DEBATE_STORYTELLER`: 이야기꾼/설민석 오마주, `DEBATE_COUNSELOR`: 상담사/오은영 오마주, `DEBATE_OBSERVER`: 관찰가/강형욱 오마주) 레지스트리(`app/data/debatePersonas.js`) 정의
+  - 도서 선택 후 하단에 4인 전문 토론자 선택 카드 그리드 구성 (각 토론자별 성향/역할/오마주 태그 노출)
+  - 질문 전송 시 `mode: 'DEBATE'`, `persona: debaterPersona`, `book_id` 파라미터 전달 연동
+- `npm run typecheck`, `npm run lint`(기존 경고 5건만 유지), `npm run build` 통과 확인
+
+**다음 세션 시작 시**: 토론 종료 버튼 및 피날레 도서 큐레이션 수신 UI 연계 검토

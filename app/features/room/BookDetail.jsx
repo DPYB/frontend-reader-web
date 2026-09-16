@@ -5,6 +5,7 @@ import { getLibraryBook, toReadingStatus } from '../../api/bookApi'
 import { GENRE_NONE, genreLabel } from '../../data/genres'
 import SentenceCollectModal from './SentenceCollectModal'
 import ScrapGallery from './ScrapGallery'
+import ReadingTimerModal from './ReadingTimerModal'
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage'
 
 const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
@@ -34,6 +35,7 @@ export default function BookDetail({ book, onClose }) {
   const [savingProgress, setSavingProgress] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showSentenceModal, setShowSentenceModal] = useState(false)
+  const [showTimer, setShowTimer] = useState(false)
   // 문장 수집 모달을 닫을 때 값을 올려 갤러리를 처음부터 다시 로드시킨다 (CLIAR-241)
   const [scrapVersion, setScrapVersion] = useState(0)
   const [detail, setDetail] = useState(null) // 서버 상세(전체 메타 — 저장 시 full payload에 필요)
@@ -550,22 +552,43 @@ export default function BookDetail({ book, onClose }) {
             </p>
           )}
 
-          {/* 문장 수집 */}
-          <button
-            onClick={() => setShowSentenceModal(true)}
-            style={{
-              width: '100%',
-              padding: '10px 0',
-              borderRadius: 8,
-              border: '1px solid var(--accent-border)',
-              background: 'var(--accent-bg)',
-              color: 'var(--text-h)',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            문장 수집
-          </button>
+          {/* 독서 타이머 & 문장 수집 */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowTimer(true)}
+              style={{
+                flex: 1,
+                padding: '10px 0',
+                borderRadius: 8,
+                border: '1px solid var(--accent)',
+                background: 'var(--accent)',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+            >
+              <span>⏱️</span> 독서 타이머
+            </button>
+            <button
+              onClick={() => setShowSentenceModal(true)}
+              style={{
+                flex: 1,
+                padding: '10px 0',
+                borderRadius: 8,
+                border: '1px solid var(--accent-border)',
+                background: 'var(--accent-bg)',
+                color: 'var(--text-h)',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              문장 수집
+            </button>
+          </div>
         </div>
 
         {/* ── 가운데 구분선 ── */}
@@ -598,6 +621,14 @@ export default function BookDetail({ book, onClose }) {
             // 모달에서 문장을 추가/수정/삭제했을 수 있으니 갤러리를 새로 로드한다.
             setScrapVersion((v) => v + 1)
           }}
+        />
+      )}
+
+      {/* 독서 집중 타이머 모달 */}
+      {showTimer && (
+        <ReadingTimerModal
+          initialBook={book}
+          onClose={() => setShowTimer(false)}
         />
       )}
 

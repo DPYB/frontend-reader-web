@@ -55,14 +55,45 @@ function isValidCoords(latitude, longitude) {
  * @param {string} [params.librarianId] - 사서 id ('cat' | 'stork', 미전달 시 백엔드 기본값 cat)
  * @param {number} [params.latitude] - 사용자 위치 위도 (날씨 연동용, 없으면 백엔드가 서울 기본값 사용)
  * @param {number} [params.longitude] - 사용자 위치 경도
+ * @param {'chat'|'debate'|'discussion'} [params.mode='chat'] - 대화 모드 ('chat': 일반 대화, 'debate': 토론 모드)
+ * @param {string|null} [params.persona=null] - 대상 페르소나 ID (DEBATE_CRITIC, DEBATE_STORYTELLER 등)
+ * @param {string|number|null} [params.bookId=null] - 토론 대상 서재 도서 ID (토론 모드 시 전달)
+ * @param {string|null} [params.topic=null] - 토론 논제 / 토픽
+ * @param {'chat'|'conclude'} [params.action='chat'] - 토론 진행 / 즉시 마무리 큐레이션
  * @returns {Promise<{text: string, sessionId: string, switchTo: object|null, signals: object|null, libraryBooks: Array, library_books: Array, recommendedBooks: Array, recommended_books: Array}|null>} 응답 또는 null(실패 시)
  */
-export async function sendChatMessage({ message, sessionId = null, librarianId = null, latitude = null, longitude = null }) {
+export async function sendChatMessage({
+  message,
+  sessionId = null,
+  librarianId = null,
+  latitude = null,
+  longitude = null,
+  mode = 'chat',
+  persona = null,
+  bookId = null,
+  topic = null,
+  action = 'chat',
+}) {
   try {
     const payload = {
       message,
       stream: false,
     };
+    if (mode === 'debate' || mode === 'DEBATE') {
+      payload.mode = 'DEBATE';
+    }
+    if (persona) {
+      payload.persona = persona;
+    }
+    if (action && action !== 'chat') {
+      payload.action = action;
+    }
+    if (bookId) {
+      payload.book_id = bookId;
+    }
+    if (topic) {
+      payload.topic = topic;
+    }
     if (sessionId) {
       payload.session_id = sessionId;
     }
