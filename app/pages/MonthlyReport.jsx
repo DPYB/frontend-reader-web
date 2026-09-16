@@ -265,7 +265,7 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">03</span>
-            <h2 className="report-card-title">독서 취향 (장르 / 주제 태그 & 토론 키워드)</h2>
+            <h2 className="report-card-title">독서 취향 (장르 / 주제 태그 · 토론 키워드)</h2>
           </div>
           <div className="taste-tags-wrap">
             {taste?.tags?.map((tag) => (
@@ -286,7 +286,7 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">04</span>
-            <h2 className="report-card-title">독서 밸런스 (장르 다양성 게이지 & 편독 분석)</h2>
+            <h2 className="report-card-title">독서 밸런스 (장르 다양성 게이지 · 편독 분석)</h2>
           </div>
           <div style={{ marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
             장르 다양성 지수: {balance?.diversityScore ?? 0}점 / 100점
@@ -303,7 +303,7 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">05</span>
-            <h2 className="report-card-title">내가 남긴 독서 흔적 (스크랩 & 인용구)</h2>
+            <h2 className="report-card-title">내가 남긴 독서 흔적 (스크랩 · 인용구)</h2>
           </div>
           <div className="footprint-scraps-grid">
             {footprint?.topScraps?.map((scrap, idx) => (
@@ -340,10 +340,10 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">07</span>
-            <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 & 장르)</h2>
+            <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 · 장르)</h2>
           </div>
           <div style={{ marginBottom: 14, fontSize: 15, fontWeight: 600 }}>
-            추천 장르 테마: <span style={{ color: 'var(--accent, #818cf8)' }}>{prescription?.recommendedGenre}</span>
+            추천 장르 테마: <span style={{ color: 'var(--accent)' }}>{prescription?.recommendedGenre}</span>
           </div>
           <div className="prescription-grid">
             {prescription?.books?.map((book, idx) => (
