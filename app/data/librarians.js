@@ -48,7 +48,7 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
 //     백엔드 팀과 확정한 뒤 실제 값으로 교체해야 한다 (신규 사서 2종 추가 작업).
 // species:        사서 종(품종) 표시명
 // commonNames:     채팅에서 사서를 부르는 통칭 키워드(품종명과 별개로 쓰는 일상어).
-//                  예: 러시안블루를 '고양이'로, 슈빌을 '황새'로 부르는 경우.
+//                  예: 러시안 블루를 '고양이'로, 넓적부리황새를 '황새'로 부르는 경우.
 // defaultName:     가입 직후 기본 사서 이름 — 사서 프로필에서 사용자가 변경 가능
 // specialtyCodes:  해당 사서가 특히 자세히 다루는 genre_type enum code 목록 (KDC 대분류)
 // speechInterjection: 답변 말미에 붙는 사서 고유 감탄사/어미(없으면 미부착)
@@ -67,7 +67,7 @@ export const LIBRARIANS = [
     id: 'cat',
     typeCode: 'RUSSIAN_BLUE',
     name: '블루 사서',
-    species: '러시안블루',
+    species: '러시안 블루',
     commonNames: ['고양이'],
     defaultName: '블루',
     icon: '🐱',
@@ -92,7 +92,7 @@ export const LIBRARIANS = [
     id: 'stork',
     typeCode: 'SHOEBILL',
     name: '슈빌 사서',
-    species: '슈빌',
+    species: '넓적부리황새',
     commonNames: ['황새'],
     defaultName: '슈빌',
     icon: '🪿',
@@ -129,8 +129,7 @@ export const LIBRARIANS = [
     // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
     typeCode: 'SEA_SLUG',
     name: '누디 사서',
-    // 바다달팽이(갯민숭달팽이) — 사용자 요청으로 신규 추가
-    species: '바다달팽이(갯민숭달팽이)',
+    species: '갯민숭달팽이',
     commonNames: ['바다달팽이', '갯민숭달팽이', '달팽이'],
     defaultName: '누디',
     icon: '🐌',
@@ -151,7 +150,7 @@ export const LIBRARIANS = [
     // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
     typeCode: 'GECKO',
     name: '게코 사서',
-    species: '게코',
+    species: '크레스티드 게코',
     commonNames: ['게코', '도마뱀'],
     defaultName: '게코',
     icon: '🦎',
