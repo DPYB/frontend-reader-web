@@ -9,3 +9,4 @@
 - [ ] 신규 사서 누디(바다달팽이)·게코의 `librarian_type` enum 값(`SEA_SLUG`/`GECKO`)을 백엔드와 확정 후 `librarians.js`의 `typeCode` 교체
 - [ ] 누디·게코의 3D 서재 커서 스프라이트(image/imageHover), 전용 서재 배경·카메라 배치(shelfLayout.js) 및 글로우 컬러(LibraryScene.jsx) 추가 — 현재는 icon 이모지 커서 + 고양이 서재 배치로 대체 표시 중 (프로필 사진은 적용 완료)
 - [ ] 슈빌(stork)의 `formalTone`(존댓말 채팅 UI) 정책과 페르소나 문서의 반말 종결어미("~두둥") 예시가 어긋남 — 기획팀과 말투 정책 재확인 필요
+- [ ] [해커톤 제출 후] 점진적 TypeScript 전환 (`app/types/` 신설, `app/api/*.js` ➔ `.ts`, 전역 Store/Context ➔ `.tsx`, 주요 컴포넌트 순차 마이그레이션)
