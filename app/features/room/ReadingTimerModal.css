@@ -1,0 +1,345 @@
+.rt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.rt-modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  user-select: none;
+}
+
+.rt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rt-title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rt-title-area h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.rt-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 6px;
+}
+
+.rt-close-btn:hover {
+  background: var(--code-bg);
+  color: var(--text-h);
+}
+
+/* 도서 선택 섹션 */
+.rt-book-select-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rt-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rt-select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 15px;
+  outline: none;
+}
+
+.rt-select:focus {
+  border-color: var(--accent);
+}
+
+.rt-current-book-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--code-bg);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.rt-book-tag {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  border: 1px solid var(--accent-border);
+}
+
+/* 모드 선택 탭 */
+.rt-mode-tabs {
+  display: flex;
+  background: var(--code-bg);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  gap: 4px;
+}
+
+.rt-mode-tab {
+  flex: 1;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rt-mode-tab.active {
+  background: var(--bg);
+  color: var(--text-h);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+}
+
+/* 뽀모도로 프리셋 버튼 */
+.rt-presets {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.rt-preset-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rt-preset-btn.active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+/* 타이머 메인 디스플레이 */
+.rt-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  background: var(--code-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+.rt-time-text {
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rt-mode-desc {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rt-status-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+}
+
+.rt-status-pulse.running {
+  animation: rt-pulse 1.5s infinite;
+}
+
+.rt-status-pulse.paused {
+  background: #f59e0b;
+}
+
+@keyframes rt-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* 조작 버튼 컨트롤 바 */
+.rt-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.rt-btn {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.rt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rt-btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.rt-btn-secondary {
+  background: var(--border);
+  color: var(--text-h);
+}
+
+.rt-btn-success {
+  background: #10b981;
+  color: #fff;
+}
+
+/* 독서 완료 요약 및 기록 입력 화면 */
+.rt-summary-box {
+  background: var(--code-bg);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rt-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+
+.rt-summary-item strong {
+  color: var(--text-h);
+  font-size: 17px;
+}
+
+.rt-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rt-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rt-input {
+  width: 90px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 16px;
+  text-align: right;
+  outline: none;
+}
+
+.rt-input:focus {
+  border-color: var(--accent);
+}
+
+.rt-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  min-height: 70px;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.rt-textarea:focus {
+  border-color: var(--accent);
+}
+
+.rt-error-msg {
+  color: #ef4444;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
