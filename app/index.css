@@ -1,4 +1,28 @@
 /*
+ * 시각 에셋(이미지) 무단 저장·복제 방지 보조 레이어.
+ * main.jsx의 contextmenu/dragstart 차단과 함께, 모든 이미지·배경 요소를 드래그
+ * 불가·선택 불가로 만들어 이미지를 끌어다 저장하거나 선택 복사하는 경로를 막는다.
+ * (버튼/링크 등 인터랙션은 그대로 동작 — pointer-events는 건드리지 않는다)
+ */
+img,
+picture,
+svg,
+canvas,
+.protected-asset {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* iOS: 이미지 롱프레스 저장 메뉴 차단 */
+}
+
+/*
  * UI 폰트 (CLIAR-290).
  * - 영어(라틴): Chau Philomene One
  * - 한글: Memoment Kkukkukk
