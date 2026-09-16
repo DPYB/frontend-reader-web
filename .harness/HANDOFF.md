@@ -124,3 +124,16 @@
 - `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 확인
 - ⚠️ 브라우저에서 라이트/다크·사서별(고양이/황새 테마) 실제 렌더링 육안 확인은 미완 —
   코드상 테마 변수로 통일했으나 실제 대비는 화면 확인 권장
+
+## 2026-09-15: 누디·게코 실제 프로필 이미지 적용
+- 사용자가 `public/cursors/snail/nudi.JPG`(누디), `public/cursors/gecko/gecko.JPG`(게코)로
+  올린 사서 프로필 이미지를 `public/profile/nudi.jpg`, `public/profile/gecko.jpg`로 이동
+  (기존 cat/stork 프로필과 같은 위치·명명 규칙). 비게 된 `cursors/snail`·`cursors/gecko` 폴더 삭제
+- `app/data/librarians.js`: 누디·게코의 `profileImage`를 placeholder SVG에서 실제 이미지 경로로
+  교체. 임시 placeholder(`nudi-placeholder.svg`, `gecko-placeholder.svg`) 삭제
+- `app/pages/LibrarianProfiles.css`: `.lp-avatar img`의 `object-fit`을 `contain`→`cover`로 변경.
+  기존 정사각 일러스트뿐 아니라 비율이 다른 실사진(누디=가로형, 게코=세로형)도 원형 아바타를
+  여백 없이 채우도록 함 (GNB 프로필과 동일 방식)
+- 남은 후속: 3D 서재용 커서 스프라이트(image/imageHover)와 전용 서재 배경은 아직 없음(BACKLOG 유지)
+- `npm run typecheck`, `npm run lint`(기존 warning 5건만 유지), `npm run build` 통과 및 dist/profile에
+  새 이미지 포함 확인
