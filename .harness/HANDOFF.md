@@ -180,7 +180,13 @@
 - **UI 스타일링**:
   - `LibrarianChat.css`: `.lc-debate-conclude-btn` 및 `.lc-debate-concluded-badge` 그라디언트/인터랙션 애니메이션 스타일링 추가
 - `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건), `npm run build` 통과 완료
+- PR #8(`feat[room]: AI 독서 토론 피날레 및 도서 큐레이션 연동`) 생성, CI 및 DPYB PR 린터 전체 Pass 확인 후 `develop`에 머지 완료
 
-**다음 세션 시작 시**: 후보 2(점진적 TypeScript 마이그레이션) 또는 후보 3(누디/게코 3D 서재 테마 및 카메라 뷰포트 레이아웃) 연계 진행
+**다음 세션 시작 시 후보**:
+1. **점진적 TypeScript 마이그레이션 착수** (`.harness/PLAN.md:9-12` 마일스톤)
+   - `app/types/` 신설 및 핵심 모델(book, librarian, chat, report) 정의
+   - `app/api/` 백엔드 연동 클라이언트 TS 전환
+2. **누디 · 게코 신규 사서 3D 서재 테마 및 레이아웃 연동** (`.harness/BACKLOG.md:10` 과제)
+   - `LibraryScene.jsx` 조명/글로우 테마 및 `shelfLayout.js` 카메라 뷰포트/책장 좌표 분기
 
 
