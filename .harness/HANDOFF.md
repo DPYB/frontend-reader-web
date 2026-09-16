@@ -182,11 +182,12 @@
 - `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건), `npm run build` 통과 완료
 - PR #8(`feat[room]: AI 독서 토론 피날레 및 도서 큐레이션 연동`) 생성, CI 및 DPYB PR 린터 전체 Pass 확인 후 `develop`에 머지 완료
 
-**다음 세션 시작 시 후보**:
-1. **점진적 TypeScript 마이그레이션 착수** (`.harness/PLAN.md:9-12` 마일스톤)
-   - `app/types/` 신설 및 핵심 모델(book, librarian, chat, report) 정의
-   - `app/api/` 백엔드 연동 클라이언트 TS 전환
-2. **누디 · 게코 신규 사서 3D 서재 테마 및 레이아웃 연동** (`.harness/BACKLOG.md:10` 과제)
-   - `LibraryScene.jsx` 조명/글로우 테마 및 `shelfLayout.js` 카메라 뷰포트/책장 좌표 분기
+## 2026-09-16: DPYB 하네스 v2 표준 반영 및 Git pre-commit 훅 설정
+- DPYB 조직 표준(`.github/docs/03-vibe-coding-harness.md`) 개정 내용 동기화:
+  - `.githooks/pre-commit` 훅 스크립트 추가 (소스 코드 수정 시 `STATE.md` 누락 방지 non-blocking 안내) 및 실행 권한(`chmod +x`) 부여
+  - `package.json` scripts에 `"prepare": "git config core.hooksPath .githooks || true"` 추가하여 협업 시 자동 훅 경로 등록
+  - 로컬 git 환경 `git config core.hooksPath .githooks` 설정 완료
+- D-2 해커톤 제출 일정(09-18) 대응을 위해 대규모 TypeScript 전면 전환 마일스톤을 해커톤 이후 기술 부채 정리 단계로 이관(`DECISIONS.md`, `PLAN.md`, `BACKLOG.md`)
+- `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건) 통과 확인
 
 
