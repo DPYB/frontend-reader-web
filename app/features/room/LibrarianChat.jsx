@@ -59,7 +59,14 @@ function getContextualLoadingMessage(message, librarianId) {
       : '🐾 오늘 분위기에 맞는 이야기를 떠올리고 있다 냥...';
   }
 
-  // 5. 일반 질문 / 일상 대화
+  // 5. 독서 토론 마무리 / 총평 요청
+  if (/(토론\s*마무리|토론\s*종료|총평|피날레|마무리\s*및|책\s*추천받기)/i.test(q)) {
+    return isStork
+      ? '🪿 토론 내용을 깊이 있게 정리하고 서재 기억으로 저장하고 있습니다... 🪶'
+      : '🐾 오늘 나눈 토론 이야기를 갈무리하고 서재 기억에 담고 있다 냥... 🧠✨';
+  }
+
+  // 6. 일반 질문 / 일상 대화
   // 특정 사서 이름을 박아두지 않고 일반화한다 (사서가 cat/stork 2종에서 4종으로
   // 늘어나며 여기서 '블루'를 하드코딩하면 다른 사서로 채팅할 때도 '블루'라고 나온다).
   return isStork
@@ -222,6 +229,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
   );
   const switchTo = answer?.switchTo;
 
+  // 토론 피날레 완료 여부 및 토론 요약 (agent.debate_insights 자동 저장 연계)
+  const isConcluded = Boolean(answer?.is_concluded || answer?.isConcluded);
+  const debateSummary = answer?.debate_summary || answer?.debateSummary || null;
+
   const recommendedBooks = useMemo(() => {
     if (backendRecommendedBooks.length > 0 && !loading && !switchTo) {
       return formatRecommendedBooks(backendRecommendedBooks);
@@ -299,12 +310,12 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     onOpenDetail(bookOrId);
   };
 
-  const sendQuery = async (message, targetLibrarianId = librarian.id) => {
+  const sendQuery = async (message, targetLibrarianId = librarian.id, action = 'chat') => {
     setLoading(true);
     setLastUserMessage(message);
     setTurnCount((c) => c + 1);
 
-    // 질문 의도(인사/서재/추천/날씨 등)에 따른 사서별 맥락 맞춤형 로딩 안내 멘트
+    // 질문 의도(인사/서재/추천/날씨/토론종료 등)에 따른 사서별 맥락 맞춤형 로딩 안내 멘트
     const initialLoadingMsg = getContextualLoadingMessage(message, targetLibrarianId);
     onAnswer({
       text: initialLoadingMsg,
@@ -328,6 +339,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
       mode: isDebate ? 'debate' : 'chat',
       persona: isDebate ? debaterPersona : null,
       bookId: isDebate ? debateBookId || null : null,
+      action,
     });
 
     if (result) {
@@ -342,6 +354,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         library_books: result.library_books || result.libraryBooks || [],
         recommendedBooks: result.recommendedBooks || result.recommended_books || [],
         recommended_books: result.recommended_books || result.recommendedBooks || [],
+        isConcluded: Boolean(result.isConcluded || result.is_concluded),
+        is_concluded: Boolean(result.isConcluded || result.is_concluded),
+        debateSummary: result.debateSummary || result.debate_summary || null,
+        debate_summary: result.debateSummary || result.debate_summary || null,
       });
     } else {
       // 백엔드 연결 실패 시에만 로컬 서재 검색으로 폴백
@@ -350,6 +366,17 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     }
 
     setLoading(false);
+  };
+
+  const handleConcludeDebate = async () => {
+    if (loading) return;
+    const personaObj = DEBATE_PERSONAS.find((p) => p.id === debaterPersona);
+    const personaName = personaObj?.name || '토론 파트너';
+    const selectedBook = books.find((b) => String(b.bookId || b.id) === String(debateBookId));
+    const bookTitleStr = selectedBook ? `『${selectedBook.title}』` : '오늘 도서';
+
+    const concludePrompt = `${personaName}님, ${bookTitleStr}에 대한 토론을 여기서 마무리하고 총평과 함께 이어 읽으면 좋을 책을 추천해 주세요.`;
+    await sendQuery(concludePrompt, librarian.id, 'conclude');
   };
 
   const handleSubmit = async (e) => {
@@ -573,6 +600,16 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
                 );
               })}
             </div>
+
+            {/* 토론 마무리 및 맞춤 책 추천받기 액션 버튼 */}
+            <button
+              type="button"
+              className="lc-debate-conclude-btn"
+              onClick={handleConcludeDebate}
+              disabled={loading}
+            >
+              <span>🏁 토론 마무리 및 맞춤 책 추천받기</span>
+            </button>
           </div>
         </div>
       )}
@@ -723,6 +760,21 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
       {/* 날씨·무드 컨텍스트 뱃지 (백엔드 signals 기반) */}
       {answer?.signals && !loading && <WeatherMoodBadge signals={answer.signals} />}
+
+      {/* 🧠 토론 기억 저장 완료 뱃지 (피날레 시 백엔드 agent.debate_insights 자동 저장 연계) */}
+      {isConcluded && !loading && (
+        <div className="lc-debate-concluded-badge">
+          <span className="lc-debate-concluded-icon">🧠</span>
+          <div className="lc-debate-concluded-text">
+            <strong>토론 인사이트가 서재 기억에 저장되었습니다</strong>
+            {debateSummary ? (
+              <span className="lc-debate-concluded-summary">"{debateSummary}"</span>
+            ) : (
+              <span>다음 대화에서도 사서가 오늘 나눈 통찰을 기억합니다.</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 사서 답변 메시지 뷰 (마크다운 포매팅 렌더링 - ADR 0006: ### 📖 추천, ### 📚 내 서재 카드 실시간 렌더링)
           로딩 중에는 아래 로딩 애니메이션이 단독 표시되도록 답변 말풍선을 숨긴다 (CLIAR-285) */}

@@ -164,3 +164,23 @@
 - `npm run typecheck`, `npm run lint`(기존 경고 5건만 유지), `npm run build` 통과 확인
 
 **다음 세션 시작 시**: 토론 종료 버튼 및 피날레 도서 큐레이션 수신 UI 연계 검토
+
+## 2026-09-16: AI 독서 토론 피날레(종료) 및 맞춤 도서 큐레이션 연동
+- 작업 브랜치: `feat/debate-finale-curation`
+- **토론 피날레 UI 및 트리거 액션 구현**:
+  - `LibrarianChat.jsx`: 사서 토론 탭 내 도서/토론자 선택 영역 하단에 `[🏁 토론 마무리 및 맞춤 책 추천받기]` 버튼 추가
+  - `handleConcludeDebate()`: 선택된 토론자 페르소나 및 대상 도서명을 바탕으로 마무리 총평 및 추천 도서 요청 문구를 조합하고 백엔드에 `action: 'conclude'` 파라미터 전송
+  - `getContextualLoadingMessage`: 토론 마무리/피날레 질문 패턴 감지 시 사서별 맞춤 갈무리 대기 멘트 반환
+- **토론 피날레 큐레이션 렌더링 & 서재 기억 저장 연계**:
+  - `chatApi.js`: 응답의 `is_concluded`, `debate_summary` 필드를 프론트엔드로 안전하게 매핑
+  - `LibrarianChat.jsx` / `LibrarianChat.css`:
+    - 피날레 완료 시 `[🧠 토론 인사이트가 서재 기억에 저장되었습니다]` 뱃지 및 토론 요약 인용구(`debate_summary`) 강조 렌더링
+    - 백그라운드 태스크(`agent.debate_insights` 벡터 저장)와 시각적 상태 완벽 일치화
+    - 후속 엄선 추천 도서(`recommended_books`) 카드 자동 렌더링 및 `[등록 ➔]` 원클릭 서재 등록 연동
+- **UI 스타일링**:
+  - `LibrarianChat.css`: `.lc-debate-conclude-btn` 및 `.lc-debate-concluded-badge` 그라디언트/인터랙션 애니메이션 스타일링 추가
+- `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건), `npm run build` 통과 완료
+
+**다음 세션 시작 시**: 후보 2(점진적 TypeScript 마이그레이션) 또는 후보 3(누디/게코 3D 서재 테마 및 카메라 뷰포트 레이아웃) 연계 진행
+
+
