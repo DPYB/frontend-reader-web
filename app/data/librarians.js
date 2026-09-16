@@ -55,7 +55,7 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
 // formalTone:      true면 존댓말·격식체 UI 문구(예: LibrarianCursor 말풍선)를 사용
 //
 // ⚠️ 임시 데이터 안내 (누디/게코):
-//   - profileImage는 실제 일러스트가 나오기 전까지 쓰는 placeholder SVG다.
+//   - profileImage(프로필 사진)는 적용 완료됐다(/profile/nudi.jpg, /profile/gecko.jpg).
 //   - image/imageHover(3D 서재 커서 스프라이트)는 아직 없어 미지정 상태이며,
 //     LibrarianCursor가 자동으로 icon 이모지로 대체 표시한다.
 //   - 3D 서재 배경/카메라(shelfLayout.js)도 전용 배치가 없어 고양이 서재 배치로
@@ -143,8 +143,8 @@ export const LIBRARIANS = [
     readingStyle:
       '문학 작품과 예술적 표현을 좋아해요. 감정과 여운이 오래 남는 책을 선호하고, 등장인물의 감정이나 내면을 깊이 이해하는 걸 즐기며, 정답이 하나로 정해지지 않은 이야기를 좋아해요.',
     catchphrase: '이 이야기가 마음에 오래 남는 이유가 있을 거야 누누.',
-    // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
-    profileImage: '/profile/nudi-placeholder.svg',
+    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (3D 서재 커서 스프라이트는 아직 없어 미지정)
+    profileImage: '/profile/nudi.jpg',
   },
   {
     id: 'gecko',
@@ -164,8 +164,8 @@ export const LIBRARIANS = [
     readingStyle:
       '사람, 사회, 문화에 관한 책을 좋아해요. 역사적 사건과 그 속에 담긴 사람들의 이야기에 관심이 많고, 언어가 사람들의 생각과 관계에 어떤 영향을 주는지 탐구하며, 다양한 관점과 가치관을 접할 수 있는 책을 선호해요.',
     catchphrase: '사람들의 이야기를 따라가다 보면 사회와 역사가 보이거든 크크.',
-    // 아직 전용 커서 스프라이트가 없어 icon 이모지로 대체 표시됨 (image 미지정)
-    profileImage: '/profile/gecko-placeholder.svg',
+    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (3D 서재 커서 스프라이트는 아직 없어 미지정)
+    profileImage: '/profile/gecko.jpg',
   },
 ].map((l) => ({
   ...l,
