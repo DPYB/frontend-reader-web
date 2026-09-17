@@ -334,3 +334,21 @@
 **다음 세션 시작 시**: PR #14(월간 독서 리포트 스키마 정규화) 및 PR #15(독서 세션 60초 미만 초 단위 정밀도 패치) 머지 완료 후 최신 `develop` 동기화 상태임. D-2 해커톤 마일스톤에 따른 배포 환경 E2E 시연 시나리오 점검 및 신규 사서 에셋/테마 잔여 과제 작업 진행 예정.
 
 
+
+## 2026-09-16: 누디 3D 서재 커서 적용 (좌클릭 2초 모션)
+- `public/cursors/nudi/{nudi_01,nudi_02}.png`(사용자 업로드, 각 11~13KB)를 기존 cat/stork와
+  동일한 `public/cursors/<id>/` 구조로 배치 확인. 용량이 이미 작아 webp 변환 없이 그대로 적용
+  (요청에 따라 이번엔 포맷 변경 없이 반영만 함 — 최종 이미지 교체 예정)
+- `app/data/librarians.js`: 누디에 `image`(nudi_01, 기본)·`imageHover`(nudi_02, 클릭 모션)·
+  `clickMotionMs: 2000`·`tip`/`tipHover` 필드 추가
+- `app/features/room/LibrarianCursor.jsx`: 기존 cat/stork는 "책 선택 중"에만 모션 이미지로
+  바뀌는데(active prop, CLIAR-239), 누디는 요청대로 **좌클릭할 때마다 2초간 모션 이미지로
+  전환됐다가 자동으로 기본 이미지로 복귀**하는 별도 로직을 추가:
+  - `librarian.clickMotionMs`가 있으면(누디만 해당) window `mousedown`(좌클릭)을 구독해
+    `imageHover`로 전환 후 `clickMotionMs` 뒤 자동 복귀하는 타이머 방식
+  - 없는 사서(블루/슈빌)는 기존 `active` prop 방식 그대로 유지 — 회귀 없음
+  - 사서 전환 시 클릭 모션 상태가 남지 않도록 렌더 중 동기화로 리셋(setState-in-effect
+    lint 경고 회피, 기존 bubbleText 리셋과 같은 패턴)
+- ⚠️ `tip`/`tipHover` 좌표는 800x800 원본 기준 추정치(코 위치)로 넣었음 — 실측 좌표가 아니라
+  실제 화면에서 커서 포인터 위치가 살짝 어긋날 수 있음. 필요 시 조정 필요
+- `npx eslint .`(기존 warning 5건만 유지, 신규 0), `npx tsc --noEmit`, `npm run build` 통과 확인

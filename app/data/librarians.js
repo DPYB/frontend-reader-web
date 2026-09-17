@@ -140,7 +140,16 @@ export const LIBRARIANS = [
     readingStyle:
       '문학 작품과 예술적 표현을 좋아해요. 감정과 여운이 오래 남는 책을 선호하고, 등장인물의 감정이나 내면을 깊이 이해하는 걸 즐기며, 정답이 하나로 정해지지 않은 이야기를 좋아해요.',
     catchphrase: '이 이야기가 마음에 오래 남는 이유가 있을 거야 누누.',
-    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (3D 서재 커서 스프라이트는 아직 없어 미지정)
+    // 기본(대기) 이미지. 다른 사서(cat/stork)는 "책 선택 중"에만 모션 이미지로 바뀌지만,
+    // 누디는 좌클릭 시 2초간 모션 이미지로 전환된 뒤 자동으로 기본 이미지로 돌아온다
+    // (clickMotionMs, 사용자 요청 2026-09). LibrarianCursor.jsx의 클릭 타이머 로직 참고.
+    image: '/cursors/nudi/nudi_01.png',
+    imageHover: '/cursors/nudi/nudi_02.png',
+    clickMotionMs: 2000,
+    // 포인터 지점 — 800x800 원본 기준 비율 추정치(코가 있는 얼굴 쪽). 실측 후 조정 필요.
+    tip: { x: 0.18, y: 0.5 },
+    tipHover: { x: 0.27, y: 0.4 },
+    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
     profileImage: '/profile/nudi.jpg',
   },
   {
