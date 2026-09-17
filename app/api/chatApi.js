@@ -28,6 +28,31 @@ function buildHeaders() {
 }
 
 /**
+ * 백엔드 표준 LibrarianType ENUM 규격 매핑:
+ * CAT(또는 RUSSIAN_BLUE), SHOEBILL, SEA_SLUG, GECKO
+ *
+ * @param {string|null} id
+ * @returns {string|null}
+ */
+export function normalizeLibrarianId(id) {
+  if (!id) return null;
+  const lower = String(id).trim().toLowerCase();
+  if (lower === 'cat' || lower === 'russian_blue' || lower === '블루' || lower === '고양이') {
+    return 'CAT';
+  }
+  if (lower === 'stork' || lower === 'shoebill' || lower === '슈빌' || lower === '황새') {
+    return 'SHOEBILL';
+  }
+  if (lower === 'nudi' || lower === 'sea_slug' || lower === '누디' || lower === '바다달팽이' || lower === '달팽이') {
+    return 'SEA_SLUG';
+  }
+  if (lower === 'gecko' || lower === '게코' || lower === '도마뱀') {
+    return 'GECKO';
+  }
+  return String(id).toUpperCase();
+}
+
+/**
  * 위도/경도 값이 유효한 범위인지 검증합니다 (위도 -90~90, 경도 -180~180).
  * @param {*} latitude
  * @param {*} longitude
@@ -98,7 +123,7 @@ export async function sendChatMessage({
       payload.session_id = sessionId;
     }
     if (librarianId) {
-      payload.librarian_id = librarianId;
+      payload.librarian_id = normalizeLibrarianId(librarianId);
     }
     if (isValidCoords(latitude, longitude)) {
       payload.latitude = latitude;
@@ -166,7 +191,7 @@ export async function streamChatMessage({ message, sessionId = null, librarianId
       payload.session_id = sessionId;
     }
     if (librarianId) {
-      payload.librarian_id = librarianId;
+      payload.librarian_id = normalizeLibrarianId(librarianId);
     }
     if (isValidCoords(latitude, longitude)) {
       payload.latitude = latitude;
