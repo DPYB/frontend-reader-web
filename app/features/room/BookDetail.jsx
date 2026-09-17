@@ -6,6 +6,7 @@ import { GENRE_NONE, genreLabel } from '../../data/genres'
 import SentenceCollectModal from './SentenceCollectModal'
 import ScrapGallery from './ScrapGallery'
 import ReadingTimerModal from './ReadingTimerModal'
+import ReadingSessionHistory from './ReadingSessionHistory'
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage'
 
 const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
@@ -36,8 +37,12 @@ export default function BookDetail({ book, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showSentenceModal, setShowSentenceModal] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
+  // 우측 패널 탭: 'scraps' (수집한 문장) | 'sessions' (독서 타이머 기록)
+  const [rightTab, setRightTab] = useState('scraps')
   // 문장 수집 모달을 닫을 때 값을 올려 갤러리를 처음부터 다시 로드시킨다 (CLIAR-241)
   const [scrapVersion, setScrapVersion] = useState(0)
+  // 독서 세션 저장 완료 시 값을 올려 세션 히스토리를 다시 로드시킨다
+  const [sessionVersion, setSessionVersion] = useState(0)
   const [detail, setDetail] = useState(null) // 서버 상세(전체 메타 — 저장 시 full payload에 필요)
   const [saving, setSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
@@ -135,6 +140,25 @@ export default function BookDetail({ book, onClose }) {
     setActionError(null)
     try {
       await saveReadingProgress(book.bookId, cur, total || null)
+
+      // 시작전 상태에서 1쪽 이상 저장한 경우 '읽는 중'으로 승격
+      if (cur > 0 && status === '시작전') {
+        setStatus('읽는 중')
+        if (detail) {
+          saveBookMeta(book.bookId, {
+            title: detail.title ?? book.title,
+            author: detail.author ?? book.author,
+            isbn: detail.isbn ?? null,
+            genre: detail.genre ?? genre ?? GENRE_NONE,
+            publisher: detail.publisher ?? null,
+            publishedDate: detail.publishedDate ?? null,
+            coverUrl: detail.coverUrl ?? null,
+            readingStatus: 'READING',
+            totalPages: detail.totalPages ?? null,
+          }).catch(() => {})
+        }
+      }
+
       setNotice({
         type: 'success',
         text: `현재 페이지가 ${cur}쪽으로 새로 저장되었습니다.`,
@@ -601,16 +625,89 @@ export default function BookDetail({ book, onClose }) {
         />
 
         {/*
-         * ── 오른쪽: 수집한 문장 갤러리 (가로 무한 스크롤) ──
-         * key에 scrapVersion을 넣어, 문장 수집 후에는 갤러리를 remount해
-         * 첫 페이지부터 다시 불러오게 한다.
+         * ── 오른쪽: 탭 전환 영역 (수집한 문장 갤러리 vs 독서 타이머 세션 기록) ──
          */}
-        <ScrapGallery
-          key={`${book.bookId}-${scrapVersion}`}
-          ref={galleryRef}
-          bookId={book.bookId}
-          editing={editing}
-        />
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          {/* 우측 상단 탭 헤더 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              paddingBottom: 10,
+              borderBottom: '1px solid var(--border)',
+              marginBottom: 12,
+              flexShrink: 0,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setRightTab('scraps')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: 'none',
+                background: rightTab === 'scraps' ? 'var(--accent)' : 'var(--code-bg)',
+                color: rightTab === 'scraps' ? '#fff' : 'var(--text)',
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>📸</span> 수집한 문장
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightTab('sessions')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: 'none',
+                background: rightTab === 'sessions' ? 'var(--accent)' : 'var(--code-bg)',
+                color: rightTab === 'sessions' ? '#fff' : 'var(--text)',
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>⏱️</span> 독서 타이머 기록
+            </button>
+          </div>
+
+          {/* 탭 콘텐츠 본문 */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
+            {rightTab === 'scraps' ? (
+              <ScrapGallery
+                key={`${book.bookId}-${scrapVersion}`}
+                ref={galleryRef}
+                bookId={book.bookId}
+                editing={editing}
+              />
+            ) : (
+              <ReadingSessionHistory
+                bookId={book.bookId}
+                version={sessionVersion}
+                onOpenTimer={() => setShowTimer(true)}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {showSentenceModal && (
@@ -629,6 +726,10 @@ export default function BookDetail({ book, onClose }) {
         <ReadingTimerModal
           initialBook={book}
           onClose={() => setShowTimer(false)}
+          onSavedSession={() => {
+            setSessionVersion((v) => v + 1)
+            setRightTab('sessions')
+          }}
         />
       )}
 

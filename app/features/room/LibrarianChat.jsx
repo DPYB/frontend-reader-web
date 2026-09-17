@@ -1012,7 +1012,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {libraryBooks.map((b, idx) => {
                 const bookId = b.book_id ?? b.bookId ?? b.id;
-                const statusKr = toKoreanStatus(b.reading_status ?? b.readingStatus ?? b.status);
+                const statusKr = toKoreanStatus(b.reading_status ?? b.readingStatus ?? b.status, b.progress ?? 0);
                 const progress = b.progress != null ? `${b.progress}%` : null;
                 return (
                   <div

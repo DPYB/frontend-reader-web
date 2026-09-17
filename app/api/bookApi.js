@@ -33,8 +33,21 @@ export function toReadingStatus(krStatus) {
   return STATUS_TO_READING[krStatus] || 'PLANNED';
 }
 
-export function toKoreanStatus(readingStatus) {
-  return READING_TO_STATUS[readingStatus] || '시작전';
+/**
+ * 백엔드 readingStatus Enum을 한글 상태로 변환.
+ * progress(진행률)가 0% 초과인 경우, 서버에 아직 PLANNED로 남아있더라도
+ * 화면상으로는 '읽는 중'으로 안전하게 승격하여 표시한다.
+ *
+ * @param {string} readingStatus - 'PLANNED' | 'READING' | 'COMPLETED'
+ * @param {number|null} [progress=0] - 독서 진행률 (0~100)
+ * @returns {string} '시작전' | '읽는 중' | '완독'
+ */
+export function toKoreanStatus(readingStatus, progress = 0) {
+  const baseStatus = READING_TO_STATUS[readingStatus] || (readingStatus ? String(readingStatus) : '시작전');
+  if (baseStatus === '시작전' && progress != null && Number(progress) > 0) {
+    return '읽는 중';
+  }
+  return baseStatus;
 }
 
 // ── 도서 ──
