@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../store/booksStore';
 import { answerQuestion } from './chatEngine';
@@ -11,6 +11,7 @@ import { useLibrarian, loadSavedChatSession, saveChatSession } from '../../store
 import { toKoreanStatus } from '../../api/bookApi';
 import LoadingSequence from '../../components/LoadingSequence';
 import { DEBATE_PERSONAS } from '../../data/debatePersonas';
+import { LIBRARIANS } from '../../data/librarians';
 import './LibrarianChat.css';
 
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
@@ -116,6 +117,57 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
   // 사서 패널 모드: 'chat' (일반 대화) | 'library' (내 서재 빠른 조회) | 'debate' (사서 토론)
   const [chatMode, setChatMode] = useState('chat');
 
+  // 모드별 독립 대화 상태 및 세션 분리 (모드 전환 시 답변 누적/길어짐 방지)
+  const [modeAnswers, setModeAnswers] = useState(() => {
+    const saved = loadSavedChatSession();
+    return {
+      chat: saved?.answer || answer || null,
+      debate: null,
+      library: null,
+    };
+  });
+
+  // 메신저형 멀티턴 대화 히스토리: { chat: [], debate: [], library: [] }
+  const [modeMessages, setModeMessages] = useState(() => {
+    const saved = loadSavedChatSession();
+    const initialChat = [];
+    if (saved?.messages && Array.isArray(saved.messages) && saved.messages.length > 0) {
+      return {
+        chat: saved.messages,
+        debate: [],
+        library: [],
+      };
+    }
+    if (saved?.lastUserMessage) {
+      initialChat.push({ role: 'user', text: saved.lastUserMessage });
+    }
+    if (saved?.answer?.text || answer?.text) {
+      initialChat.push({
+        role: 'assistant',
+        text: saved?.answer?.text || answer?.text,
+        recommendedBooks: saved?.answer?.recommended_books || saved?.answer?.recommendedBooks || answer?.recommended_books || answer?.recommendedBooks || [],
+        libraryBooks: saved?.answer?.library_books || saved?.answer?.libraryBooks || answer?.library_books || answer?.libraryBooks || [],
+        isConcluded: Boolean(saved?.answer?.is_concluded || answer?.is_concluded),
+        debateSummary: saved?.answer?.debate_summary || answer?.debate_summary || null,
+        signals: saved?.answer?.signals || answer?.signals || null,
+        switchTo: saved?.answer?.switchTo || answer?.switchTo || null,
+      });
+    }
+    return {
+      chat: initialChat,
+      debate: [],
+      library: [],
+    };
+  });
+
+  const messagesEndRef = useRef(null);
+
+  const [chatSessionId, setChatSessionId] = useState(() => {
+    const saved = loadSavedChatSession();
+    return saved?.sessionId || answer?.sessionId || null;
+  });
+  const [debateSessionId, setDebateSessionId] = useState(null);
+
   // 내 서재 조회 모드 상태 (검색어, 상태 필터)
   const [libraryQuery, setLibraryQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState('ALL'); // 'ALL' | 'READING' | 'COMPLETED' | 'PLANNED'
@@ -123,46 +175,58 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
   // 토론 모드 대상 도서 및 선택된 토론자 (4인 오마주: DEBATE_CRITIC, DEBATE_STORYTELLER, DEBATE_COUNSELOR, DEBATE_OBSERVER)
   const [debateBookId, setDebateBookId] = useState('');
   const [debaterPersona, setDebaterPersona] = useState('DEBATE_CRITIC');
+  // 토론 대화 진행 중 상단 설정(도서/4인 카드)을 접어 스크롤 영역을 넓히는 토글 상태
+  const [debateCollapsed, setDebateCollapsed] = useState(() => Boolean(modeAnswers?.debate?.text || modeMessages?.debate?.length));
 
   const [input, setInput] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(() => {
-    const saved = loadSavedChatSession();
-    return saved?.sessionId || answer?.sessionId || null;
-  });
+
   const [lastUserMessage, setLastUserMessage] = useState(() => {
     const saved = loadSavedChatSession();
     return saved?.lastUserMessage || '';
   });
   // 로딩 문구 분기용 대화 턴 수 (CLIAR-285): 첫 질문엔 환영 문구, 이후엔 맥락 문구.
-  // 복원된 세션(이전 대화 존재)은 이미 첫 질문을 지난 것으로 간주해 1로 시작한다.
   const [turnCount, setTurnCount] = useState(() => {
     const saved = loadSavedChatSession();
     return saved?.lastUserMessage ? 1 : 0;
   });
 
+  // 현재 모드에 해당하는 유효 답변 및 메시지 목록
+  const currentAnswer = modeAnswers[chatMode] || null;
+  const currentMessages = useMemo(() => modeMessages[chatMode] || [], [modeMessages, chatMode]);
+
+  // 메시지 목록 추가 시 최하단으로 자동 스크롤
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [currentMessages, loading]);
+
   // CLIAR-257: 대화 응답이나 세션 정보 변경 시 sessionStorage에 동기화
   useEffect(() => {
-    if (answer || sessionId || lastUserMessage) {
+    if (modeAnswers.chat || chatSessionId || lastUserMessage || modeMessages.chat.length > 0) {
       saveChatSession({
-        answer,
-        sessionId,
+        answer: modeAnswers.chat,
+        messages: modeMessages.chat,
+        sessionId: chatSessionId,
         lastUserMessage,
         open,
       });
     }
-  }, [answer, sessionId, lastUserMessage, open]);
+  }, [modeAnswers.chat, modeMessages.chat, chatSessionId, lastUserMessage, open]);
 
   // 1. 내 서재 도서 조회 결과 (ADR 0006: 백엔드 response.library_books 또는 ### 📚 마크다운 블록 또는 내 서재 본문 매칭)
   const backendLibraryBooks = useMemo(
-    () => answer?.library_books || answer?.libraryBooks || [],
-    [answer?.library_books, answer?.libraryBooks]
+    () => currentAnswer?.library_books || currentAnswer?.libraryBooks || [],
+    [currentAnswer?.library_books, currentAnswer?.libraryBooks]
   );
 
-  const answerText = answer?.text;
+  const answerText = currentAnswer?.text;
 
   const libraryBooks = useMemo(() => {
+    // 토론 모드에서는 책에 대한 토론에 집중하기 위해 서재 도서 카드를 띄우지 않는다.
+    if (chatMode === 'debate') return [];
     if (backendLibraryBooks.length > 0) return backendLibraryBooks;
     if (!answerText || loading) return [];
 
@@ -191,7 +255,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     }
 
     return [];
-  }, [backendLibraryBooks, answerText, loading, books]);
+  }, [chatMode, backendLibraryBooks, answerText, loading, books]);
 
   // 1-1. 내 서재 빠른 조회 모드 전용 필터링 목록 (Core API 데이터 기반 즉시 키워드 필터)
   const filteredLibraryBooks = useMemo(() => {
@@ -224,14 +288,38 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
   // 2. 외부 도서 추천: 백엔드 recommended_books 구조화 배열 직접 활용 (CLIAR-229)
   const backendRecommendedBooks = useMemo(
-    () => answer?.recommended_books || answer?.recommendedBooks || [],
-    [answer?.recommended_books, answer?.recommendedBooks]
+    () => currentAnswer?.recommended_books || currentAnswer?.recommendedBooks || [],
+    [currentAnswer?.recommended_books, currentAnswer?.recommendedBooks]
   );
-  const switchTo = answer?.switchTo;
+  const switchTo = currentAnswer?.switchTo;
+
+  // switchTo 사서/페르소나 명칭 결정 (이름 누락 방지 fallback 체인)
+  const targetSwitchName = useMemo(() => {
+    if (!switchTo) return '';
+    const switchId = switchTo.id || switchTo.librarianId || switchTo.librarian_id;
+    if (librarianNames[switchId]) return librarianNames[switchId];
+    const registered = LIBRARIANS.find(
+      (l) => l.id === switchId || l.typeCode === switchId
+    );
+    if (registered) return registered.displayName || registered.defaultName || registered.name;
+    const debateMatch = DEBATE_PERSONAS.find((dp) => dp.id === switchId);
+    if (debateMatch) return debateMatch.name;
+    return switchTo.name || switchTo.displayName || switchId || '다른 사서';
+  }, [switchTo, librarianNames]);
 
   // 토론 피날레 완료 여부 및 토론 요약 (agent.debate_insights 자동 저장 연계)
-  const isConcluded = Boolean(answer?.is_concluded || answer?.isConcluded);
-  const debateSummary = answer?.debate_summary || answer?.debateSummary || null;
+  const isConcluded = Boolean(currentAnswer?.is_concluded || currentAnswer?.isConcluded);
+  const debateSummary = currentAnswer?.debate_summary || currentAnswer?.debateSummary || null;
+
+  // 선택된 토론자 및 토론 대상 도서 객체 (배너 요약 및 프롬프트 조합용)
+  const selectedDebatePersona = useMemo(
+    () => DEBATE_PERSONAS.find((p) => p.id === debaterPersona) || DEBATE_PERSONAS[0],
+    [debaterPersona]
+  );
+  const selectedDebateBook = useMemo(
+    () => books.find((b) => String(b.bookId || b.id) === String(debateBookId)) || null,
+    [books, debateBookId]
+  );
 
   const recommendedBooks = useMemo(() => {
     if (backendRecommendedBooks.length > 0 && !loading && !switchTo) {
@@ -268,8 +356,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
     // CLIAR-257: 추천 도서 등록 화면으로 이동하기 직전 현재 대화 상태를 sessionStorage에 저장
     saveChatSession({
-      answer,
-      sessionId,
+      answer: modeAnswers.chat || currentAnswer,
+      sessionId: chatSessionId,
       lastUserMessage,
       open: true, // 복귀 시 패널이 열린 상태로 복원되도록
     });
@@ -280,6 +368,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         book: {
           title,
           author,
+          isbn: matchedBook?.isbn || book.isbn || '',
+          publisher: matchedBook?.publisher || book.publisher || '',
+          coverUrl: matchedBook?.cover_url || matchedBook?.coverUrl || book.coverUrl || book.cover_url || '',
+          cover_url: matchedBook?.cover_url || matchedBook?.coverUrl || book.coverUrl || book.cover_url || '',
           page_count: pageCount,
           totalPage: pageCount,
           genre,
@@ -315,24 +407,41 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     setLastUserMessage(message);
     setTurnCount((c) => c + 1);
 
+    const activeMode = chatMode;
+    const isDebate = activeMode === 'debate';
+    if (isDebate) {
+      setDebateCollapsed(true);
+    }
+
+    // 사용자 질문을 해당 모드 대화 히스토리에 추가
+    const userMsg = { role: 'user', text: message };
+    setModeMessages((prev) => ({
+      ...prev,
+      [activeMode]: [...(prev[activeMode] || []), userMsg],
+    }));
+
     // 질문 의도(인사/서재/추천/날씨/토론종료 등)에 따른 사서별 맥락 맞춤형 로딩 안내 멘트
     const initialLoadingMsg = getContextualLoadingMessage(message, targetLibrarianId);
-    onAnswer({
+    const initialAns = {
       text: initialLoadingMsg,
       library_books: [],
       libraryBooks: [],
       recommended_books: [],
       recommendedBooks: [],
-    });
+    };
+    setModeAnswers((prev) => ({ ...prev, [activeMode]: initialAns }));
+    if (onAnswer) {
+      onAnswer(initialAns);
+    }
 
     // 날씨 연동을 위한 사용자 위치 (권한 거부/실패 시 null → 백엔드가 서울 기본값 사용)
     const location = await getUserLocation();
 
     // 도서 등록 자동 입력 연동 플로우: 동기 요청(stream: false) 사용 (CLIAR-229)
-    const isDebate = chatMode === 'debate';
+    const activeSessionId = isDebate ? debateSessionId : chatSessionId;
     const result = await sendChatMessage({
       message,
-      sessionId,
+      sessionId: activeSessionId,
       librarianId: targetLibrarianId,
       latitude: location?.latitude,
       longitude: location?.longitude,
@@ -344,25 +453,64 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
     if (result) {
       if (result.sessionId) {
-        setSessionId(result.sessionId);
+        if (isDebate) {
+          setDebateSessionId(result.sessionId);
+        } else {
+          setChatSessionId(result.sessionId);
+        }
       }
-      onAnswer({
+      const newAnswer = {
         text: result.text,
         switchTo: result.switchTo,
         signals: result.signals,
-        libraryBooks: result.libraryBooks || result.library_books || [],
-        library_books: result.library_books || result.libraryBooks || [],
+        libraryBooks: isDebate ? [] : (result.libraryBooks || result.library_books || []),
+        library_books: isDebate ? [] : (result.library_books || result.libraryBooks || []),
         recommendedBooks: result.recommendedBooks || result.recommended_books || [],
         recommended_books: result.recommended_books || result.recommendedBooks || [],
         isConcluded: Boolean(result.isConcluded || result.is_concluded),
         is_concluded: Boolean(result.isConcluded || result.is_concluded),
         debateSummary: result.debateSummary || result.debate_summary || null,
         debate_summary: result.debateSummary || result.debate_summary || null,
-      });
+      };
+      setModeAnswers((prev) => ({ ...prev, [activeMode]: newAnswer }));
+      const assistantMsg = {
+        role: 'assistant',
+        text: newAnswer.text,
+        recommendedBooks: newAnswer.recommendedBooks,
+        libraryBooks: newAnswer.libraryBooks,
+        isConcluded: newAnswer.isConcluded,
+        debateSummary: newAnswer.debateSummary,
+        signals: newAnswer.signals,
+        switchTo: newAnswer.switchTo,
+      };
+      setModeMessages((prev) => ({
+        ...prev,
+        [activeMode]: [...(prev[activeMode] || []), assistantMsg],
+      }));
+      if (onAnswer) {
+        onAnswer(newAnswer);
+      }
     } else {
       // 백엔드 연결 실패 시에만 로컬 서재 검색으로 폴백
       const localResult = answerQuestion({ text: message, books, librarian, librarianNames });
-      onAnswer(localResult);
+      setModeAnswers((prev) => ({ ...prev, [activeMode]: localResult }));
+      const assistantMsg = {
+        role: 'assistant',
+        text: localResult.text,
+        recommendedBooks: localResult.recommendedBooks || localResult.recommended_books || [],
+        libraryBooks: isDebate ? [] : (localResult.libraryBooks || localResult.library_books || []),
+        isConcluded: false,
+        debateSummary: null,
+        signals: null,
+        switchTo: null,
+      };
+      setModeMessages((prev) => ({
+        ...prev,
+        [activeMode]: [...(prev[activeMode] || []), assistantMsg],
+      }));
+      if (onAnswer) {
+        onAnswer(localResult);
+      }
     }
 
     setLoading(false);
@@ -443,387 +591,497 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         padding: 12,
         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
         color: 'var(--text-h)',
-        maxHeight: 'calc(100vh - 32px)', // 뷰포트 높이에서 여백 고려하여 조정 (CLIAR-284)
+        height: 'auto',
+        maxHeight: 'min(420px, calc(100vh - 180px))', // 상단 사서 프로필/GNB를 절대 침범하지 않도록 컴팩트 높이 유지
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontWeight: 700 }}>
+      {/* 1. 최상단 헤더: 사서 이름 + 모드별 도움말 (?) + 닫기 (✕) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
           {librarian.icon} {librarian.displayName || librarian.name}
         </span>
-        <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer' }}>✕</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* 모드별 맞춤 도움말 (?) 툴팁 - 상단 고정 */}
+          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                fontSize: 12,
+                cursor: 'help',
+                userSelect: 'none',
+              }}
+            >
+              ?
+            </span>
+            {showHelp && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '120%',
+                  right: 0,
+                  width: chatMode === 'debate' ? 260 : 230,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  padding: 10,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+                  lineHeight: 1.5,
+                  fontSize: 12,
+                  zIndex: 50,
+                }}
+              >
+                {chatMode === 'chat' && (
+                  <>
+                    <strong>💬 추천 대화 가이드</strong>
+                    <br />· 따뜻하고 힐링되는 소설 추천해줘
+                    <br />· 오늘 날씨에 어울리는 책 있어?
+                    <br />· 아몬드라는 책 어때?
+                  </>
+                )}
+                {chatMode === 'library' && (
+                  <>
+                    <strong>📚 AI 서재 검색 가이드</strong>
+                    <br />· 상단: 제목/저자 빠른 필터
+                    <br />· 하단: AI 자연어 질의
+                    <br /><em>(예: "읽고 있는 책 보여줘")</em>
+                  </>
+                )}
+                {chatMode === 'debate' && (
+                  <>
+                    <strong>💡 4인 AI 독서 토론 가이드</strong>
+                    <br />· <strong>평론가(이동진)</strong>: 미학·복선·화두
+                    <br />· <strong>이야기꾼(설민석)</strong>: 시대 배경·교훈
+                    <br />· <strong>상담사(오은영)</strong>: 인물 심리·공감
+                    <br />· <strong>관찰가(강형욱)</strong>: 본능·행동 시그널
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+        </div>
       </div>
 
-      {/* 모드 전환 탭: [ 📚 내 서재 | 💬 일반 대화 | 💡 사서 토론 ] */}
-      <div className="lc-mode-tabs">
+      {/* 2. 모드 전환 탭: [ 📚 내 서재 | 💬 대화·추천 | 💡 사서 토론 ] */}
+      <div className="lc-mode-tabs" style={{ flexShrink: 0 }}>
         <button
           type="button"
           className={`lc-mode-tab ${chatMode === 'library' ? 'active' : ''}`}
-          onClick={() => setChatMode('library')}
+          onClick={() => {
+            setChatMode('library');
+            if (onAnswer) onAnswer(modeAnswers.library || null);
+          }}
         >
           📚 내 서재
         </button>
         <button
           type="button"
           className={`lc-mode-tab ${chatMode === 'chat' ? 'active' : ''}`}
-          onClick={() => setChatMode('chat')}
+          onClick={() => {
+            setChatMode('chat');
+            if (onAnswer) onAnswer(modeAnswers.chat || null);
+          }}
         >
           💬 대화·추천
         </button>
         <button
           type="button"
           className={`lc-mode-tab ${chatMode === 'debate' ? 'active' : ''}`}
-          onClick={() => setChatMode('debate')}
+          onClick={() => {
+            setChatMode('debate');
+            if (onAnswer) onAnswer(modeAnswers.debate || null);
+          }}
         >
           💡 사서 토론
         </button>
       </div>
 
-      {/* 📚 모드 1: 내 서재 빠른 조회 모드 (Core API 데이터 기반 즉시 응답) */}
-      {chatMode === 'library' && (
-        <div className="lc-library-view">
-          <input
-            type="text"
-            className="lc-library-search-input"
-            value={libraryQuery}
-            onChange={(e) => setLibraryQuery(e.target.value)}
-            placeholder="내 서재 책 제목 또는 저자 검색..."
-          />
-          <div className="lc-library-filter-pills">
-            <button
-              type="button"
-              className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => setLibraryFilter('ALL')}
-            >
-              전체 ({books.length})
-            </button>
-            <button
-              type="button"
-              className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
-              onClick={() => setLibraryFilter('READING')}
-            >
-              읽는 중
-            </button>
-            <button
-              type="button"
-              className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
-              onClick={() => setLibraryFilter('COMPLETED')}
-            >
-              완독
-            </button>
-            <button
-              type="button"
-              className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
-              onClick={() => setLibraryFilter('PLANNED')}
-            >
-              시작 전
-            </button>
-          </div>
-
-          <div className="lc-library-list">
-            {filteredLibraryBooks.length === 0 ? (
-              <div className="lc-library-empty">
-                {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
-              </div>
-            ) : (
-              filteredLibraryBooks.map((b) => (
-                <div key={b.bookId || b.id} className="lc-library-item">
-                  <div className="lc-library-item-info">
-                    <span className="lc-library-item-title">{b.title}</span>
-                    <div className="lc-library-item-meta">
-                      {b.author && <span>{b.author}</span>}
-                      <span className="lc-library-item-badge">{b.status}</span>
-                      {b.progress != null && <span>{b.progress}%</span>}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="lc-library-open-btn"
-                    onClick={() => handleOpenDetail(b)}
-                  >
-                    책 열기 ➔
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+      {/* 3. 상단 고정 날씨·시간대·무드 뱃지 (일반 대화 및 추천 모드에서만 고정 노출) */}
+      {chatMode === 'chat' && currentAnswer?.signals && !loading && (
+        <div style={{ flexShrink: 0, marginBottom: 4 }}>
+          <WeatherMoodBadge signals={currentAnswer.signals} />
         </div>
       )}
 
-      {/* 💡 모드 2: 사서 토론 모드 상단 배너 & 대상 도서 선택기 */}
-      {chatMode === 'debate' && (
-        <div className="lc-debate-view">
-          <div className="lc-debate-banner">
-            <span className="lc-debate-badge">DEBATE</span>
-            <span>사서와 함께 깊이 있는 독서 토론을 나눠보세요.</span>
-          </div>
+      {/* 스크롤 가능한 본문 영역 (헤더/탭과 하단 입력창 사이에서 내부 스크롤) */}
+      <div
+        className="lc-content-body"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          minHeight: 0,
+          marginBottom: 8,
+          paddingRight: 2,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* 📚 모드 1: 내 서재 빠른 조회 모드 (Core API 데이터 기반 즉시 응답) */}
+        {chatMode === 'library' && (
+          <div className="lc-library-view">
+            <input
+              type="text"
+              className="lc-library-search-input"
+              value={libraryQuery}
+              onChange={(e) => setLibraryQuery(e.target.value)}
+              placeholder="내 서재 책 제목 또는 저자 검색..."
+            />
+            <div className="lc-library-filter-pills">
+              <button
+                type="button"
+                className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setLibraryFilter('ALL')}
+              >
+                전체 ({books.length})
+              </button>
+              <button
+                type="button"
+                className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
+                onClick={() => setLibraryFilter('READING')}
+              >
+                읽는 중
+              </button>
+              <button
+                type="button"
+                className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
+                onClick={() => setLibraryFilter('COMPLETED')}
+              >
+                완독
+              </button>
+              <button
+                type="button"
+                className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
+                onClick={() => setLibraryFilter('PLANNED')}
+              >
+                시작 전
+              </button>
+            </div>
 
-          <div className="lc-debate-book-selector">
-            <label className="lc-debate-label">토론 대상 도서 선택</label>
-            <select
-              className="lc-debate-select"
-              value={debateBookId}
-              onChange={(e) => setDebateBookId(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">(선택 안 함 - 일반 주제 토론)</option>
-              {books.map((b) => (
-                <option key={b.bookId || b.id} value={b.bookId || b.id}>
-                  {b.title} ({b.status})
-                </option>
-              ))}
-            </select>
-
-            <label className="lc-debate-label" style={{ marginTop: 8 }}>
-              토론 상대 선택 (AI 토론 파트너 4인)
-            </label>
-            <div className="lc-debater-grid">
-              {DEBATE_PERSONAS.map((dp) => {
-                const isSelected = debaterPersona === dp.id;
-                return (
-                  <button
-                    key={dp.id}
-                    type="button"
-                    className={`lc-debater-card ${isSelected ? 'active' : ''}`}
-                    onClick={() => setDebaterPersona(dp.id)}
-                    disabled={loading}
-                  >
-                    <div className="lc-debater-header">
-                      <span className="lc-debater-icon">{dp.icon}</span>
-                      <span className="lc-debater-name">{dp.name}</span>
-                      <span className="lc-debater-tag">{dp.tag}</span>
+            <div className="lc-library-list">
+              {filteredLibraryBooks.length === 0 ? (
+                <div className="lc-library-empty">
+                  {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
+                </div>
+              ) : (
+                filteredLibraryBooks.map((b) => (
+                  <div key={b.bookId || b.id} className="lc-library-item">
+                    <div className="lc-library-item-info">
+                      <span className="lc-library-item-title">{b.title}</span>
+                      <div className="lc-library-item-meta">
+                        {b.author && <span>{b.author}</span>}
+                        <span className="lc-library-item-badge">{b.status}</span>
+                        {b.progress != null && <span>{b.progress}%</span>}
+                      </div>
                     </div>
-                    <span className="lc-debater-title">{dp.title}</span>
-                    <span className="lc-debater-desc">{dp.oneLiner}</span>
+                    <button
+                      type="button"
+                      className="lc-library-open-btn"
+                      onClick={() => handleOpenDetail(b)}
+                    >
+                      책 열기 ➔
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 💡 모드 2: 사서 토론 모드 상단 배너 & 대상 도서 선택기 */}
+        {chatMode === 'debate' && (
+          <div className="lc-debate-view">
+            <div
+              className="lc-debate-banner lc-debate-banner-clickable"
+              onClick={() => setDebateCollapsed((prev) => !prev)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setDebateCollapsed((prev) => !prev);
+                }
+              }}
+              title={debateCollapsed ? '토론 설정 펼치기' : '토론 설정 접기'}
+            >
+              <span className="lc-debate-badge">DEBATE</span>
+              <span className="lc-debate-banner-title">
+                {selectedDebatePersona.icon} <strong>{selectedDebatePersona.name}</strong>
+                {selectedDebateBook ? ` · 『${selectedDebateBook.title}』` : ' · 일반 주제'}과 토론 중
+              </span>
+              <div className="lc-debate-banner-actions">
+                {debateCollapsed && (
+                  <button
+                    type="button"
+                    className="lc-debate-mini-conclude-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConcludeDebate();
+                    }}
+                    disabled={loading}
+                    title="토론 마무리 및 맞춤 책 추천받기"
+                  >
+                    🏁 마무리
                   </button>
+                )}
+                <span className="lc-debate-banner-toggle">
+                  {debateCollapsed ? '설정 ▾' : '접기 ▴'}
+                </span>
+              </div>
+            </div>
+
+            {!debateCollapsed && (
+              <div className="lc-debate-book-selector">
+                <label className="lc-debate-label">토론 대상 도서 선택</label>
+                <select
+                  className="lc-debate-select"
+                  value={debateBookId}
+                  onChange={(e) => setDebateBookId(e.target.value)}
+                  disabled={loading}
+                >
+                  <option value="">(선택 안 함 - 일반 주제 토론)</option>
+                  {books.map((b) => (
+                    <option key={b.bookId || b.id} value={b.bookId || b.id}>
+                      {b.title} ({b.status})
+                    </option>
+                  ))}
+                </select>
+
+                <label className="lc-debate-label" style={{ marginTop: 8 }}>
+                  토론 상대 선택 (AI 토론 파트너 4인)
+                </label>
+                <div className="lc-debater-grid">
+                  {DEBATE_PERSONAS.map((dp) => {
+                    const isSelected = debaterPersona === dp.id;
+                    return (
+                      <button
+                        key={dp.id}
+                        type="button"
+                        className={`lc-debater-card ${isSelected ? 'active' : ''}`}
+                        onClick={() => setDebaterPersona(dp.id)}
+                        disabled={loading}
+                      >
+                        <div className="lc-debater-header">
+                          <span className="lc-debater-icon">{dp.icon}</span>
+                          <span className="lc-debater-name">{dp.name}</span>
+                          <span className="lc-debater-tag">{dp.tag}</span>
+                        </div>
+                        <span className="lc-debater-title">{dp.title}</span>
+                        <span className="lc-debater-desc">{dp.oneLiner}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 토론 마무리 및 맞춤 책 추천받기 액션 버튼 */}
+                <button
+                  type="button"
+                  className="lc-debate-conclude-btn"
+                  onClick={handleConcludeDebate}
+                  disabled={loading}
+                >
+                  <span>🏁 토론 마무리 및 맞춤 책 추천받기</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 사서 변경 버튼 (전문 장르 벗어난 추천일 때) */}
+        {chatMode !== 'library' && currentAnswer?.switchTo && (
+          <button
+            onClick={() => handleSwitchClick(currentAnswer.switchTo.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center',
+              marginBottom: 8, padding: '8px 10px', borderRadius: 999, border: '1px solid var(--accent-border)',
+              background: 'var(--accent-bg)', color: 'var(--text-h)', cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>{currentAnswer.switchTo.icon || '🐾'}</span>
+            {targetSwitchName}로 바꾸기
+          </button>
+        )}
+
+        {/* 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285) */}
+        {loading && (
+          <div
+            style={{
+              marginBottom: 8,
+              background: 'var(--code-bg)',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+            }}
+          >
+            <LoadingSequence
+              size={120}
+              padding={20}
+              label={
+                turnCount <= 1 ? (
+                  <>
+                    따스한 햇살 아래 포근히 잠든{' '}
+                    <strong>{librarianNames[librarian.id] || librarian.name} 사서</strong>를 살며시 깨우고 있어요...
+                  </>
+                ) : isBookRecommendationQuery(lastUserMessage) ? (
+                  getRecommendationLoadingMessage(librarian.id)
+                ) : (
+                  // 2번째 질문부터 추천 질문이 아니면 로딩 애니메이션만 표시 (CLIAR-285)
+                  ''
+                )
+              }
+            />
+          </div>
+        )}
+
+        {/* 🧠 토론 기억 저장 완료 뱃지 (피날레 시 백엔드 agent.debate_insights 자동 저장 연계) */}
+        {isConcluded && !loading && (
+          <div className="lc-debate-concluded-badge">
+            <span className="lc-debate-concluded-icon">🧠</span>
+            <div className="lc-debate-concluded-text">
+              <strong>토론 인사이트가 서재 기억에 저장되었습니다</strong>
+              {debateSummary ? (
+                <span className="lc-debate-concluded-summary">"{debateSummary}"</span>
+              ) : (
+                <span>다음 대화에서도 사서가 오늘 나눈 통찰을 기억합니다.</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 💬 메신저형 멀티턴 대화 히스토리 리스트 */}
+        <div className="lc-messages-list">
+          {currentMessages.map((msg, mIdx) => {
+            const isUser = msg.role === 'user';
+            const isLastAssistant = !isUser && mIdx === currentMessages.length - 1;
+            const msgRecommended = isLastAssistant ? recommendedBooks : (msg.recommendedBooks || []);
+
+            return (
+              <div key={mIdx} className={`lc-message-row ${isUser ? 'user' : 'assistant'}`}>
+                <div className="lc-message-sender">
+                  {isUser ? (
+                    '👤 나'
+                  ) : chatMode === 'debate' ? (
+                    `${selectedDebatePersona.icon} ${selectedDebatePersona.name}`
+                  ) : (
+                    `${librarian.icon} ${librarianNames[librarian.id] || librarian.name}`
+                  )}
+                </div>
+                <div className="lc-message-bubble">
+                  {isUser ? (
+                    msg.text
+                  ) : (
+                    <MarkdownRenderer
+                      text={msg.text}
+                      recommendedBooks={msgRecommended}
+                      onRegister={handleRegisterBook}
+                      onOpenDetail={handleOpenDetail}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 1. 내 서재 도서 목록 카드 (일반 대화 및 서재 모드에서만 노출, 토론 모드에서는 제외) */}
+        {chatMode !== 'debate' && libraryBooks.length > 0 && !loading && !currentAnswer?.text?.includes('### 📚') && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '8px 10px',
+              background: 'var(--code-bg)',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              maxHeight: 160,
+              overflowY: 'auto',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+              📖 내 서재 도서 ({libraryBooks.length}권):
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {libraryBooks.map((b, idx) => {
+                const bookId = b.book_id ?? b.bookId ?? b.id;
+                const statusKr = toKoreanStatus(b.reading_status ?? b.readingStatus ?? b.status);
+                const progress = b.progress != null ? `${b.progress}%` : null;
+                return (
+                  <div
+                    key={bookId || idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 6,
+                      padding: '6px 8px',
+                      background: 'var(--bg)',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      <span style={{ fontWeight: 600 }}>{b.title}</span>
+                      {b.author && <span style={{ fontSize: 15, color: 'var(--text)', marginLeft: 4 }}>({b.author})</span>}
+                      {(statusKr || progress) && (
+                        <span style={{ fontSize: 14, color: 'var(--accent)', marginLeft: 6, fontWeight: 500 }}>
+                          [{statusKr}{progress ? ` · ${progress}` : ''}]
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDetail(b)}
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid var(--accent-border, var(--accent))',
+                        background: 'var(--accent-bg, rgba(0, 229, 255, 0.1))',
+                        color: 'var(--accent)',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      책 열기 ➔
+                    </button>
+                  </div>
                 );
               })}
             </div>
-
-            {/* 토론 마무리 및 맞춤 책 추천받기 액션 버튼 */}
-            <button
-              type="button"
-              className="lc-debate-conclude-btn"
-              onClick={handleConcludeDebate}
-              disabled={loading}
-            >
-              <span>🏁 토론 마무리 및 맞춤 책 추천받기</span>
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 사서 변경 버튼 (전문 장르 벗어난 추천일 때) */}
-      {chatMode !== 'library' && answer?.switchTo && (
-        <button
-          onClick={() => handleSwitchClick(answer.switchTo.id)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center',
-            marginBottom: 8, padding: '8px 10px', borderRadius: 999, border: '1px solid var(--accent-border)',
-            background: 'var(--accent-bg)', color: 'var(--text-h)', cursor: 'pointer',
-          }}
-        >
-          <span style={{ fontSize: 20 }}>{answer.switchTo.icon}</span>
-          {librarianNames[answer.switchTo.id] || answer.switchTo.name}로 바꾸기
-        </button>
-      )}
-
-      {/* 질문 팁 안내 (모드별 가이드) */}
-      {chatMode === 'chat' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
-          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
-            <span
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
-                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
-              }}
-            >
-              ?
-            </span>
-            {showHelp && (
-              <div
-                style={{
-                  position: 'absolute', bottom: '130%', right: 0, width: 230, background: 'var(--bg)',
-                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
-                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
-                }}
-              >
-                <strong>💬 이렇게 물어보세요</strong>
-                <br />
-                · 따뜻하고 힐링되는 소설 추천해줘
-                <br />· 오늘 날씨에 어울리는 책 있어?
-                <br />· 아몬드라는 책 어때?
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 내 서재 자연어 질의 팁 안내 */}
-      {chatMode === 'library' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
-          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
-            <span
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
-                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
-              }}
-            >
-              ?
-            </span>
-            {showHelp && (
-              <div
-                style={{
-                  position: 'absolute', bottom: '130%', right: 0, width: 250, background: 'var(--bg)',
-                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
-                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
-                }}
-              >
-                <strong>📚 AI 서재 검색 가이드</strong>
-                <br />
-                · 상단 입력창: 제목/저자 즉시 필터
-                <br />
-                · 하단 메시지: AI 자연어 질의
-                <br />
-                <em>(예: "읽고 있는 책 보여줘", "김영하 작가 책 있어?")</em>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 토론 팁 안내 (토론 모드일 때 표시) */}
-      {chatMode === 'debate' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8 }}>
-          <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
-            <span
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
-                borderRadius: '50%', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'help',
-              }}
-            >
-              ?
-            </span>
-            {showHelp && (
-              <div
-                style={{
-                  position: 'absolute', bottom: '130%', right: 0, width: 260, background: 'var(--bg)',
-                  border: '1px solid var(--border)', borderRadius: 8, padding: 10,
-                  boxShadow: '0 6px 18px rgba(0,0,0,0.35)', lineHeight: 1.6, zIndex: 30,
-                }}
-              >
-                <strong>💡 토론 모드 가이드</strong>
-                <br />
-                · <strong>평론가(이동진)</strong>: 미학적 구조, 복선, 별점 및 화두
-                <br />
-                · <strong>이야기꾼(설민석)</strong>: 시대 배경, 역사적 딜레마와 교훈
-                <br />
-                · <strong>상담사(오은영)</strong>: 인물 심리 분석과 마음 돌봄
-                <br />
-                · <strong>관찰가(강형욱)</strong>: 본능 분석과 환경 결핍, 행동 시그널
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285) */}
-      {loading && (
-        <div
-          style={{
-            marginBottom: 8,
-            background: 'var(--code-bg)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-          }}
-        >
-          <LoadingSequence
-            size={120}
-            padding={20}
-            label={
-              turnCount <= 1 ? (
-                <>
-                  따스한 햇살 아래 포근히 잠든{' '}
-                  <strong>{librarianNames[librarian.id] || librarian.name} 사서</strong>를 살며시 깨우고 있어요...
-                </>
-              ) : isBookRecommendationQuery(lastUserMessage) ? (
-                getRecommendationLoadingMessage(librarian.id)
-              ) : (
-                // 2번째 질문부터 추천 질문이 아니면 로딩 애니메이션만 표시 (CLIAR-285)
-                ''
-              )
-            }
-          />
-        </div>
-      )}
-
-      {/* 날씨·무드 컨텍스트 뱃지 (백엔드 signals 기반) */}
-      {answer?.signals && !loading && <WeatherMoodBadge signals={answer.signals} />}
-
-      {/* 🧠 토론 기억 저장 완료 뱃지 (피날레 시 백엔드 agent.debate_insights 자동 저장 연계) */}
-      {isConcluded && !loading && (
-        <div className="lc-debate-concluded-badge">
-          <span className="lc-debate-concluded-icon">🧠</span>
-          <div className="lc-debate-concluded-text">
-            <strong>토론 인사이트가 서재 기억에 저장되었습니다</strong>
-            {debateSummary ? (
-              <span className="lc-debate-concluded-summary">"{debateSummary}"</span>
-            ) : (
-              <span>다음 대화에서도 사서가 오늘 나눈 통찰을 기억합니다.</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 사서 답변 메시지 뷰 (마크다운 포매팅 렌더링 - ADR 0006: ### 📖 추천, ### 📚 내 서재 카드 실시간 렌더링)
-          로딩 중에는 아래 로딩 애니메이션이 단독 표시되도록 답변 말풍선을 숨긴다 (CLIAR-285) */}
-      {answer?.text && !loading && (
-        <div
-          style={{
-            marginBottom: 8,
-            padding: '10px 12px',
-            // CLIAR-301: 답변 배경/테두리를 기존보다 50% 흰색에 가깝게(더 밝게) 조정
-            background: 'var(--answer-bg)',
-            borderRadius: 10,
-            border: '1px solid var(--answer-border)',
-            maxHeight: 220,
-            overflowY: 'auto',
-          }}
-        >
-          <MarkdownRenderer
-            text={answer.text}
-            recommendedBooks={recommendedBooks}
-            onRegister={handleRegisterBook}
-            onOpenDetail={handleOpenDetail}
-          />
-        </div>
-      )}
-
-      {/* 1. 내 서재 도서 목록 카드 (백엔드 JSON response.library_books가 마크다운 본문 카드와 별도로 내려온 경우 노출) */}
-      {libraryBooks.length > 0 && !loading && !answer?.text?.includes('### 📚') && (
-        <div
-          style={{
-            marginBottom: 10,
-            padding: '8px 10px',
-            background: 'var(--code-bg)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-            maxHeight: 160,
-            overflowY: 'auto',
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-            📖 내 서재 도서 ({libraryBooks.length}권):
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {libraryBooks.map((b, idx) => {
-              const bookId = b.book_id ?? b.bookId ?? b.id;
-              const statusKr = toKoreanStatus(b.reading_status ?? b.readingStatus ?? b.status);
-              const progress = b.progress != null ? `${b.progress}%` : null;
-              return (
+        {/* 2. 추천 도서 바로 등록 카드 리스트 (마크다운 본문에 ### 📖 카드가 없는 JSON 응답 대응) */}
+        {recommendedBooks.length > 0 && !loading && !currentAnswer?.text?.includes('### 📖') && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '8px 10px',
+              background: 'var(--code-bg)',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              maxHeight: 160,
+              overflowY: 'auto',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+              📚 추천 도서 바로 서재에 등록하기:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {recommendedBooks.map((b, idx) => (
                 <div
-                  key={bookId || idx}
+                  key={idx}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -838,96 +1096,36 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                     <span style={{ fontWeight: 600 }}>{b.title}</span>
                     {b.author && <span style={{ fontSize: 15, color: 'var(--text)', marginLeft: 4 }}>({b.author})</span>}
-                    {(statusKr || progress) && (
-                      <span style={{ fontSize: 14, color: 'var(--accent)', marginLeft: 6, fontWeight: 500 }}>
-                        [{statusKr}{progress ? ` · ${progress}` : ''}]
-                      </span>
-                    )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleOpenDetail(b)}
+                    onClick={() => handleRegisterBook(b)}
                     style={{
                       fontSize: 15,
                       fontWeight: 600,
-                      padding: '4px 10px',
+                      padding: '3px 8px',
                       borderRadius: 6,
                       border: '1px solid var(--accent-border, var(--accent))',
-                      background: 'var(--accent-bg, rgba(0, 229, 255, 0.1))',
-                      color: 'var(--accent)',
+                      background: 'var(--accent)',
+                      color: '#fff',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    책 열기 ➔
+                    등록 ➔
                   </button>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 2. 추천 도서 바로 등록 카드 리스트 (마크다운 본문에 ### 📖 카드가 없는 JSON 응답 대응) */}
-      {recommendedBooks.length > 0 && !loading && !answer?.text?.includes('### 📖') && (
-        <div
-          style={{
-            marginBottom: 10,
-            padding: '8px 10px',
-            background: 'var(--code-bg)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-            maxHeight: 160,
-            overflowY: 'auto',
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-            📚 추천 도서 바로 서재에 등록하기:
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {recommendedBooks.map((b, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  padding: '6px 8px',
-                  background: 'var(--bg)',
-                  borderRadius: 6,
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  <span style={{ fontWeight: 600 }}>{b.title}</span>
-                  {b.author && <span style={{ fontSize: 15, color: 'var(--text)', marginLeft: 4 }}>({b.author})</span>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRegisterBook(b)}
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    border: '1px solid var(--accent-border, var(--accent))',
-                    background: 'var(--accent)',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  등록 ➔
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* 자동 스크롤 타깃 엘리먼트 */}
+        <div ref={messagesEndRef} />
+      </div>
 
       {/* 메시지 입력창 (내 서재 자연어 질의, 대화·추천, 토론 모드 공통 지원) */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             value={input}

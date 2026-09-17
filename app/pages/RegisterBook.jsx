@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
 import { colorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
-import { GENRE_DEFS, GENRE_NONE, genreLabel } from '../data/genres';
+import { GENRE_DEFS, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
 import { searchBookByIsbn, normalizeBookInfo, toReadingStatus } from '../api/bookApi';
@@ -41,6 +41,39 @@ function deriveStatus(currentPage, totalPage) {
   return '시작전';
 }
 
+/**
+ * 장르 메인 라벨 및 세부 분류/보조 라벨을 조합하여 반환.
+ * 특히 TECHNOLOGY(기술과학)와 GENERAL(교양)의 경우 보조 라벨을 명시적으로 붙여줌.
+ */
+function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
+  const mainLabel = genreLabel(genreCode);
+  if (!mainLabel) return '미지정';
+
+  // 1. 서버에서 내려준 완성형 displayGenre가 있는 경우
+  if (displayGenre && displayGenre.trim()) {
+    const trimmed = displayGenre.trim();
+    if (trimmed.includes('(') || trimmed.startsWith(mainLabel)) {
+      return trimmed;
+    }
+    return `${mainLabel} (${trimmed})`;
+  }
+
+  // 2. 세부 subject가 제공된 경우 (단, 메인 라벨과 중복되지 않을 때)
+  if (subject && subject.trim() && subject.trim() !== mainLabel) {
+    return `${mainLabel} (${subject.trim()})`;
+  }
+
+  // 3. TECHNOLOGY 또는 GENERAL 장르 선택/인식 시 보조 라벨 기본 매핑
+  if (genreCode === 'TECHNOLOGY') {
+    return `${mainLabel} (컴퓨터/IT)`;
+  }
+  if (genreCode === 'GENERAL') {
+    return `${mainLabel} (인문교양/상식)`;
+  }
+
+  return mainLabel;
+}
+
 export default function RegisterBook() {
   const { addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
@@ -67,6 +100,9 @@ export default function RegisterBook() {
   // 장르 (CLIAR-241): backend-discovery 분류 결과를 기본값으로 채우고 사용자가 바꿀 수 있다.
   const [genre, setGenre] = useState(GENRE_NONE);
   const [genreLoading, setGenreLoading] = useState(false);
+  // 세부 장르 및 보조 라벨 정보
+  const [subject, setSubject] = useState('');
+  const [displayGenre, setDisplayGenre] = useState('');
 
   // 인식한 ISBN과, /ocr/covers가 서재에 만들어 둔 도서 ID.
   // bookId가 있으면 등록 시 새로 만들지 않고 이 책을 갱신한다(중복 등록 방지).
@@ -93,6 +129,8 @@ export default function RegisterBook() {
     try {
       const result = await classifyGenre({ title: t, author: a, isbn, rawCategory });
       if (result?.genre) setGenre(result.genre);
+      if (result?.subject) setSubject(result.subject);
+      if (result?.displayGenre) setDisplayGenre(result.displayGenre);
     } finally {
       setGenreLoading(false);
     }
@@ -106,6 +144,14 @@ export default function RegisterBook() {
       // 저자: recommended_books[i].author 사용 (쪽수 제외된 순수 저자명)
       setAuthor(book.author || '');
       setColorIdx(book.colorIdx ?? 0);
+      setIsbn(book.isbn || '');
+      setSubject(book.subject || '');
+      setDisplayGenre(book.displayGenre || book.display_genre || '');
+      setExtraMeta({
+        publisher: book.publisher ?? null,
+        publishedDate: book.publishedDate ?? null,
+        coverUrl: book.coverUrl ?? book.cover_url ?? null,
+      });
       // 총 페이지 수: recommended_books[i].page_count 사용 (정수, 확인 불가 시 null -> 수동 입력 유도)
       const parsedTotalPage =
         book.page_count != null
@@ -120,9 +166,11 @@ export default function RegisterBook() {
       setFromRecommendation(true);
       // 추천 응답에 장르가 있으면 그대로 쓰고, 없으면 제목·저자로 분류한다.
       if (book.genre) {
-        setGenre(book.genre);
+        // 한글 또는 코드 무엇이든 표준 코드로 변환 매칭
+        const normalizedGenre = genreCode(book.genre) || detectGenreCode(book.genre) || book.genre;
+        setGenre(normalizedGenre);
       } else {
-        autoClassifyGenre({ title: book.title, author: book.author });
+        autoClassifyGenre({ title: book.title, author: book.author, isbn: book.isbn || '' });
       }
     }
   }, [location.state, autoClassifyGenre]);
@@ -154,6 +202,8 @@ export default function RegisterBook() {
     setTitle('');
     setAuthor('');
     setGenre(GENRE_NONE);
+    setSubject('');
+    setDisplayGenre('');
     setTotalPage('');
     setIsbn('');
     setOcrBookId(null);
@@ -201,6 +251,8 @@ export default function RegisterBook() {
           publishedDate: found.publishedDate ?? null,
           coverUrl: found.coverUrl ?? null,
         });
+        if (found.subject) setSubject(found.subject);
+        if (found.displayGenre) setDisplayGenre(found.displayGenre);
       }
 
       if (!cover.isbn && !found) {
@@ -299,6 +351,8 @@ export default function RegisterBook() {
           author,
           isbn: isbn || null,
           genre,
+          subject: subject || null,
+          displayGenre: displayGenre || null,
           publisher: extraMeta.publisher,
           publishedDate: extraMeta.publishedDate,
           coverUrl: extraMeta.coverUrl,
@@ -313,12 +367,18 @@ export default function RegisterBook() {
         const created = await addBook({
           title,
           author,
+          isbn: isbn || null,
+          publisher: extraMeta.publisher,
+          publishedDate: extraMeta.publishedDate,
+          coverUrl: extraMeta.coverUrl,
           spineColor: color.spine,
           coverColor: color.cover,
           thickness,
           totalPage: Number(totalPage),
           status: deriveStatus(currentPage, totalPage),
           genre,
+          subject: subject || null,
+          displayGenre: displayGenre || null,
         });
         bookId = created?.bookId ?? null;
       }
@@ -565,14 +625,28 @@ export default function RegisterBook() {
                       </span>
                     ) : '장르',
                     node: editing ? (
-                      <select value={genre} onChange={(e) => setGenre(e.target.value)} style={compactFieldStyle}>
-                        <option value={GENRE_NONE}>미지정</option>
-                        {GENRE_DEFS.map((g) => (
-                          <option key={g.code} value={g.code}>{g.label}</option>
-                        ))}
-                      </select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <select value={genre} onChange={(e) => setGenre(e.target.value)} style={compactFieldStyle}>
+                          <option value={GENRE_NONE}>미지정</option>
+                          {GENRE_DEFS.map((g) => {
+                            let optLabel = g.label;
+                            if (g.code === 'TECHNOLOGY') optLabel = '기술과학 (컴퓨터/IT)';
+                            else if (g.code === 'GENERAL') optLabel = '교양 (인문교양/상식)';
+                            return (
+                              <option key={g.code} value={g.code}>
+                                {optLabel}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        {(subject || displayGenre) && (
+                          <span style={{ fontSize: 14, color: 'var(--accent)', paddingLeft: 2 }}>
+                            세부 분야: {displayGenre || subject}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <div style={compactViewStyle}>{genreLabel(genre) || '미지정'}</div>
+                      <div style={compactViewStyle}>{getGenreSubLabel(genre, subject, displayGenre)}</div>
                     ),
                   },
                 ].map(({ key, label, node }) => (

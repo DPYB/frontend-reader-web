@@ -187,10 +187,34 @@
   - `.githooks/pre-commit` 훅 스크립트 추가 (소스 코드 수정 시 `STATE.md` 누락 방지 non-blocking 안내) 및 실행 권한(`chmod +x`) 부여
   - `package.json` scripts에 `"prepare": "git config core.hooksPath .githooks || true"` 추가하여 협업 시 자동 훅 경로 등록
   - 로컬 git 환경 `git config core.hooksPath .githooks` 설정 완료
-- D-2 해커톤 제출 일정(09-18) 대응을 위해 대규모 TypeScript 전면 전환 마일스톤을 해커톤 이후 기술 부채 정리 단계로 이관(`DECISIONS.md`, `PLAN.md`, `BACKLOG.md`)
-- `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건) 통과 확인
+## 2026-09-17: 사서 토론 UI 버그 수정 및 세로 스크롤 레이아웃 구조 개편
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **사서/페르소나 전환 버튼 이름 누락 방어 (`LibrarianChat.jsx`)**:
+  - `switchTo` 제안 버튼 텍스트에서 이름이 누락되어 `"로 바꾸기"`로만 노출되던 결함 해결
+  - 다단계 안전 fallback 체인(`librarianNames[id]` ➔ `LIBRARIANS` 레지스트리 ➔ `DEBATE_PERSONAS` 레지스트리 ➔ `switchTo.name` / `displayName` ➔ `switchTo.id`) 적용
+- **사서 챗봇 세로 무한 확장 방지 및 스크롤 구조 재정립 (`LibrarianChat.jsx`, `LibrarianChat.css`)**:
+  - 최상위 컨테이너(`box`): `height: min(700px, calc(100vh - 32px))`, `overflow: hidden`, `display: flex`, `flex-direction: column` 적용하여 뷰포트 하단 밀림 방지
+  - 상단 헤더, 모드 탭, 하단 입력 폼에 `flexShrink: 0`을 명시하여 고정 높이 보장
+  - 대화 스크롤 영역(`.lc-content-body`)의 `flex: 1 1 auto; min-height: 0; overflow-y: auto` 정상 작동 확보
+- **사서 토론 모드 상단 설정 접기/펼치기 아코디언 UX 개선**:
+  - 토론 모드 상단 배너(`.lc-debate-banner-clickable`) 클릭 또는 키보드 엔터/스페이스로 도서 셀렉터 및 4인 페르소나 카드 그리드를 접고 펼칠 수 있는 토글 UI 구현
+  - 접힌 상태에서도 선택된 페르소나와 도서명이 한 줄 요약(`"🎬 평론가 · 『도서명』"`)으로 표시되어 맥락을 유지하면서 대화 스크롤 가용 영역을 대폭 확대
+- `npm run typecheck`, `npm run lint`(기존 경고 5건 유지, 에러 0건), `npm run build` 통과 완료
 
-
+## 2026-09-17: 장르 매핑 별칭 보강 및 도서 등록 폼 보조 라벨 연동
+- **장르 매핑 별칭(`aliases`) 및 한글 라벨 변환 로직 보강 (`genres.js`)**:
+  - `GENERAL`(교양): `'교양'`, `'인문교양'`, `'인문/교양'`, `'상식'`, `'잡지'`, `'매거진'`, `'백과사전'`, `'사전'`, `'총류'`, `'총류/교양'` 별칭 체계 구축
+  - `PHILOSOPHY`(철학): `'독서법'`, `'글쓰기'`, `'심리'`, `'자기계발'` 등 보강
+  - `TECHNOLOGY`(기술과학): `'코딩'`, `'파이썬'`, `'ai'`, `'인공지능'`, `'프로그래밍'`, `'컴퓨터/it'` 등 IT/소프트웨어 키워드 보강
+  - `genreLabel()` 함수가 표준 Enum 코드뿐 아니라 국문 텍스트, 세부 주제, 슬래시 복합어 등도 안전하게 감지·변환하도록 fallback 강화
+- **도서 등록 폼 내 세부 장르 보존 및 보조 라벨 표시 (`RegisterBook.jsx`)**:
+  - `subject`, `displayGenre` 상태 추가 및 AI 추천 도서(`location.state.book`), OCR 도서 검색(`searchBookByIsbn`), 장르 자동 분류(`classifyGenre`) 수신 시 상태 동기화 및 전송 보존
+  - `getGenreSubLabel()` 헬퍼 함수 구현: 서버 `displayGenre` 또는 `subject`를 우선 반영하고, `TECHNOLOGY`는 `"기술과학 (컴퓨터/IT)"`, `GENERAL`은 `"교양 (인문교양/상식)"`으로 보조 라벨을 명시
+  - 수정 모드(`editing`)의 장르 드롭다운 옵션 및 하단 세부 분야 라벨, 비수정 모드의 컴팩트 뷰에 보조 라벨 통합 반영
+- **DTO 및 전역 스토어 연계 (`bookApi.js`, `genreApi.js`, `BooksProvider.jsx`)**:
+  - `classifyGenre`: 응답의 `subject`, `display_genre` 필드 추출 반환
+  - `createLibraryBook`, `updateLibraryBookMeta`, `addBook`, `saveBookMeta`: `subject` 및 `displayGenre` 파라미터 전달 및 전역 상태 갱신 시 누락 없이 보존
+- `npm run typecheck`, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 통과 완료
 
 ## 2026-09-15: 누디 프로필 이미지 파일명 정규화 + 전역 이미지 저장/복제 방지
 - 누디 프로필 이미지: 새로 올린 `public/profile/nudi.JPG`(대문자 확장자)를 소문자
@@ -211,3 +235,36 @@
   `npm run build` 성공 및 dist/profile에 nudi.jpg(소문자) 포함 확인
 - ⚠️ 누디 "내 서재" 테마 배경 이미지(snail2)는 워크스페이스에서 찾지 못해 이번에
   반영하지 못함 — 사용자에게 파일 위치 재확인 요청 예정 (BACKLOG에 남김)
+
+## 2026-09-17: 사서 챗봇 높이 컴팩트 복원, 토론 모드 자동 접힘 및 세션 격리 강화
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **챗봇 창 높이 컴팩트 복원 (`LibrarianChat.jsx`)**:
+  - `maxHeight: min(420px, calc(100vh - 180px))` 및 `height: auto`로 축소하여 상단 사서 프로필/GNB를 절대 가리지 않고, 본문 내용 길이에 맞춰 유연하게 반응하도록 수정
+- **사서 토론 모드 컴팩트 UX 및 피날레 액션 연계 (`LibrarianChat.jsx`, `LibrarianChat.css`)**:
+  - 토론 모드 질문 전송 시 도서/4인 카드 설정 영역이 자동으로 100% 접히도록 개선 (`setDebateCollapsed(true)`)
+  - 접힌 상태의 상단 한 줄 배너에 `"{아이콘} {토론자명} · 『{도서명}』과 토론 중"` 안내 및 미니 `[🏁 마무리]` 버튼을 탑재하여, 설정을 다시 펼치지 않고도 언제든 즉시 토론 피날레 및 도서 추천을 받을 수 있도록 연결
+- **모드별 세션 및 커서 말풍선 실시간 동기화 (`LibrarianChat.jsx`)**:
+  - 3개 모드(`library`, `chat`, `debate`) 전환 탭 클릭 시 해당 모드의 독립 답변(`modeAnswers[nextMode]`)을 커서 말풍선(`onAnswer`)에 즉시 반영하여 불일치 및 누적 현상 방지
+  - 내 서재 조회 모드 목록 높이(`.lc-library-view`, `.lc-library-list`)도 컴팩트 창에 최적화
+- `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run typecheck` 통과 완료
+
+## 2026-09-17: 메신저형 멀티턴 대화 히스토리 UI 구현 및 토론 모드 내 서재 카드 억제
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **메신저형 멀티턴 대화 히스토리 도입 (`LibrarianChat.jsx`, `LibrarianChat.css`)**:
+  - 모드별 독립 메시지 배열(`modeMessages: { chat: [], debate: [], library: [] }`) 관리 구조 도입
+  - 사용자 질문(`role: 'user'`, 우측 액센트 말풍선)과 사서/토론자 답변(`role: 'assistant'`, 좌측 마크다운 말풍선)이 메신저처럼 순차적으로 쌓이도록 UI 개편
+  - 대화 턴이 추가될 때마다 최신 메시지로 자동 부드럽게 스크롤(`messagesEndRef.current.scrollIntoView`) 연동
+  - 추천 도서 등록 후 뒤로가기나 새로고침 시에도 대화 히스토리가 유지되도록 `sessionStorage` 동기화 구조 확장
+- **토론 모드 내 서재 도서 카드 억제 (`LibrarianChat.jsx`)**:
+  - 토론 모드(`chatMode === 'debate'`)에서는 서재에 있는 책이라도 `[📖 내 서재 도서: 책 열기]` 카드를 띄우지 않고, 오직 깊이 있는 도서 토론 및 마무리 추천 도서에만 집중되도록 조건 분기 적용
+- `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run typecheck` 통과 완료
+
+## 2026-09-17: 도움말(?) 아이콘 및 날씨/시간대/무드 태그 상단 고정 바 분리
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **도움말(?) 아이콘 최상단 헤더 고정 (`LibrarianChat.jsx`)**:
+  - 본문 스크롤 영역에 흩어져 대화가 길어지면 위로 밀려 사라지던 `?` 아이콘을 최상단 헤더(사서명과 ✕ 닫기 버튼 사이)로 고정 배치
+  - 마우스 호버 시 현재 활성화된 모드(`chat`, `library`, `debate`)에 맞춘 전용 가이드(추천 질문 팁 / 서재 검색 팁 / 4인 토론 가이드)를 동적으로 분기 노출
+- **날씨·시간대·무드 태그 상단 고정 및 모드 분기 (`LibrarianChat.jsx`)**:
+  - 본문 내부 스크롤 영역에서 탭 바로 아래 상단 고정 영역(`flexShrink: 0`)으로 이동하여, 대화를 많이 나눠도 날씨/무드 컨텍스트가 항상 시야에 고정 유지되도록 개선
+  - 날씨 연계 추천 모드(`chatMode === 'chat'`)에서만 노출하고, 서재 조회나 책 토론 모드에서는 시각적 노이즈를 줄이기 위해 숨김 처리
+- `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run typecheck` 통과 완료

@@ -104,6 +104,8 @@ export function normalizeBookInfo(found, fallbackIsbn = '') {
     coverUrl: found.coverUrl ?? null,
     // 서재에 있는 책이면 저장된 장르를 그대로 쓸 수 있다 (알라딘 결과엔 없음).
     genre: found.genre ?? null,
+    subject: found.subject ?? null,
+    displayGenre: found.displayGenre ?? found.display_genre ?? null,
   };
 }
 
@@ -125,23 +127,32 @@ export function getLibraryBook(bookId) {
 export function createLibraryBook({
   title,
   author,
+  isbn = null,
+  publisher = null,
+  publishedDate = null,
+  coverUrl = null,
   totalPages = null,
   readingStatus = 'PLANNED',
   genre = 'NONE',
+  shelfId = null,
+  subject = null,
+  displayGenre = null,
 }) {
   return authFetch('/library/books', {
     method: 'POST',
     body: {
       title,
       author,
-      isbn: null,
+      isbn,
       genre,
-      publisher: null,
-      publishedDate: null,
+      subject,
+      displayGenre,
+      publisher,
+      publishedDate,
       totalPages,
-      coverUrl: null,
+      coverUrl,
       readingStatus,
-      shelfId: null,
+      shelfId,
     },
   });
 }
@@ -156,6 +167,8 @@ export function updateLibraryBookMeta(bookId, meta) {
     author,
     isbn = null,
     genre = 'NONE',
+    subject = null,
+    displayGenre = null,
     publisher = null,
     publishedDate = null,
     coverUrl = null,
@@ -164,7 +177,7 @@ export function updateLibraryBookMeta(bookId, meta) {
   } = meta;
   return authFetch(`/library/books/${bookId}`, {
     method: 'PATCH',
-    body: { title, author, isbn, genre, publisher, publishedDate, coverUrl, readingStatus, totalPages },
+    body: { title, author, isbn, genre, subject, displayGenre, publisher, publishedDate, coverUrl, readingStatus, totalPages },
   });
 }
 
