@@ -139,6 +139,8 @@ export default function LibraryScene() {
   const isDark = theme === 'dark';
   const [selectedId, setSelectedId] = useState(null);
   const [showTimer, setShowTimer] = useState(false);
+  // 챗봇 답변 대기(thinking) 상태 — 사서 커서(LibrarianCursor)가 대기 이미지로 전환하는 데 사용
+  const [chatLoading, setChatLoading] = useState(false);
   // CLIAR-280: 책 위에 커서를 올리면(클릭 없이) 제목/저자를 말풍선으로 보여준다.
   const [hoveredBook, setHoveredBook] = useState(null);
   const [calibrating, setCalibrating] = useState(false);
@@ -557,7 +559,14 @@ export default function LibraryScene() {
 
       {/* 마우스를 따라다니는 사서 + 우상단 말풍선(답변).
           커서 모션은 hover가 아니라 책을 선택(클릭)했을 때만 전환된다 (CLIAR-239). */}
-      {!calibrating && <LibrarianCursor librarian={librarian} answer={chatAnswer} active={selectedId != null} />}
+      {!calibrating && (
+        <LibrarianCursor
+          librarian={librarian}
+          answer={chatAnswer}
+          active={selectedId != null}
+          thinking={chatLoading}
+        />
+      )}
 
       {/* 사서 질문 입력 패널 (오른쪽 하단) */}
       {!calibrating && (
@@ -565,6 +574,7 @@ export default function LibraryScene() {
           librarian={librarian}
           answer={chatAnswer}
           onAnswer={setChatAnswer}
+          onLoadingChange={setChatLoading}
           onSwitch={switchLibrarian}
           onOpenDetail={(bookOrId) => {
             if (typeof bookOrId === 'object' && bookOrId !== null) {
