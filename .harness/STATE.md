@@ -25,3 +25,4 @@
 - 모든 동물 사서(블루/슈빌/누디/게코) 커서 말풍선 6초 자동 사라짐 타이머(`useEffect` + `setTimeout`) 및 CSS 페이드인 애니메이션 적용 완료
 - 독서 세션 저장 API(`POST /books/{id}/reading-sessions` 및 `/records` 폴백) 연동, 도서 상세 내 문장수집과 분리된 독서 타이머 전용 세션 테이블(`ReadingSessionHistory`) UI 구축 완료
 - 독서 진행률 1% 이상(1쪽 이상) 도서의 '시작전' 상태 불일치 버그 해결: `toKoreanStatus` 자동 승격 보정 및 타이머/페이지 저장 시 백엔드 `READING`(읽는 중) 메타데이터 동기화 완료
+- AI 백엔드 월간 독서 리포트 스키마 정규화 어댑터(`normalizeMonthlyReport`) 구현 및 01~07번 카드 실데이터(독서 리듬 객체 분포, 독서 흔적, AI 독서가 유형/특징 태그, 도서 처방) 연동 완료

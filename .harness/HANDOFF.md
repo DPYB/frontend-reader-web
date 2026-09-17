@@ -298,3 +298,22 @@
   - `ReadingTimerModal`: 타이머 종료 후 1쪽 이상 저장(`pageNum > 0`) 시 서버 도서 상태도 `READING`(읽는 중)으로 명시적 승격 저장 호출
   - `BookDetail`: 현재 페이지 입력 저장(`cur > 0`) 시 서버 메타데이터의 `readingStatus`를 `READING`으로 함께 동기화
 - `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
+
+## 2026-09-17: AI 백엔드 월간 독서 리포트 스키마 정규화 및 실데이터 연동
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **백엔드 DTO ↔ 프론트엔드 UI 정규화 어댑터 도입 (`reportApi.js`)**:
+  - AI 에이전트 백엔드(`backend-ai-agent`)의 `MonthlyReportResponse` Pydantic DTO 스키마와 프론트엔드 UI 기대 규격 간의 필드명/데이터 형태 불일치 해결
+  - `normalizeMonthlyReport(raw)` 어댑터 함수 신설:
+    - 01. 개요: `completedBooksCount` ➔ `completedCount`, `totalPagesRead` ➔ `totalPages`, `longestStreakDays` ➔ `streakDays`
+    - 02. 습관: 객체 맵(`weekdayDistribution`, `timeDistribution`, `weatherDistribution`)을 프론트엔드 차트용 배열(`dayOfWeek`, `timeOfDay`, `weather`)로 매핑 변환
+    - 03. 취향: `topGenres`, `topSubjects`, `debateKeywords` 추출 결합
+    - 04. 밸런스: 다양성 점수(`diversityScore`), 주 장르 및 분석 텍스트 매핑
+    - 05. 흔적: `featuredRecords`(문장 수집 스니펫) 및 `mostScrappedBooks`를 인용구 카드로 자동 가공
+    - 06. 사서 관찰기: AI 심층 요약문(`summary`), 독서가 유형(`readerType`), 핵심 특성 태그(`keyTraits`) 보존
+    - 07. 독서 처방: `recommendedBooks` 정식 서지정보 및 `advice` 조언 연계
+  - `fetchMonthlyReport`에서 백엔드 호출 직후 `normalizeMonthlyReport`를 거쳐 반환하도록 연동
+- **리포트 화면 실데이터 렌더링 및 UI 강화 (`MonthlyReport.jsx`, `MonthlyReport.css`)**:
+  - 06번 사서 관찰기 섹션: AI가 분석한 독서가 유형 배지(`✨ 독서가 유형: 사색하는 몰입형 독서가`) 및 핵심 성향 태그(`keyTraits` 칩) 렌더링 추가
+  - 07번 다음 달 독서 처방 섹션: 사서의 실시간 조언(`advice`) 배너 및 추천 도서 장르 태그(`genre`) 렌더링 추가
+- `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
+
