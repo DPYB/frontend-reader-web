@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { extractBooksFromAnswer } from './bookExtractor';
 import './LibrarianCursor.css';
 
@@ -73,10 +73,51 @@ function getShortBubbleText(rawText, librarian, answer) {
 }
 
 export default function LibrarianCursor({ librarian, answer, active }) {
+  /*
+   * 클릭 모션 전환 (누디 전용, 사용자 요청 2026-09).
+   * 누디는 책 선택 여부와 무관하게, 좌클릭할 때마다 nudi_02(모션 이미지)로
+   * clickMotionMs(2000ms)간 바뀌었다가 자동으로 기본 이미지(nudi_01)로 돌아온다.
+   * librarian.clickMotionMs가 없는 사서(블루/슈빌)는 기존 방식(책 선택 중에만
+   * 모션 이미지, CLIAR-239)을 그대로 사용한다.
+   */
+  const hasClickMotion = typeof librarian.clickMotionMs === 'number';
+  const [clickActive, setClickActive] = useState(false);
+  const clickTimerRef = useRef(null);
+
+  // 사서를 전환하면 이전 사서의 클릭 모션 상태를 남기지 않는다. 이펙트 안에서
+  // setState를 바로 호출하지 않도록, 위 bubbleText 리셋과 같은 렌더 중 동기화
+  // 패턴을 사용한다(react-hooks/set-state-in-effect 회피).
+  const [prevLibrarianId, setPrevLibrarianId] = useState(librarian.id);
+  if (librarian.id !== prevLibrarianId) {
+    setPrevLibrarianId(librarian.id);
+    setClickActive(false);
+  }
+
+  useEffect(() => {
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    if (!hasClickMotion) return;
+
+    const handleMouseDown = (e) => {
+      if (e.button !== 0) return; // 좌클릭만
+      setClickActive(true);
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = setTimeout(() => setClickActive(false), librarian.clickMotionMs);
+    };
+
+    window.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+    // librarian.id로 의존성을 좁혀, 답변 갱신 등으로 librarian 객체 참조가 바뀌어도
+    // 타이머가 불필요하게 재설정되지 않게 한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [librarian.id, hasClickMotion]);
+
   // 책을 선택(클릭)했을 때만 모션 이미지로 전환한다 (CLIAR-239). 예전에는 책 위에
   // 마우스를 올리기만 해도(hover) 바뀌었지만, 선택 상태에서만 움직이도록 변경했다.
-  const useActive = active && librarian.imageHover;
-  const imgSrc = useActive ? librarian.imageHover : librarian.image;
+  const useActive = hasClickMotion ? clickActive : active;
+  const imgSrc = useActive && librarian.imageHover ? librarian.imageHover : librarian.image;
 
   // 사서별 표시 크기 (imgScale 미지정 시 기본 배율)
   const imgSize = Math.round(IMG_SIZE * (librarian.imgScale ?? 1));
