@@ -14,6 +14,7 @@
 
 import { fetchWithTimeout } from './fetchWithTimeout';
 
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // ── Access Token (메모리 보관) ──
@@ -108,8 +109,9 @@ export async function refreshAccessToken() {
       });
       if (!res.ok) return false;
       const data = await parseBody(res);
-      if (data?.access_token) {
-        setAccessToken(data.access_token);
+      const token = data?.access_token || data?.accessToken;
+      if (token) {
+        setAccessToken(token);
         return true;
       }
       return false;
@@ -153,13 +155,18 @@ export async function authFetch(path, { method = 'GET', body, auth = true, _retr
   });
 
   // 401 → refresh 1회 시도 후 재시도 (refresh/login 자체는 제외)
+  // 단, 원래 accessToken이 없었다면(우회 모드 등) 세션 만료가 아니므로
+  // onSessionExpired를 호출하지 않는다 — BooksProvider 같은 데이터 로드 실패로
+  // 로그인 직후 강제 로그아웃되는 현상을 방지한다.
   if (res.status === 401 && auth && !_retry && path !== '/auth/refresh') {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      return authFetch(path, { method, body, auth, _retry: true });
+    if (accessToken) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return authFetch(path, { method, body, auth, _retry: true });
+      }
+      clearAccessToken();
+      if (onSessionExpired) onSessionExpired();
     }
-    clearAccessToken();
-    if (onSessionExpired) onSessionExpired();
     throw new ApiError(401, await parseBody(res));
   }
 
@@ -220,7 +227,8 @@ export async function login({ email, password }) {
     body: { email, password },
     auth: false,
   });
-  if (data?.access_token) setAccessToken(data.access_token);
+  const token = data?.access_token || data?.accessToken;
+  if (token) setAccessToken(token);
   return data;
 }
 
