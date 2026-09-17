@@ -142,7 +142,7 @@ export default function MonthlyReport() {
       ? `독자님의 ${month}월 독서는 깊은 사색과 절제된 집중이 깃들어 있었습니다. 비 오는 날과 심야 시간에 특히 철학적 문장에 많은 흔적을 남기셨더군요. 언제나 품격 있는 독서 여정을 제가 정성껏 보좌하겠습니다.`
       : `집사님의 ${month}월 독서는 호기심과 모험이 넘쳐났다 냥! 🐾 특히 주말 밤마다 책에 푹 빠져서 스크랩을 잔뜩 남겼어 냥. 내가 골라준 다음 달 처방 책도 마음에 쏙 들 거다 냥! 🐟📖`);
 
-  const { overview, rhythm, taste, balance, footprint, prescription } = reportData;
+  const { overview, rhythm, taste, balance, footprint, librarianDiscovery, prescription } = reportData;
 
   return (
     <div className="report-container">
@@ -331,7 +331,20 @@ export default function MonthlyReport() {
               <div className="librarian-avatar-name">{librarian.displayName}</div>
             </div>
             <div className="speech-bubble">
-              {librarianSpeech}
+              {librarianDiscovery?.readerType && (
+                <div className="librarian-reader-type">
+                  <span className="reader-type-badge">✨ 독서가 유형</span>
+                  <strong className="reader-type-title">{librarianDiscovery.readerType}</strong>
+                </div>
+              )}
+              <div className="speech-bubble-text">{librarianSpeech}</div>
+              {Array.isArray(librarianDiscovery?.keyTraits) && librarianDiscovery.keyTraits.length > 0 && (
+                <div className="reader-traits-list">
+                  {librarianDiscovery.keyTraits.map((trait) => (
+                    <span key={trait} className="reader-trait-pill">#{trait}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -342,9 +355,14 @@ export default function MonthlyReport() {
             <span className="report-card-num">07</span>
             <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 · 장르)</h2>
           </div>
-          <div style={{ marginBottom: 14, fontSize: 15, fontWeight: 600 }}>
-            추천 장르 테마: <span style={{ color: 'var(--accent)' }}>{prescription?.recommendedGenre}</span>
+          <div className="prescription-genre-banner">
+            추천 장르 테마: <span className="prescription-genre-highlight">{prescription?.recommendedGenre}</span>
           </div>
+          {prescription?.advice && (
+            <p className="prescription-advice-text">
+              💡 {prescription.advice}
+            </p>
+          )}
           <div className="prescription-grid">
             {prescription?.books?.map((book, idx) => (
               <div key={idx} className="prescription-book-card">
@@ -359,6 +377,9 @@ export default function MonthlyReport() {
                 <div className="prescription-book-info">
                   <h3 className="prescription-book-title">{book.title}</h3>
                   <p className="prescription-book-author">{book.author}</p>
+                  {book.genre && (
+                    <span className="prescription-book-genre">#{book.genre}</span>
+                  )}
                   <p className="prescription-book-reason">{book.reason}</p>
                 </div>
               </div>
