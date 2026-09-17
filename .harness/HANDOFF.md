@@ -399,6 +399,27 @@
   실제 화면에서 커서 포인터 위치가 살짝 어긋날 수 있음. 필요 시 조정 필요
 - `npx eslint .`(기존 warning 5건만 유지, 신규 0), `npx tsc --noEmit`, `npm run build` 통과 확인
 
+## 2026-09-16: 게코 3D 서재 커서 적용 (챗봇 답변 대기 중 thinking 이미지)
+- 게코 커서 이미지 2장 적용. 원본 PNG가 각 ~500KB(800x1200)로 커서용으로 과해,
+  ImageMagick으로 동일 해상도(800x1200) webp로 변환해 용량을 1/5로 줄임
+  (gecko_01: 497KB→110KB, gecko_thinking: 476KB→104KB). 원본 PNG는 삭제.
+  (누디 커서는 11~13KB라 그대로 뒀지만, 게코는 커서로 쓰기엔 무거워 변환)
+- `app/data/librarians.js`: 게코에 `image`(gecko_01, 기본)·`thinkingImage`(gecko_thinking)·
+  `tip` 필드 추가. 다른 사서의 imageHover(책 선택/클릭 모션)와 용도가 달라 thinking 전용
+  필드(thinkingImage)를 신설
+- 답변 대기 상태 전달 경로 신설:
+  - `LibrarianChat.jsx`: 기존 내부 `loading` 상태를 `onLoadingChange(loading)` 콜백으로
+    부모에 전달(useEffect)
+  - `LibraryScene.jsx`: `chatLoading` 상태를 두고 `onLoadingChange`로 받아
+    `LibrarianCursor`에 `thinking` prop으로 전달
+  - `LibrarianCursor.jsx`: `thinking && librarian.thinkingImage`면 대기 이미지 표시,
+    답변이 오면(thinking=false) 기본 이미지로 복귀. 표시 우선순위는
+    대기(thinking) > 활성/클릭모션 > 기본
+- 이미지 결정 로직을 삼항 중첩에서 if/else로 풀어 우선순위를 명확히 함
+- ⚠️ 게코 `tip` 좌표는 800x1200 원본 기준 얼굴 부근 추정치 — 실측 아님. 화면 확인 후 조정 필요
+- `npx eslint .`(기존 warning 5건만, 신규 0), `npx tsc --noEmit`, `npm run build` 통과 및
+  dist/cursors/gecko에 webp 2장 포함 확인
+
 ## 2026-09-17: 사서 세션 캐시 격리 누수 수정 및 발신자 메타데이터 보존 (다중 인격 버그 영구 해소)
 - 작업 브랜치: `feat/librarian-chat-session-isolation`
 - **스토어 공용 키 Fallback 제거 (`app/store/librarianStore.js`)**:
@@ -410,4 +431,3 @@
   - `npx tsc --noEmit` 통과
   - `npm run lint` 통과 (에러 0건)
   - `npm run build` 번들 빌드 정상 통과
-

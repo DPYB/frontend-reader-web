@@ -72,7 +72,7 @@ function getShortBubbleText(rawText, librarian, answer) {
     : `✨ 사서 답변이 도착했다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
 }
 
-export default function LibrarianCursor({ librarian, answer, active }) {
+export default function LibrarianCursor({ librarian, answer, active, thinking }) {
   /*
    * 클릭 모션 전환 (누디 전용, 사용자 요청 2026-09).
    * 누디는 책 선택 여부와 무관하게, 좌클릭할 때마다 nudi_02(모션 이미지)로
@@ -117,13 +117,32 @@ export default function LibrarianCursor({ librarian, answer, active }) {
   // 책을 선택(클릭)했을 때만 모션 이미지로 전환한다 (CLIAR-239). 예전에는 책 위에
   // 마우스를 올리기만 해도(hover) 바뀌었지만, 선택 상태에서만 움직이도록 변경했다.
   const useActive = hasClickMotion ? clickActive : active;
-  const imgSrc = useActive && librarian.imageHover ? librarian.imageHover : librarian.image;
+
+  /*
+   * 표시 이미지 결정 (우선순위: 답변 대기 > 활성/모션 > 기본).
+   * - thinkingImage가 있는 사서(게코)는 챗봇 답변을 기다리는 동안(thinking=true)
+   *   대기 이미지를 보여주고, 답변이 오면(thinking=false) 기본 이미지로 돌아온다.
+   * - 그 외에는 기존 로직(책 선택/클릭 모션 시 imageHover, 아니면 기본 image).
+   */
+  const showThinking = thinking && librarian.thinkingImage;
+  let imgSrc;
+  if (showThinking) {
+    imgSrc = librarian.thinkingImage;
+  } else if (useActive && librarian.imageHover) {
+    imgSrc = librarian.imageHover;
+  } else {
+    imgSrc = librarian.image;
+  }
 
   // 사서별 표시 크기 (imgScale 미지정 시 기본 배율)
   const imgSize = Math.round(IMG_SIZE * (librarian.imgScale ?? 1));
 
-  // 포인터 지점(손끝·부리 끝)이 실제 커서 위치(--mx, --my)에 오도록 이미지를 이동
-  const tip = (useActive ? librarian.tipHover : librarian.tip) || librarian.tip || FALLBACK_TIP;
+  // 포인터 지점(손끝·부리 끝)이 실제 커서 위치(--mx, --my)에 오도록 이미지를 이동.
+  // 대기 이미지는 별도 앵커가 없으므로 기본 tip을 쓰고, 그 외에는 활성 시 tipHover.
+  const tip =
+    (showThinking ? librarian.tip : useActive ? librarian.tipHover : librarian.tip) ||
+    librarian.tip ||
+    FALLBACK_TIP;
   const offsetX = -(tip.x * imgSize);
   const offsetY = -(tip.y * imgSize);
 

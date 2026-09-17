@@ -169,7 +169,15 @@ export const LIBRARIANS = [
     readingStyle:
       '사람, 사회, 문화에 관한 책을 좋아해요. 역사적 사건과 그 속에 담긴 사람들의 이야기에 관심이 많고, 언어가 사람들의 생각과 관계에 어떤 영향을 주는지 탐구하며, 다양한 관점과 가치관을 접할 수 있는 책을 선호해요.',
     catchphrase: '사람들의 이야기를 따라가다 보면 사회와 역사가 보이거든 크크.',
-    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (3D 서재 커서 스프라이트는 아직 없어 미지정)
+    // 기본(대기) 커서 이미지. 원본 PNG(각 ~500KB)를 동일 해상도(800x1200) webp로 변환해
+    // 용량을 1/5로 줄여 적용했다(gecko_01.png→webp 110KB, gecko_thinking.png→webp 104KB).
+    image: '/cursors/gecko/gecko_01.webp',
+    // 챗봇 답변 대기(thinking) 중에만 표시하는 이미지. 다른 사서의 imageHover(책 선택/클릭
+    // 모션)와 용도가 달라 별도 필드(thinkingImage)로 둔다. LibrarianCursor의 thinking prop 참고.
+    thinkingImage: '/cursors/gecko/gecko_thinking.webp',
+    // 포인터 지점 — 800x1200 원본 기준 얼굴/눈 부근 추정치. 실측 후 조정 필요.
+    tip: { x: 0.42, y: 0.32 },
+    // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
     profileImage: '/profile/gecko.jpg',
   },
 ].map((l) => ({

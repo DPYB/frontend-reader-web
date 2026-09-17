@@ -103,10 +103,11 @@ function getRecommendationLoadingMessage(librarianId) {
  * @param {object} librarian - 현재 사서
  * @param {{text,switchTo,library_books,libraryBooks,recommended_books,recommendedBooks}|null} answer - 현재 답변
  * @param {(res)=>void} onAnswer - 답변 갱신
- * @param {(id)=>void} onSwitch - 사서 변경
  * @param {(bookOrId)=>void} [onOpenDetail] - 서재 도서 상세 보기(책 열기) 모달 열기 핸들러
+ * @param {(loading:boolean)=>void} [onLoadingChange] - 답변 대기(thinking) 상태 변경 알림
+ *   (사서 커서가 답변 대기 중 이미지로 전환하는 데 사용)
  */
-export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail }) {
+export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange }) {
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const navigate = useNavigate();
@@ -254,6 +255,11 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentMessages, loading]);
+
+  // 답변 대기(thinking) 상태를 부모(LibraryScene)에 전달 — 사서 커서가 대기 이미지로 전환
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   // CLIAR-257: 대화 응답이나 세션 정보 변경 시 사서별 sessionStorage에 동기화
   useEffect(() => {
