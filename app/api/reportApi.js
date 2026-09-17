@@ -60,16 +60,24 @@ export function normalizeMonthlyReport(raw) {
         { condition: '비/눈 (rainy/snowy)', count: (weatherMap.rainy ?? 0) + (weatherMap.snowy ?? 0) },
       ];
 
+  // 06. 날씨별 독서 & 베스트 도서 매핑 (아이콘 + 표지 1:1 매칭용)
+  const weatherBooks = Array.isArray(raw.rhythm?.weatherBooks)
+    ? raw.rhythm.weatherBooks
+    : Array.isArray(raw.weatherBooks)
+      ? raw.weatherBooks
+      : [];
+
   const rhythm = {
     dayOfWeek,
     timeOfDay,
     weather,
+    weatherBooks,
     avgCompletionDays: raw.habits?.avgCompletionDays ?? null,
     totalSessionCount: raw.habits?.totalSessionCount ?? 0,
     avgSessionDurationMinutes: raw.habits?.avgSessionDurationMinutes ?? null,
   };
 
-  // 03. 독서 취향 & 키워드
+  // 03. 독서 취향 & 키워드 & 장르 통계 (도넛 차트용)
   const topGenreTags = raw.preferences?.topGenres?.map((g) => g.genreName || g.genre) || [];
   const topSubjects = raw.preferences?.topSubjects || [];
   const tasteTags =
@@ -85,9 +93,14 @@ export function normalizeMonthlyReport(raw) {
         ? debateKeywords
         : topSubjects;
 
+  // 도넛 차트용 장르 통계 (genreBreakdown 또는 topGenres 활용)
+  const rawGenreBreakdown = Array.isArray(raw.balance?.genreBreakdown) ? raw.balance.genreBreakdown : [];
+  const genreStats = rawGenreBreakdown.filter((g) => (g.count ?? 0) > 0 || (g.percentage ?? 0) > 0);
+
   const taste = {
     tags: tasteTags,
     keywords: tasteKeywords,
+    genreStats,
     weatherPreferences: raw.preferences?.weatherPreferences || [],
   };
 
