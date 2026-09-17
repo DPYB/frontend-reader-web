@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
 import { getLibraryBook } from '../../api/bookApi';
-import { createReadingRecord } from '../../api/recordApi';
+import { createReadingSession } from '../../api/recordApi';
 import { getUserLocation, getWeatherCondition } from '../../api/geolocation';
 import './ReadingTimerModal.css';
 
@@ -34,9 +34,10 @@ function formatTime(totalSeconds) {
  * @param {object|null} [props.initialBook] - 특정 책 상세에서 열린 경우 책 객체
  * @param {() => void} props.onClose - 모달 닫기 핸들러
  * @param {(book: object) => void} [props.onOpenBookDetail] - 필요 시 도서 상세 모달 열기 핸들러
+ * @param {() => void} [props.onSavedSession] - 세션 저장 성공 시 후속 새로고침 핸들러
  */
-export default function ReadingTimerModal({ initialBook = null, onClose, onOpenBookDetail }) {
-  const { books, saveReadingProgress, reload } = useBooks();
+export default function ReadingTimerModal({ initialBook = null, onClose, onOpenBookDetail, onSavedSession }) {
+  const { books, saveReadingProgress, saveBookMeta, reload } = useBooks();
 
   const titleId = useId();
   const bookSelectId = useId();
@@ -187,7 +188,29 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
       // 1. 코어 서버의 독서 진행률 갱신
       await saveReadingProgress(selectedBookId, pageNum, totalPages > 0 ? totalPages : null);
 
-      // 2. 독서 기록(세션/메모) 작성 (선택 메모 또는 독서 시간 기록)
+      // 1-1. 시작전(PLANNED) 도서에서 1쪽 이상 읽은 경우, 서버 도서 상태도 '읽는 중(READING)'으로 승격
+      if (pageNum > 0 && currentBook?.status === '시작전') {
+        try {
+          const latestDetail = await getLibraryBook(selectedBookId);
+          await saveBookMeta(selectedBookId, {
+            title: latestDetail.title,
+            author: latestDetail.author,
+            isbn: latestDetail.isbn,
+            genre: latestDetail.genre,
+            subject: latestDetail.subject,
+            displayGenre: latestDetail.displayGenre,
+            publisher: latestDetail.publisher,
+            publishedDate: latestDetail.publishedDate,
+            coverUrl: latestDetail.coverUrl,
+            readingStatus: 'READING',
+            totalPages: latestDetail.totalPages,
+          });
+        } catch {
+          // 상태 승격 실패 시에도 독서 세션 저장은 계속 진행
+        }
+      }
+
+      // 2. 독서 세션(타이머 기록) 작성: 백엔드 POST /books/{id}/reading-sessions 및 /records 폴백 연동
       const durationMinutes = Math.max(1, Math.round(elapsedTotalSeconds / 60));
       const autoContent = readingMemo.trim()
         ? readingMemo.trim()
@@ -204,15 +227,19 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
         // 날씨 획득 실패 시 null 유지
       }
 
-      await createReadingRecord({
+      await createReadingSession({
         bookId: selectedBookId,
-        content: autoContent,
+        duration: elapsedTotalSeconds,
+        pageNumber: pageNum,
+        memo: autoContent,
         weather: weather || null,
-        title: `${durationMinutes}분 독서 세션`,
       });
 
       // 전체 목록 새로고침
       await reload();
+      if (onSavedSession) {
+        onSavedSession();
+      }
 
       // 완료 후 닫기
       onClose();

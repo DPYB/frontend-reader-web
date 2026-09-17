@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { extractBooksFromAnswer } from './bookExtractor';
 import './LibrarianCursor.css';
 
@@ -14,6 +15,9 @@ import './LibrarianCursor.css';
  */
 // 기본 표시 크기(px). 사서별 배율은 librarians.js의 imgScale로 조정한다.
 const IMG_SIZE = 200;
+
+// 말풍선 유지 시간 (6초 후 자동 소멸)
+const BUBBLE_DURATION_MS = 6000;
 
 /**
  * 포인터 지점 기본값 — 사서 데이터(librarians.js)에 tip이 없을 때만 사용.
@@ -83,6 +87,27 @@ export default function LibrarianCursor({ librarian, answer, active }) {
   const offsetY = -(tip.y * imgSize);
 
   const bubbleText = answer?.text ? getShortBubbleText(answer.text, librarian, answer) : '';
+  const [prevBubbleText, setPrevBubbleText] = useState('');
+  const [bubbleHidden, setBubbleHidden] = useState(false);
+
+  // 텍스트가 새로 바뀌면 말풍선 숨김 상태 해제 (렌더 중 상태 동기화)
+  if (bubbleText !== prevBubbleText) {
+    setPrevBubbleText(bubbleText);
+    setBubbleHidden(false);
+  }
+
+  // 모든 동물 사서(블루/슈빌/누디/게코) 공통: 6초 후 말풍선 자동 소멸 타이머
+  useEffect(() => {
+    if (!bubbleText || bubbleHidden) return;
+
+    const timer = setTimeout(() => {
+      setBubbleHidden(true);
+    }, BUBBLE_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [bubbleText, bubbleHidden]);
+
+  const showBubble = Boolean(bubbleText) && !bubbleHidden;
 
   return (
     <div
@@ -119,9 +144,10 @@ export default function LibrarianCursor({ librarian, answer, active }) {
           <div style={{ fontSize: 94, lineHeight: 1 }}>{librarian.icon}</div>
         )}
 
-        {/* 우상단 말풍선 (가벼운 1~2줄 리액션) */}
-        {bubbleText && (
+        {/* 우상단 말풍선 (가벼운 1~2줄 리액션, 6초 자동 유지) */}
+        {showBubble && bubbleText && (
           <div
+            className="librarian-cursor-bubble"
             style={{
               position: 'absolute',
               left: '78%',
