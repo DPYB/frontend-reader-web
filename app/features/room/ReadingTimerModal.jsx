@@ -4,6 +4,7 @@ import { useBooks } from '../../store/booksStore';
 import { getLibraryBook } from '../../api/bookApi';
 import { createReadingSession } from '../../api/recordApi';
 import { getUserLocation, getWeatherCondition } from '../../api/geolocation';
+import { formatDuration } from '../../lib/timeFormat';
 import './ReadingTimerModal.css';
 
 /**
@@ -211,10 +212,10 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
       }
 
       // 2. 독서 세션(타이머 기록) 작성: 백엔드 POST /books/{id}/reading-sessions 및 /records 폴백 연동
-      const durationMinutes = Math.max(1, Math.round(elapsedTotalSeconds / 60));
+      const formattedDuration = formatDuration(elapsedTotalSeconds);
       const autoContent = readingMemo.trim()
         ? readingMemo.trim()
-        : `⏱️ ${durationMinutes}분 동안 독서 집중 완료 (${pageNum}쪽까지 읽음)`;
+        : `⏱️ ${formattedDuration} 동안 독서 집중 완료 (${pageNum}쪽까지 읽음)`;
 
       // 현재 날씨 가져오기 (선택)
       let weather = null;

@@ -16,6 +16,7 @@
  */
 
 import { authFetch } from './authApi';
+import { formatDuration } from '../lib/timeFormat';
 
 /**
  * 문장 사진을 업로드해 OCR로 텍스트를 추출한다.
@@ -159,14 +160,13 @@ export async function createReadingRecord({
 }
 
 /**
- * 독서 세션(타이머 독서 기록) 저장 API 호출.
- *
- * 1차적으로 백엔드 신규 엔드포인트 POST /api/v1/books/{bookId}/reading-sessions 를 시도하고,
+ * 특정 도서의 독서 세션(타이머 독서 기록)을 백엔드에 저장합니다.
+ * 백엔드 정밀도 패치(PR #13)에 따라 60초 미만도 duration_seconds(초 단위)와 duration_minutes=0으로 정확히 보존합니다.
  * 404 등 미지원 환경인 경우 기존 POST /api/v1/records 로 자동 폴백하여 안전하게 저장합니다.
  *
  * @param {object} params
  * @param {number|string} params.bookId - 대상 서재 도서 ID
- * @param {number} params.duration - 읽은 시간 (초 또는 분 단위)
+ * @param {number} params.duration - 읽은 시간 (초 단위)
  * @param {number|string|null} [params.pageNumber=null] - 현재 도달 페이지
  * @param {string|null} [params.memo=null] - 독서 메모 또는 한 줄 감상
  * @param {string|null} [params.weather=null] - 날씨 조건
@@ -179,15 +179,20 @@ export async function createReadingSession({
   memo = null,
   weather = null,
 }) {
-  const durationMinutes = Math.max(1, Math.round(duration / 60));
-  const cleanMemo = memo?.trim() || `⏱️ ${durationMinutes}분 독서 세션`;
+  const durationSeconds = Math.max(0, Math.round(Number(duration) || 0));
+  const durationMinutes = Math.floor(durationSeconds / 60);
+  const formattedTime = formatDuration(durationSeconds);
+  const cleanMemo = memo?.trim() || `⏱️ ${formattedTime} 독서 세션`;
 
   try {
     return await authFetch(`/books/${encodeURIComponent(bookId)}/reading-sessions`, {
       method: 'POST',
       body: {
-        duration,
+        duration: durationSeconds,
+        duration_seconds: durationSeconds,
+        durationSeconds,
         duration_minutes: durationMinutes,
+        durationMinutes,
         page_number: pageNumber ? Number(pageNumber) : null,
         memo: cleanMemo,
         weather: weather || null,
@@ -199,7 +204,7 @@ export async function createReadingSession({
       bookId,
       content: cleanMemo,
       weather: weather || null,
-      title: `${durationMinutes}분 독서 세션`,
+      title: `${formattedTime} 독서 세션`,
     });
   }
 }
@@ -228,9 +233,31 @@ export async function fetchReadingSessions(bookId) {
   if (!bookId) return [];
   try {
     const res = await authFetch(`/books/${encodeURIComponent(bookId)}/reading-sessions`);
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res?.sessions)) return res.sessions;
-    if (Array.isArray(res?.items)) return res.items;
+    const rawList = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.sessions)
+        ? res.sessions
+        : Array.isArray(res?.items)
+          ? res.items
+          : null;
+
+    if (rawList) {
+      return rawList.map((s) => {
+        const sec = s.duration_seconds ?? s.durationSeconds ?? (typeof s.duration === 'number' ? s.duration : null);
+        const mins = s.duration_minutes ?? s.durationMinutes ?? (sec != null ? Math.floor(sec / 60) : 0);
+        return {
+          id: s.id || s.sessionId || s.session_id,
+          bookId: s.bookId || s.book_id || bookId,
+          duration: sec ?? (mins * 60),
+          durationSeconds: sec,
+          durationMinutes: mins,
+          memo: s.memo || s.content || '',
+          pageNumber: s.pageNumber ?? s.page_number ?? null,
+          weather: s.weather || null,
+          createdAt: s.createdAt || s.created_at || new Date().toISOString(),
+        };
+      });
+    }
   } catch {
     // 세션 엔드포인트가 없으면 records에서 조회
   }
@@ -240,13 +267,25 @@ export async function fetchReadingSessions(bookId) {
     if (Array.isArray(records)) {
       return records.map((r) => {
         // 기존 records 모델을 세션 규격으로 정규화
-        const titleMatch = r.title?.match(/(\d+)분/);
-        const inferredDuration = titleMatch ? Number(titleMatch[1]) * 60 : 600;
+        const secMatch = r.title?.match(/(\d+)초/);
+        const minMatch = r.title?.match(/(\d+)분/);
+        let inferredSec = 600;
+        let inferredMin = 10;
+        if (secMatch) {
+          inferredSec = Number(secMatch[1]);
+          inferredMin = 0;
+        } else if (minMatch) {
+          inferredMin = Number(minMatch[1]);
+          inferredSec = inferredMin * 60;
+        }
+        const finalSec = r.durationSeconds ?? r.duration ?? inferredSec;
+        const finalMin = r.durationMinutes ?? inferredMin;
         return {
           id: r.id || r.recordId || r.record_id,
           bookId: r.bookId || r.book_id || bookId,
-          duration: r.duration || inferredDuration,
-          durationMinutes: r.durationMinutes || (titleMatch ? Number(titleMatch[1]) : 10),
+          duration: finalSec,
+          durationSeconds: finalSec,
+          durationMinutes: finalMin,
           memo: r.content || r.memo || '',
           pageNumber: r.pageNumber || r.page_number || null,
           weather: r.weather || null,
@@ -259,4 +298,5 @@ export async function fetchReadingSessions(bookId) {
   }
   return [];
 }
+
 

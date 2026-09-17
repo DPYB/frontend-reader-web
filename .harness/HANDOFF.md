@@ -300,7 +300,7 @@
 - `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
 
 ## 2026-09-17: AI 백엔드 월간 독서 리포트 스키마 정규화 및 실데이터 연동
-- 작업 브랜치: `fix/debate-layout-persona-name`
+- 작업 브랜치: `fix/report-schema-adapter`
 - **백엔드 DTO ↔ 프론트엔드 UI 정규화 어댑터 도입 (`reportApi.js`)**:
   - AI 에이전트 백엔드(`backend-ai-agent`)의 `MonthlyReportResponse` Pydantic DTO 스키마와 프론트엔드 UI 기대 규격 간의 필드명/데이터 형태 불일치 해결
   - `normalizeMonthlyReport(raw)` 어댑터 함수 신설:
@@ -316,4 +316,19 @@
   - 06번 사서 관찰기 섹션: AI가 분석한 독서가 유형 배지(`✨ 독서가 유형: 사색하는 몰입형 독서가`) 및 핵심 성향 태그(`keyTraits` 칩) 렌더링 추가
   - 07번 다음 달 독서 처방 섹션: 사서의 실시간 조언(`advice`) 배너 및 추천 도서 장르 태그(`genre`) 렌더링 추가
 - `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
+
+## 2026-09-17: 독서 타이머 60초 미만 시간 표기 정밀도 개선 및 백엔드 PR #13 연동
+- 작업 브랜치: `fix/reading-session-duration-precision`
+- **시간 포맷팅 유틸 신설 (`app/lib/timeFormat.js`)**:
+  - `formatDuration(seconds, fallbackMinutes)`: 백엔드 정밀도 패치(PR #13)에 따라 `durationSeconds`를 우선 참조하여 60초 미만은 초 단위(`${seconds}초`), 60초 이상은 분/초(`${mins}분` 또는 `${mins}분 ${remainSecs}초`)로 자연스럽게 분기
+  - `formatTotalReadingTime(totalMinutes)`: 누적 독서 시간을 시간 및 분(`X시간 Y분`, `X분`)으로 포맷팅
+- **API 레이어 정밀도 보존 및 기본 메모 반영 (`app/api/recordApi.js`)**:
+  - `createReadingSession`: `duration_seconds: durationSeconds`, `duration_minutes: Math.floor(durationSeconds / 60)`로 백엔드 전달, 기본 메모도 `formatDuration` 기반으로 `⏱️ 13초 독서 세션` 등으로 생성
+  - `fetchReadingSessions`: 서버 응답의 `duration_seconds`/`durationSeconds`, `duration_minutes`/`durationMinutes` 누락 없이 정규화
+- **독서 세션 히스토리 UI 및 타이머 모달 연동 (`ReadingSessionHistory.jsx`, `ReadingTimerModal.jsx`)**:
+  - 세션 테이블 집중 시간 배지: `formatDuration(s.durationSeconds ?? s.duration, s.durationMinutes)` 적용
+  - 상단 통계 바: 1분 미만 세션만 존재할 때도 `13초` 등으로 정확히 표현
+  - 독서 타이머 모달: 완료 저장 기본 메모에 초 단위 정확도 반영
+- `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
+
 
