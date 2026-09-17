@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchReadingSessions } from '../../api/recordApi';
+import { formatDuration, formatTotalReadingTime } from '../../lib/timeFormat';
 import './ReadingSessionHistory.css';
 
 /**
@@ -13,7 +14,11 @@ import './ReadingSessionHistory.css';
  * @param {number} [props.version=0] - 외부 변경(저장 등) 시 목록 재조회 트리거
  * @param {() => void} [props.onOpenTimer] - 타이머 열기 핸들러
  */
-export default function ReadingSessionHistory({ bookId, version = 0, onOpenTimer }) {
+export default function ReadingSessionHistory({
+  bookId,
+  version = 0,
+  onOpenTimer,
+}) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,9 +55,21 @@ export default function ReadingSessionHistory({ bookId, version = 0, onOpenTimer
 
   // 누적 독서 시간 및 회차 계산
   const totalMinutes = sessions.reduce((acc, cur) => {
-    const mins = cur.durationMinutes || Math.round((cur.duration || 0) / 60) || 0;
+    const mins = cur.durationMinutes != null
+      ? cur.durationMinutes
+      : Math.floor((cur.durationSeconds || cur.duration || 0) / 60);
     return acc + mins;
   }, 0);
+
+  const totalSeconds = sessions.reduce((acc, cur) => {
+    return acc + (cur.durationSeconds ?? cur.duration ?? ((cur.durationMinutes || 0) * 60));
+  }, 0);
+
+  const displayTotalTime = totalMinutes > 0
+    ? formatTotalReadingTime(totalMinutes)
+    : totalSeconds > 0
+      ? `${totalSeconds}초`
+      : '0분';
 
   const formatSessionDate = (isoStr) => {
     if (!isoStr) return '-';
@@ -80,7 +97,7 @@ export default function ReadingSessionHistory({ bookId, version = 0, onOpenTimer
       <div className="rsh-summary-bar">
         <div className="rsh-stat-item">
           <span className="rsh-stat-label">총 독서 시간</span>
-          <strong className="rsh-stat-value">{totalMinutes}분</strong>
+          <strong className="rsh-stat-value">{displayTotalTime}</strong>
         </div>
         <div className="rsh-stat-divider" />
         <div className="rsh-stat-item">
@@ -149,7 +166,7 @@ export default function ReadingSessionHistory({ bookId, version = 0, onOpenTimer
               </thead>
               <tbody>
                 {sessions.map((s, idx) => {
-                  const mins = s.durationMinutes || Math.max(1, Math.round((s.duration || 0) / 60));
+                  const durationText = formatDuration(s.durationSeconds ?? s.duration, s.durationMinutes);
                   const weatherIcon = getWeatherIcon(s.weather);
                   return (
                     <tr key={s.id || idx}>
@@ -158,7 +175,7 @@ export default function ReadingSessionHistory({ bookId, version = 0, onOpenTimer
                         {weatherIcon && <span className="rsh-weather-badge">{weatherIcon}</span>}
                       </td>
                       <td className="rsh-td-duration">
-                        <span className="rsh-duration-badge">⏱️ {mins}분</span>
+                        <span className="rsh-duration-badge">⏱️ {durationText}</span>
                       </td>
                       <td className="rsh-td-page">
                         {s.pageNumber ? `${s.pageNumber}쪽` : '-'}
