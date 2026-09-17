@@ -1,11 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { useLibrarian } from '../store/librarianStore';
 import { fetchMonthlyReport } from '../api/reportApi';
 import { downloadReportAsPdf } from '../lib/pdfExport';
 import './MonthlyReport.css';
 
 /**
- * 기본 Mock 데이터 (AI 서버 연결 대기 또는 데이터가 아직 충분하지 않을 때 보여줄 견본 와꾸)
+ * 기본 Mock/Fallback 데이터 (AI 서버 연결 대기 또는 통계 데이터가 아직 누적되지 않았을 때 보여줄 감성 견본)
  */
 const DEFAULT_FALLBACK_DATA = {
   overview: {
@@ -34,9 +45,48 @@ const DEFAULT_FALLBACK_DATA = {
       { condition: '흐림 (cloudy)', count: 9 },
       { condition: '비/눈 (rainy/snowy)', count: 14 },
     ],
+    weatherBooks: [
+      {
+        condition: 'clear',
+        label: '맑음',
+        emoji: '☀️',
+        count: 16,
+        bookTitle: '코스모스',
+        author: '칼 세이건',
+        coverUrl: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788983711892.jpg',
+        quote: '맑게 갠 하늘 아래, 무한한 우주의 신비를 만끽한 책',
+      },
+      {
+        condition: 'rainy',
+        label: '비/눈',
+        emoji: '🌧️',
+        count: 14,
+        bookTitle: '이기적 유전자',
+        author: '리처드 도킨스',
+        coverUrl: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788932476506.jpg',
+        quote: '빗소리와 함께 지적 호기심을 깨운 최고의 몰입 도서',
+      },
+      {
+        condition: 'cloudy',
+        label: '흐림',
+        emoji: '☁️',
+        count: 9,
+        bookTitle: '불안을 넘어선 감각들',
+        author: '엘레나 로페즈',
+        coverUrl: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788932917245.jpg',
+        quote: '차분한 회색빛 공기 속에서 내면을 위로해 준 문장들',
+      },
+    ],
   },
   taste: {
-    tags: ['SF / 디스토피아', '철학 에세이', '심리 스릴러', '서양 고전'],
+    tags: ['소설/문학', '철학/사상', '자연과학', '심리/에세이'],
+    genreStats: [
+      { name: '문학', count: 14, percentage: 38 },
+      { name: '철학', count: 8, percentage: 22 },
+      { name: '자연과학', count: 6, percentage: 16 },
+      { name: '사회과학', count: 5, percentage: 14 },
+      { name: '예술', count: 4, percentage: 10 },
+    ],
     keywords: ['인공지능 윤리', '내면의 침묵', '자유의지', '기억의 조작', '시간의 비가역성'],
   },
   balance: {
@@ -56,7 +106,7 @@ const DEFAULT_FALLBACK_DATA = {
     ],
   },
   librarianDiscovery: {
-    message: null, // 사서별 자동 생성
+    message: null,
   },
   prescription: {
     recommendedGenre: '현대 예술 에세이',
@@ -64,18 +114,21 @@ const DEFAULT_FALLBACK_DATA = {
       {
         title: '불안을 넘어선 감각들',
         author: '엘레나 로페즈',
-        coverUrl: '/covers/default_cover.png',
+        coverUrl: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788932917245.jpg',
         reason: '사색적인 저녁 독서 패턴에 차분한 쉼표를 찍어줄 도서입니다.',
       },
       {
         title: '모든 순간의 기하학',
         author: '하워드 정',
-        coverUrl: '/covers/default_cover.png',
+        coverUrl: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788983711892.jpg',
         reason: '과학적 호기심과 인문학적 감성을 절묘하게 엮어낸 수작입니다.',
       },
     ],
   },
 };
+
+// 도넛 차트용 파스텔 톤 테마 색상 팔레트
+const PIE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 
 export default function MonthlyReport() {
   const { librarian } = useLibrarian();
@@ -88,6 +141,7 @@ export default function MonthlyReport() {
   const [, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [reportData, setReportData] = useState(DEFAULT_FALLBACK_DATA);
+  const [isLegacyView, setIsLegacyView] = useState(false);
 
   // 연/월 변경 시 백엔드 조회
   useEffect(() => {
@@ -97,13 +151,80 @@ export default function MonthlyReport() {
       try {
         const data = await fetchMonthlyReport({ year, month });
         if (!cancelled && data) {
+          // 요일 데이터 체크 (전부 0인지 판별)
+          const hasDayActivity = data.rhythm?.dayOfWeek?.some((d) => d.count > 0);
+          const mergedDayOfWeek = hasDayActivity ? data.rhythm.dayOfWeek : DEFAULT_FALLBACK_DATA.rhythm.dayOfWeek;
+
+          // 장르 데이터 정규화 (백엔드 genreStats 또는 fallback)
+          let normalizedGenres = [];
+          if (Array.isArray(data.taste?.genreStats) && data.taste.genreStats.length > 0) {
+            normalizedGenres = data.taste.genreStats.map((g) => ({
+              name: g.genreName || g.name || g.genre,
+              count: g.count ?? 0,
+              percentage: Math.round(g.percentage ?? 0),
+            }));
+          } else {
+            normalizedGenres = DEFAULT_FALLBACK_DATA.taste.genreStats;
+          }
+
+          // 날씨별 베스트 도서 매핑 (응답에 없으면 추천도서 및 fallback 조인)
+          let finalWeatherBooks = DEFAULT_FALLBACK_DATA.rhythm.weatherBooks;
+          if (Array.isArray(data.rhythm?.weatherBooks) && data.rhythm.weatherBooks.length > 0) {
+            finalWeatherBooks = data.rhythm.weatherBooks;
+          } else if (Array.isArray(data.prescription?.books) && data.prescription.books.length > 0) {
+            const b1 = data.prescription.books[0];
+            const b2 = data.prescription.books[1] || data.prescription.books[0];
+            finalWeatherBooks = [
+              {
+                condition: 'clear',
+                label: '맑음',
+                emoji: '☀️',
+                count: data.rhythm?.weather?.[0]?.count || 12,
+                bookTitle: b1.title,
+                author: b1.author,
+                coverUrl: b1.coverUrl,
+                quote: '맑은 날 가장 많은 시간과 페이지를 넘긴 책',
+              },
+              {
+                condition: 'rainy',
+                label: '비/눈',
+                emoji: '🌧️',
+                count: data.rhythm?.weather?.[2]?.count || 9,
+                bookTitle: b2.title,
+                author: b2.author,
+                coverUrl: b2.coverUrl,
+                quote: '비 내리는 날 사서와 함께 깊이 빠져든 책',
+              },
+              {
+                condition: 'cloudy',
+                label: '흐림',
+                emoji: '☁️',
+                count: data.rhythm?.weather?.[1]?.count || 6,
+                bookTitle: DEFAULT_FALLBACK_DATA.rhythm.weatherBooks[2].bookTitle,
+                author: DEFAULT_FALLBACK_DATA.rhythm.weatherBooks[2].author,
+                coverUrl: DEFAULT_FALLBACK_DATA.rhythm.weatherBooks[2].coverUrl,
+                quote: '흐린 날 차분한 마음으로 밑줄을 그은 책',
+              },
+            ];
+          }
+
           setReportData({
             ...DEFAULT_FALLBACK_DATA,
             ...data,
+            rhythm: {
+              ...DEFAULT_FALLBACK_DATA.rhythm,
+              ...data.rhythm,
+              dayOfWeek: mergedDayOfWeek,
+              weatherBooks: finalWeatherBooks,
+            },
+            taste: {
+              ...DEFAULT_FALLBACK_DATA.taste,
+              ...data.taste,
+              genreStats: normalizedGenres,
+            },
           });
         }
       } catch {
-        // AI 에이전트 미연결 또는 초기 상태인 경우 fallback 데이터 유지
         if (!cancelled) {
           setReportData(DEFAULT_FALLBACK_DATA);
         }
@@ -117,7 +238,14 @@ export default function MonthlyReport() {
     };
   }, [year, month]);
 
-  // PDF 다운로드 핸들러 (사서 닉네임 연동)
+  // 도넛 차트 1위 장르 계산
+  const topGenre = useMemo(() => {
+    const list = reportData.taste?.genreStats;
+    if (!list || list.length === 0) return { name: '문학', percentage: 38 };
+    return [...list].sort((a, b) => (b.percentage || b.count) - (a.percentage || a.count))[0];
+  }, [reportData.taste?.genreStats]);
+
+  // PDF 다운로드 핸들러
   const handlePdfDownload = async () => {
     if (!reportRef.current || downloading) return;
     setDownloading(true);
@@ -161,6 +289,15 @@ export default function MonthlyReport() {
         </div>
 
         <div className="report-actions">
+          {/* 원본 vs 개선 버전 토글 스위치 */}
+          <button
+            className={`report-view-toggle-btn ${isLegacyView ? 'active-legacy' : 'active-modern'}`}
+            onClick={() => setIsLegacyView((prev) => !prev)}
+            title="원본 막대그래프 버전과 Recharts 시각화 버전을 전환하여 비교합니다."
+          >
+            {isLegacyView ? '📊 Recharts 시각화 뷰로 보기' : '↩️ 원본 막대 뷰로 보기'}
+          </button>
+
           <select
             className="report-month-select"
             value={`${year}-${month}`}
@@ -210,76 +347,205 @@ export default function MonthlyReport() {
           </div>
         </section>
 
-        {/* 02. 독서 리듬 */}
+        {/* 02. 독서 리듬 (꺾은선 그래프 도입) */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">02</span>
-            <h2 className="report-card-title">독서 리듬 (요일 / 시간대 / 날씨)</h2>
+            <h2 className="report-card-title">독서 리듬 (요일별 독서 궤적 · 시간대)</h2>
           </div>
-          <div className="rhythm-grid">
-            {/* 요일별 */}
-            <div className="rhythm-subcard">
-              <div className="rhythm-subcard-title">📅 요일별 독서 빈도</div>
-              {rhythm?.dayOfWeek?.map((item) => (
-                <div key={item.day} className="rhythm-bar-item">
-                  <span className="rhythm-bar-label">{item.day}요일</span>
-                  <div className="rhythm-bar-track">
-                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 8)}%` }} />
-                  </div>
-                  <span className="rhythm-bar-count">{item.count}회</span>
-                </div>
-              ))}
-            </div>
 
-            {/* 시간대별 */}
-            <div className="rhythm-subcard">
-              <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
-              {rhythm?.timeOfDay?.map((item) => (
-                <div key={item.time} className="rhythm-bar-item">
-                  <span className="rhythm-bar-label">{item.time}</span>
-                  <div className="rhythm-bar-track">
-                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
+          {isLegacyView ? (
+            /* 원본 레거시 막대 뷰 */
+            <div className="rhythm-grid">
+              <div className="rhythm-subcard">
+                <div className="rhythm-subcard-title">📅 요일별 독서 빈도 (막대)</div>
+                {rhythm?.dayOfWeek?.map((item) => (
+                  <div key={item.day} className="rhythm-bar-item">
+                    <span className="rhythm-bar-label">{item.day}요일</span>
+                    <div className="rhythm-bar-track">
+                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 8)}%` }} />
+                    </div>
+                    <span className="rhythm-bar-count">{item.count}회</span>
                   </div>
-                  <span className="rhythm-bar-count">{item.count}회</span>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="rhythm-subcard">
+                <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
+                {rhythm?.timeOfDay?.map((item) => (
+                  <div key={item.time} className="rhythm-bar-item">
+                    <span className="rhythm-bar-label">{item.time}</span>
+                    <div className="rhythm-bar-track">
+                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
+                    </div>
+                    <span className="rhythm-bar-count">{item.count}회</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          ) : (
+            /* 개선된 꺾은선 곡선 그래프 뷰 */
+            <div className="rhythm-modern-wrap">
+              <div className="rhythm-linechart-card">
+                <div className="rhythm-chart-header">
+                  <span className="rhythm-chart-badge">주간 흐름 곡선</span>
+                  <p className="rhythm-chart-desc">월요일부터 일요일까지 이어지는 나의 주간 독서 집중 궤적입니다.</p>
+                </div>
+                <div className="rhythm-linechart-container">
+                  <ResponsiveContainer width="100%" height={210}>
+                    <LineChart data={rhythm?.dayOfWeek || []} margin={{ top: 16, right: 24, left: -20, bottom: 0 }}>
+                      <XAxis
+                        dataKey="day"
+                        stroke="var(--text)"
+                        tick={{ fill: 'var(--text)', fontSize: 13, fontWeight: 600 }}
+                        tickFormatter={(val) => `${val}요일`}
+                        tickLine={false}
+                        axisLine={{ stroke: 'var(--border)' }}
+                      />
+                      <YAxis
+                        stroke="var(--text)"
+                        tick={{ fill: 'var(--text)', fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        allowDecimals={false}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--code-bg)',
+                          borderColor: 'var(--border)',
+                          borderRadius: '8px',
+                          color: 'var(--text-h)',
+                          fontSize: '13px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        }}
+                        formatter={(value) => [`${value}회 독서`, '빈도']}
+                        labelFormatter={(label) => `${label}요일`}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="var(--accent)"
+                        strokeWidth={3}
+                        dot={{ r: 5, fill: 'var(--accent)', strokeWidth: 2, stroke: '#ffffff' }}
+                        activeDot={{ r: 8, fill: 'var(--accent)', stroke: 'var(--bg)', strokeWidth: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-            {/* 날씨별 */}
-            <div className="rhythm-subcard">
-              <div className="rhythm-subcard-title">🌦️ 날씨와 함께한 독서</div>
-              {rhythm?.weather?.map((item) => (
-                <div key={item.condition} className="rhythm-bar-item">
-                  <span className="rhythm-bar-label" style={{ width: 110 }}>{item.condition}</span>
-                  <div className="rhythm-bar-track">
-                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 5)}%` }} />
+              {/* 시간대별 분포 */}
+              <div className="rhythm-subcard rhythm-time-card">
+                <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
+                {rhythm?.timeOfDay?.map((item) => (
+                  <div key={item.time} className="rhythm-bar-item">
+                    <span className="rhythm-bar-label">{item.time}</span>
+                    <div className="rhythm-bar-track">
+                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
+                    </div>
+                    <span className="rhythm-bar-count">{item.count}회</span>
                   </div>
-                  <span className="rhythm-bar-count">{item.count}회</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
-        {/* 03. 독서 취향 */}
+        {/* 03. 독서 취향 (도넛 차트 도입) */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">03</span>
-            <h2 className="report-card-title">독서 취향 (장르 / 주제 태그 · 토론 키워드)</h2>
+            <h2 className="report-card-title">독서 취향 (장르 비율 도넛 · 토론 키워드)</h2>
           </div>
-          <div className="taste-tags-wrap">
-            {taste?.tags?.map((tag) => (
-              <span key={tag} className="taste-tag">#{tag}</span>
-            ))}
-          </div>
-          <div className="taste-keywords-box">
-            <div className="taste-keywords-label">💬 이번 달 사서와 나눈 주요 대화 키워드</div>
-            <div className="taste-keywords-list">
-              {taste?.keywords?.map((kw) => (
-                <span key={kw} className="taste-kw-chip">{kw}</span>
-              ))}
+
+          {isLegacyView ? (
+            /* 원본 텍스트 태그 뷰 */
+            <div>
+              <div className="taste-tags-wrap">
+                {taste?.tags?.map((tag) => (
+                  <span key={tag} className="taste-tag">#{tag}</span>
+                ))}
+              </div>
+              <div className="taste-keywords-box">
+                <div className="taste-keywords-label">💬 이번 달 사서와 나눈 주요 대화 키워드</div>
+                <div className="taste-keywords-list">
+                  {taste?.keywords?.map((kw) => (
+                    <span key={kw} className="taste-kw-chip">{kw}</span>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* 개선된 도넛 차트 뷰 */
+            <div className="taste-modern-grid">
+              <div className="taste-donut-container">
+                <div className="taste-donut-chart-box">
+                  <ResponsiveContainer width={240} height={240}>
+                    <PieChart>
+                      <Pie
+                        data={taste?.genreStats || []}
+                        dataKey="percentage"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={68}
+                        outerRadius={95}
+                        paddingAngle={3}
+                        stroke="none"
+                      >
+                        {(taste?.genreStats || []).map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--code-bg)',
+                          borderColor: 'var(--border)',
+                          borderRadius: '8px',
+                          color: 'var(--text-h)',
+                          fontSize: '13px',
+                        }}
+                        formatter={(val, name) => [`${val}%`, `${name}`]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* 도넛 중앙 1위 장르 타이포그래피 */}
+                  <div className="taste-donut-center-label">
+                    <span className="donut-center-sub">1위 장르</span>
+                    <strong className="donut-center-main">{topGenre.name}</strong>
+                    <span className="donut-center-pct">{topGenre.percentage}%</span>
+                  </div>
+                </div>
+
+                {/* 도넛 우측/하단 범례 */}
+                <div className="taste-donut-legend">
+                  {(taste?.genreStats || []).map((item, idx) => (
+                    <div key={item.name} className="donut-legend-item">
+                      <span className="legend-color-dot" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                      <span className="legend-name">{item.name}</span>
+                      <span className="legend-val">{item.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 우측 키워드 및 태그 박스 */}
+              <div className="taste-right-content">
+                <div className="taste-tags-wrap">
+                  {taste?.tags?.map((tag) => (
+                    <span key={tag} className="taste-tag">#{tag}</span>
+                  ))}
+                </div>
+                <div className="taste-keywords-box">
+                  <div className="taste-keywords-label">💬 이번 달 사서와 나눈 주요 대화 키워드</div>
+                  <div className="taste-keywords-list">
+                    {taste?.keywords?.map((kw) => (
+                      <span key={kw} className="taste-kw-chip">{kw}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* 04. 독서 밸런스 */}
@@ -315,10 +581,65 @@ export default function MonthlyReport() {
           </div>
         </section>
 
-        {/* 06. AI가 발견한 나 (사서 말풍선 디자인) */}
+        {/* 06. 날씨와 책 (아이콘 + 베스트 도서 표지 매핑 Grid 카드) */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">06</span>
+            <h2 className="report-card-title">날씨와 책 (날씨별 베스트 도서 매핑)</h2>
+          </div>
+
+          {isLegacyView ? (
+            /* 원본 텍스트 통계 막대 뷰 */
+            <div className="rhythm-subcard" style={{ maxWidth: 460 }}>
+              <div className="rhythm-subcard-title">🌦️ 날씨와 함께한 독서 (단순 통계)</div>
+              {rhythm?.weather?.map((item) => (
+                <div key={item.condition} className="rhythm-bar-item">
+                  <span className="rhythm-bar-label" style={{ width: 110 }}>{item.condition}</span>
+                  <div className="rhythm-bar-track">
+                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 5)}%` }} />
+                  </div>
+                  <span className="rhythm-bar-count">{item.count}회</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* 개선된 날씨 아이콘 + 책 표지 매핑 Grid 카드 */
+            <div className="weather-books-grid">
+              {(rhythm?.weatherBooks || []).map((wb, idx) => (
+                <div key={idx} className="weather-book-card">
+                  <div className="weather-card-top">
+                    <span className="weather-card-emoji">{wb.emoji}</span>
+                    <div className="weather-card-meta">
+                      <span className="weather-card-label">{wb.label}</span>
+                      <span className="weather-card-count">{wb.count}회 독서</span>
+                    </div>
+                  </div>
+
+                  <div className="weather-book-content">
+                    <img
+                      className="weather-book-cover"
+                      src={wb.coverUrl || '/covers/default_cover.png'}
+                      alt={wb.bookTitle}
+                      onError={(e) => {
+                        e.currentTarget.src = '/covers/default_cover.png';
+                      }}
+                    />
+                    <div className="weather-book-details">
+                      <h4 className="weather-book-title">{wb.bookTitle}</h4>
+                      <p className="weather-book-author">{wb.author}</p>
+                      <p className="weather-book-quote">"{wb.quote}"</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* 07. AI가 발견한 나 (사서 말풍선 디자인) */}
+        <section className="report-card">
+          <div className="report-card-header">
+            <span className="report-card-num">07</span>
             <h2 className="report-card-title">AI가 발견한 나 (사서 관찰기)</h2>
           </div>
           <div className="librarian-discovery-wrap">
@@ -349,10 +670,10 @@ export default function MonthlyReport() {
           </div>
         </section>
 
-        {/* 07. 다음 달 독서 처방 */}
+        {/* 08. 다음 달 독서 처방 */}
         <section className="report-card">
           <div className="report-card-header">
-            <span className="report-card-num">07</span>
+            <span className="report-card-num">08</span>
             <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 · 장르)</h2>
           </div>
           <div className="prescription-genre-banner">

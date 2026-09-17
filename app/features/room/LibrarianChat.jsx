@@ -7,7 +7,11 @@ import { getUserLocation } from '../../api/geolocation';
 import { formatRecommendedBooks, extractLibraryBooksFromAnswer, getColorIndex, getBookThickness } from './bookExtractor';
 import MarkdownRenderer from './MarkdownRenderer';
 import WeatherMoodBadge from './WeatherMoodBadge';
-import { useLibrarian, loadSavedChatSession, saveChatSession } from '../../store/librarianStore';
+import {
+  useLibrarian,
+  loadSavedChatSessionByLibrarian,
+  saveChatSessionByLibrarian,
+} from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import LoadingSequence from '../../components/LoadingSequence';
 import { DEBATE_PERSONAS } from '../../data/debatePersonas';
@@ -99,19 +103,18 @@ function getRecommendationLoadingMessage(librarianId) {
  * @param {object} librarian - 현재 사서
  * @param {{text,switchTo,library_books,libraryBooks,recommended_books,recommendedBooks}|null} answer - 현재 답변
  * @param {(res)=>void} onAnswer - 답변 갱신
- * @param {(id)=>void} onSwitch - 사서 변경
  * @param {(bookOrId)=>void} [onOpenDetail] - 서재 도서 상세 보기(책 열기) 모달 열기 핸들러
  * @param {(loading:boolean)=>void} [onLoadingChange] - 답변 대기(thinking) 상태 변경 알림
  *   (사서 커서가 답변 대기 중 이미지로 전환하는 데 사용)
  */
-export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, onOpenDetail, onLoadingChange }) {
+export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange }) {
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const navigate = useNavigate();
 
   // CLIAR-257: 추천 도서 등록 후 뒤로가기 시 대화/추천 카드 복원
   const [open, setOpen] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     if (saved?.open !== undefined) return saved.open;
     return Boolean(answer?.text);
   });
@@ -121,9 +124,9 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
   // 모드별 독립 대화 상태 및 세션 분리 (모드 전환 시 답변 누적/길어짐 방지)
   const [modeAnswers, setModeAnswers] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     return {
-      chat: saved?.answer || answer || null,
+      chat: saved?.answer || null,
       debate: null,
       library: null,
     };
@@ -131,7 +134,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
 
   // 메신저형 멀티턴 대화 히스토리: { chat: [], debate: [], library: [] }
   const [modeMessages, setModeMessages] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     const initialChat = [];
     if (saved?.messages && Array.isArray(saved.messages) && saved.messages.length > 0) {
       return {
@@ -143,16 +146,18 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     if (saved?.lastUserMessage) {
       initialChat.push({ role: 'user', text: saved.lastUserMessage });
     }
-    if (saved?.answer?.text || answer?.text) {
+    if (saved?.answer?.text) {
       initialChat.push({
         role: 'assistant',
-        text: saved?.answer?.text || answer?.text,
-        recommendedBooks: saved?.answer?.recommended_books || saved?.answer?.recommendedBooks || answer?.recommended_books || answer?.recommendedBooks || [],
-        libraryBooks: saved?.answer?.library_books || saved?.answer?.libraryBooks || answer?.library_books || answer?.libraryBooks || [],
-        isConcluded: Boolean(saved?.answer?.is_concluded || answer?.is_concluded),
-        debateSummary: saved?.answer?.debate_summary || answer?.debate_summary || null,
-        signals: saved?.answer?.signals || answer?.signals || null,
-        switchTo: saved?.answer?.switchTo || answer?.switchTo || null,
+        text: saved.answer.text,
+        senderIcon: saved?.answer?.senderIcon || librarian?.icon,
+        senderName: saved?.answer?.senderName || librarianNames[librarian?.id] || librarian?.displayName || librarian?.name,
+        recommendedBooks: saved?.answer?.recommended_books || saved?.answer?.recommendedBooks || [],
+        libraryBooks: saved?.answer?.library_books || saved?.answer?.libraryBooks || [],
+        isConcluded: Boolean(saved?.answer?.is_concluded),
+        debateSummary: saved?.answer?.debate_summary || null,
+        signals: saved?.answer?.signals || null,
+        switchTo: saved?.answer?.switchTo || null,
       });
     }
     return {
@@ -165,7 +170,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
   const messagesEndRef = useRef(null);
 
   const [chatSessionId, setChatSessionId] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     return saved?.sessionId || answer?.sessionId || null;
   });
   const [debateSessionId, setDebateSessionId] = useState(null);
@@ -185,14 +190,60 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
   const [loading, setLoading] = useState(false);
 
   const [lastUserMessage, setLastUserMessage] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     return saved?.lastUserMessage || '';
   });
   // 로딩 문구 분기용 대화 턴 수 (CLIAR-285): 첫 질문엔 환영 문구, 이후엔 맥락 문구.
   const [turnCount, setTurnCount] = useState(() => {
-    const saved = loadSavedChatSession();
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     return saved?.lastUserMessage ? 1 : 0;
   });
+
+  // 사서(librarian.id) 전환 시 화면 말풍선 도화지 및 세션 분리/복원
+  const activeLibIdRef = useRef(librarian?.id);
+  const isSwitchingRef = useRef(false);
+
+  useEffect(() => {
+    const currentLibId = librarian?.id;
+    if (activeLibIdRef.current !== currentLibId) {
+      isSwitchingRef.current = true;
+      activeLibIdRef.current = currentLibId;
+      // 새 사서의 저장된 세션 로드 (없으면 깨끗한 초기 상태)
+      const saved = loadSavedChatSessionByLibrarian(currentLibId);
+      if (saved) {
+        setModeAnswers({
+          chat: saved.answer || null,
+          debate: null,
+          library: null,
+        });
+        setModeMessages({
+          chat: Array.isArray(saved.messages) ? saved.messages : [],
+          debate: [],
+          library: [],
+        });
+        setChatSessionId(saved.sessionId || null);
+        setLastUserMessage(saved.lastUserMessage || '');
+        setTurnCount(saved.lastUserMessage ? 1 : 0);
+        if (onAnswer) onAnswer(saved.answer || null);
+      } else {
+        // 새 사서와의 첫 만남: 이전 사서의 말풍선 잔류 없이 깨끗한 도화지 초기화
+        setModeAnswers({
+          chat: null,
+          debate: null,
+          library: null,
+        });
+        setModeMessages({
+          chat: [],
+          debate: [],
+          library: [],
+        });
+        setChatSessionId(null);
+        setLastUserMessage('');
+        setTurnCount(0);
+        if (onAnswer) onAnswer(null);
+      }
+    }
+  }, [librarian?.id, onAnswer]);
 
   // 현재 모드에 해당하는 유효 답변 및 메시지 목록
   const currentAnswer = modeAnswers[chatMode] || null;
@@ -210,10 +261,18 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     onLoadingChange?.(loading);
   }, [loading, onLoadingChange]);
 
-  // CLIAR-257: 대화 응답이나 세션 정보 변경 시 sessionStorage에 동기화
+  // CLIAR-257: 대화 응답이나 세션 정보 변경 시 사서별 sessionStorage에 동기화
   useEffect(() => {
+    // 사서 전환 직후의 렌더링에서는 이전 사서의 상태가 아직 남아있으므로 새 사서 키에 저장하지 않음
+    if (isSwitchingRef.current) {
+      isSwitchingRef.current = false;
+      return;
+    }
+    const targetId = activeLibIdRef.current;
+    if (!targetId) return;
+
     if (modeAnswers.chat || chatSessionId || lastUserMessage || modeMessages.chat.length > 0) {
-      saveChatSession({
+      saveChatSessionByLibrarian(targetId, {
         answer: modeAnswers.chat,
         messages: modeMessages.chat,
         sessionId: chatSessionId,
@@ -361,9 +420,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     //    title/author 재분류로는 못 채움).
     const genre = matchedBook?.genre || book.genre || undefined;
 
-    // CLIAR-257: 추천 도서 등록 화면으로 이동하기 직전 현재 대화 상태를 sessionStorage에 저장
-    saveChatSession({
+    // CLIAR-257: 추천 도서 등록 화면으로 이동하기 직전 현재 대화 상태를 사서별 sessionStorage에 저장
+    saveChatSessionByLibrarian(librarian?.id, {
       answer: modeAnswers.chat || currentAnswer,
+      messages: modeMessages.chat,
       sessionId: chatSessionId,
       lastUserMessage,
       open: true, // 복귀 시 패널이 열린 상태로 복원되도록
@@ -480,9 +540,18 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
         debate_summary: result.debateSummary || result.debate_summary || null,
       };
       setModeAnswers((prev) => ({ ...prev, [activeMode]: newAnswer }));
+      const currentSenderIcon = isDebate
+        ? selectedDebatePersona?.icon || '💡'
+        : librarian?.icon || '🐾';
+      const currentSenderName = isDebate
+        ? selectedDebatePersona?.name || '토론 파트너'
+        : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
+
       const assistantMsg = {
         role: 'assistant',
         text: newAnswer.text,
+        senderIcon: currentSenderIcon,
+        senderName: currentSenderName,
         recommendedBooks: newAnswer.recommendedBooks,
         libraryBooks: newAnswer.libraryBooks,
         isConcluded: newAnswer.isConcluded,
@@ -501,9 +570,18 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
       // 백엔드 연결 실패 시에만 로컬 서재 검색으로 폴백
       const localResult = answerQuestion({ text: message, books, librarian, librarianNames });
       setModeAnswers((prev) => ({ ...prev, [activeMode]: localResult }));
+      const currentSenderIcon = isDebate
+        ? selectedDebatePersona?.icon || '💡'
+        : librarian?.icon || '🐾';
+      const currentSenderName = isDebate
+        ? selectedDebatePersona?.name || '토론 파트너'
+        : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
+
       const assistantMsg = {
         role: 'assistant',
         text: localResult.text,
+        senderIcon: currentSenderIcon,
+        senderName: currentSenderName,
         recommendedBooks: localResult.recommendedBooks || localResult.recommended_books || [],
         libraryBooks: isDebate ? [] : (localResult.libraryBooks || localResult.library_books || []),
         isConcluded: false,
@@ -541,14 +619,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
     const message = input.trim();
     setInput('');
     await sendQuery(message, librarian.id);
-  };
-
-  const handleSwitchClick = async (targetId) => {
-    onSwitch(targetId);
-    if (lastUserMessage) {
-      // 사서 전환 시 직전 질문을 새 사서의 관점으로 즉시 자동 재질의!
-      await sendQuery(lastUserMessage, targetId);
-    }
   };
 
   const box = {
@@ -903,20 +973,30 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
           </div>
         )}
 
-        {/* 사서 변경 버튼 (전문 장르 벗어난 추천일 때) */}
+        {/* 사서 소개 팁 안내 (전문 장르 벗어난 추천 질문 시 부드럽게 안내) */}
         {chatMode !== 'library' && currentAnswer?.switchTo && (
-          <button
-            onClick={() => handleSwitchClick(currentAnswer.switchTo.id)}
+          <div
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center',
-              marginBottom: 8, padding: '8px 10px', borderRadius: 999, border: '1px solid var(--accent-border)',
-              background: 'var(--accent-bg)', color: 'var(--text-h)', cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              marginBottom: 8,
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--accent-border)',
+              background: 'var(--accent-bg)',
+              color: 'var(--text-h)',
+              fontSize: 13,
+              lineHeight: 1.4,
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 20 }}>{currentAnswer.switchTo.icon || '🐾'}</span>
-            {targetSwitchName}로 바꾸기
-          </button>
+            <span style={{ fontSize: 18 }}>💡</span>
+            <span>
+              이 장르는 <strong>{targetSwitchName}</strong>가 더 깊이 있게 추천할 수 있어요. 상단 프로필에서 언제든 사서를 변경해 보세요!
+            </span>
+          </div>
         )}
 
         {/* 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285) */}
@@ -974,13 +1054,13 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onSwitch, o
             return (
               <div key={mIdx} className={`lc-message-row ${isUser ? 'user' : 'assistant'}`}>
                 <div className="lc-message-sender">
-                  {isUser ? (
-                    '👤 나'
-                  ) : chatMode === 'debate' ? (
-                    `${selectedDebatePersona.icon} ${selectedDebatePersona.name}`
-                  ) : (
-                    `${librarian.icon} ${librarianNames[librarian.id] || librarian.name}`
-                  )}
+                  {isUser
+                    ? '👤 나'
+                    : msg.senderName
+                      ? `${msg.senderIcon || ''} ${msg.senderName}`.trim()
+                      : chatMode === 'debate'
+                        ? `${selectedDebatePersona.icon} ${selectedDebatePersona.name}`
+                        : `${librarian.icon} ${librarianNames[librarian.id] || librarian.displayName || librarian.name}`}
                 </div>
                 <div className="lc-message-bubble">
                   {isUser ? (

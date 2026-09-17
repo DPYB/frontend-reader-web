@@ -1,5 +1,29 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-17: 로그인 불가 버그 수정 (AUTH_BYPASS + BooksProvider 401 레이스)
+
+### 근본 원인
+- `VITE_AUTH_BYPASS` 미설정 → DEV 모드에서 `AUTH_BYPASS=true`로 평가
+- AUTH_BYPASS 로그인은 실제 `accessToken`을 메모리에 올리지 않음
+- 로그인 후 `BooksProvider.reload()` → `authFetch('/library/books')` 호출 → 토큰 없어 401
+- `authFetch` 401 핸들러가 `refreshAccessToken()` 시도 → refresh 쿠키 없어 실패 → `onSessionExpired()` 호출 → 강제 로그아웃
+- 결과: 로그인 성공 직후 즉시 튕기는 무한 루프
+
+### 수정 내용
+1. **`app/api/authApi.js` 401 핸들러 수정** (line 161-170):
+   - 기존: `accessToken` 유무와 무관하게 refresh 시도 → `onSessionExpired()` 호출
+   - 변경: 원래 `accessToken`이 없었던 경우(AUTH_BYPASS 또는 미인증 상태)에는 refresh/`onSessionExpired` 경로를 타지 않고 그냥 `ApiError(401)` throw
+   - AUTH_BYPASS 임포트 제거 (unused import)
+2. **`.env.local`에 `VITE_AUTH_BYPASS=false` 추가**: 실제 백엔드 로그인 사용
+   - `test@test.com` / `password`로 로그인 가능 (백엔드 curl 검증 완료)
+3. Vite dev 서버 재시작 완료
+
+### 현재 상태
+- Vite: `http://localhost:5173` 실행 중
+- 백엔드: `127.0.0.1:8000` (메인), `127.0.0.1:8001` (AI) 실행 중
+- `test@test.com` / `password`로 로그인 가능 여부 사용자 검증 필요
+- 브랜치: `feat/librarian-chat-session-isolation`
+
 ## 2026-09-14: DPYB 조직 마이그레이션 및 프론트엔드 리팩토링
 - 기존 저장소에서 AWS 의존성(배포 워크플로우 및 문서) 제거 완료
 - `my-reading-room/` 서브디렉터리 구조를 프로젝트 루트로 평탄화(Flattening)
@@ -331,9 +355,31 @@
   - 독서 타이머 모달: 완료 저장 기본 메모에 초 단위 정확도 반영
 - `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
 
-**다음 세션 시작 시**: PR #14(월간 독서 리포트 스키마 정규화) 및 PR #15(독서 세션 60초 미만 초 단위 정밀도 패치) 머지 완료 후 최신 `develop` 동기화 상태임. D-2 해커톤 마일스톤에 따른 배포 환경 E2E 시연 시나리오 점검 및 신규 사서 에셋/테마 잔여 과제 작업 진행 예정.
-
-
+## 2026-09-17: 월간 독서 리포트 Recharts 시각화 업그레이드 & 날씨 도서 1:1 매핑 & 원본 비교 토글
+- 작업 브랜치: `feat/report-recharts-visualization`
+- **Recharts 라이브러리 도입 및 차트 시각화 구현 (`MonthlyReport.jsx`, `MonthlyReport.css`)**:
+  - **02 독서 리듬**: 기존 가로형 막대그래프 대신 월요일~일요일 주간 독서 빈도를 부드러운 곡선(`LineChart` type="monotone")으로 연결. 테마 Accent 포인트 닷과 호버 툴팁 적용.
+  - **03 나의 독서 취향**: 파스텔톤 도넛 차트(`PieChart` innerRadius/outerRadius) 구현. 도넛 정중앙에 1위 장르 명칭과 점유율(예: "문학 38%")을 굵은 타이포그래피 오버레이로 배치하고 범례 연동.
+  - **06 날씨와 책**: 단순 텍스트 통계를 걷어내고, 날씨 아이콘(☀️, 🌧️, ☁️) + 백엔드 조인 베스트 도서 표지(교보문고 CDN) + 도서명/저자/인용구가 1:1 매칭되는 감성적 Grid 카드 레이아웃 구현.
+- **원본 보존 및 실시간 비교 토글 스위치 제공**:
+  - 상단 액션 바에 `[↩️ 원본 막대 뷰로 보기 / 📊 Recharts 시각화 뷰로 보기]` 토글 버튼 추가. 언제든 원본 막대 뷰와 신규 Recharts 뷰를 번갈아 확인하고 비교할 수 있도록 구현.
+  - 원본 파일은 `MonthlyReport.legacy.jsx`, `MonthlyReport.legacy.css`로 안전하게 백업 보존.
+- **API 및 데이터 정규화 레이어 확장 (`reportApi.js`)**:
+  - `genreStats` 및 `weatherBooks` 필드 정규화 추가. 백엔드 실데이터 연동과 견본 데이터 스마트 병합 지원.
+## 2026-09-17: 사서별(블루/슈빌/누디/게코) 대화 세션 및 말풍선 도화지 분리 격리
+- 작업 브랜치: `feat/librarian-chat-session-isolation`
+- **사서별 메시지 히스토리 도화지 및 세션 ID 분리 (`LibrarianChat.jsx`, `librarianStore.js`, `LibraryScene.jsx`)**:
+  - `loadSavedChatSessionByLibrarian(librarianId)`, `saveChatSessionByLibrarian(librarianId, data)` 신설:
+    - `sessionStorage` 키를 `myReadingRoom.chatSession.{librarianId}`로 세분화하여 사서별 독립 대화 히스토리 및 `sessionId` 보존.
+  - 사서 전환 시(`librarian.id` 변경 감지 `useEffect`):
+    - 이전 사서의 마지막 말풍선/질문이 새 사서 창에 잔류하지 않고 즉시 격리.
+    - 해당 사서와 이전에 나눈 대화 기록이 있으면 복원하고, 첫 만남이면 깨끗한 빈 캔버스로 초기화.
+    - 커서 말풍선(`LibraryScene.jsx`)도 해당 사서의 마지막 응답 상태로 함께 실시간 동기화.
+  - `chatSessionId`가 사서별로 독립 유지되므로, 고양이와의 대화 컨텍스트가 슈빌·누디·게코의 LLM 프롬프트에 섞여 말투가 오염되는 현상 원천 차단.
+- **인라인 강제 스위칭 버튼 정돈 및 안내 팁 메시지화**:
+  - 특정 장르 질문 시 대화창 내부에서 맥락을 꼬이게 하던 `[OO로 바꾸기]` 강제 버튼을 제거.
+  - "이 장르는 OO 사서가 더 깊이 있게 추천할 수 있어요. 상단 프로필에서 언제든 사서를 변경해 보세요!" 형태의 친절한 팁 안내 배너로 변경하여 사용자가 주도적으로 사서를 선택하도록 UX 정돈.
+- `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 6건 유지, 에러 0건), `npm run build` 번들 검증 완료.
 
 ## 2026-09-16: 누디 3D 서재 커서 적용 (좌클릭 2초 모션)
 - `public/cursors/nudi/{nudi_01,nudi_02}.png`(사용자 업로드, 각 11~13KB)를 기존 cat/stork와
@@ -373,3 +419,15 @@
 - ⚠️ 게코 `tip` 좌표는 800x1200 원본 기준 얼굴 부근 추정치 — 실측 아님. 화면 확인 후 조정 필요
 - `npx eslint .`(기존 warning 5건만, 신규 0), `npx tsc --noEmit`, `npm run build` 통과 및
   dist/cursors/gecko에 webp 2장 포함 확인
+
+## 2026-09-17: 사서 세션 캐시 격리 누수 수정 및 발신자 메타데이터 보존 (다중 인격 버그 영구 해소)
+- 작업 브랜치: `feat/librarian-chat-session-isolation`
+- **스토어 공용 키 Fallback 제거 (`app/store/librarianStore.js`)**:
+  - `loadSavedChatSessionByLibrarian(librarianId)`에서 특정 사서의 데이터가 없을 때 공용 키(`myReadingRoom.chatSession`)로 떨어지며 블루의 대화 내역이 새 사서 창에 복사되던 문제 완전 제거 (데이터 없으면 정직하게 `null` 반환).
+  - `saveChatSessionByLibrarian`도 공용 키를 오염시키지 않고 해당 사서 전용 키에만 저장하도록 격리.
+- **메시지 발신자 메타데이터 보존 (`app/features/room/LibrarianChat.jsx`)**:
+  - 메시지 생성 시점의 `senderIcon`과 `senderName`을 메시지 객체에 영구 박제하여, 현재 활성화된 사서 탭과 무관하게 발신자 이름표가 왜곡 없이 올바르게 렌더링되도록 수정.
+- **검증**:
+  - `npx tsc --noEmit` 통과
+  - `npm run lint` 통과 (에러 0건)
+  - `npm run build` 번들 빌드 정상 통과

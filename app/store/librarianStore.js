@@ -25,6 +25,27 @@ export function saveChatSession(sessionData) {
   }
 }
 
+export function loadSavedChatSessionByLibrarian(librarianId) {
+  try {
+    if (!librarianId) return null;
+    const raw = sessionStorage.getItem(`${CHAT_SESSION_STORAGE_KEY}.${librarianId}`);
+    if (raw) return JSON.parse(raw);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveChatSessionByLibrarian(librarianId, sessionData) {
+  try {
+    if (librarianId) {
+      sessionStorage.setItem(`${CHAT_SESSION_STORAGE_KEY}.${librarianId}`, JSON.stringify(sessionData));
+    }
+  } catch {
+    // 무시
+  }
+}
+
 export function clearChatSession() {
   try {
     sessionStorage.removeItem(CHAT_SESSION_STORAGE_KEY);
