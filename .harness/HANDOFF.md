@@ -268,3 +268,33 @@
   - 본문 내부 스크롤 영역에서 탭 바로 아래 상단 고정 영역(`flexShrink: 0`)으로 이동하여, 대화를 많이 나눠도 날씨/무드 컨텍스트가 항상 시야에 고정 유지되도록 개선
   - 날씨 연계 추천 모드(`chatMode === 'chat'`)에서만 노출하고, 서재 조회나 책 토론 모드에서는 시각적 노이즈를 줄이기 위해 숨김 처리
 - `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run typecheck` 통과 완료
+
+## 2026-09-17: 모든 동물 사서 커서 말풍선 6초 자동 소멸 및 독서 세션 전용 히스토리 테이블 연동
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **모든 사서 커서 말풍선 6초 자동 사라짐 구현 (`LibrarianCursor.jsx`, `LibrarianCursor.css`)**:
+  - 고양이(블루)뿐만 아니라 황새(슈빌), 누디, 게코 등 모든 사서가 공유하는 `LibrarianCursor`에 `prevBubbleText` 변경 감지 및 6초(`BUBBLE_DURATION_MS = 6000`) 타이머(`useEffect` + `setTimeout`) 연동
+  - 새 메시지 수신 시 타이머 자동 리셋 및 CSS 부드러운 등장(`librarian-bubble-fadein`) 트랜지션 적용
+- **독서 타이머 전용 세션 API 연동 및 폴백 지원 (`recordApi.js`, `ReadingTimerModal.jsx`)**:
+  - 백엔드 신규 스펙인 `POST /api/v1/books/{id}/reading-sessions` 및 `GET /api/v1/books/{id}/reading-sessions`를 우선 호출하고, 미배포 환경에서는 기존 `POST/GET /api/v1/records`로 투명하게 fallback 되도록 `createReadingSession`, `fetchReadingSessions` 구현
+  - `ReadingTimerModal`에서 타이머 완료 시 `createReadingSession`을 호출하고 완료 콜백(`onSavedSession`)을 트리거
+- **문장수집과 분리된 도서 상세 독서 타이머 세션 전용 UI 구축 (`BookDetail.jsx`, `ReadingSessionHistory.jsx`, `ReadingSessionHistory.css`)**:
+  - 도서 상세(`BookDetail`) 우측 패널에 `[ 📸 수집한 문장 | ⏱️ 독서 타이머 기록 ]` 탭 전환 헤더 추가
+  - `ReadingSessionHistory` 컴포넌트:
+    - 상단 누적 통계 바 (총 집중 시간, 완료한 세션 횟수, 미니 [⏱️ 타이머 시작] 버튼)
+    - 독서 세션 히스토리 테이블 (일시 & 날씨 배지, 집중 시간 뱃지, 도달 페이지, 감상 메모/생각)
+    - 빈 상태(Empty State) 시 타이머 시작 유도 CTA 버튼 제공
+  - 타이머 모달에서 저장 완료 시 우측 탭이 자동으로 `⏱️ 독서 타이머 기록`으로 전환되고 목록이 실시간 갱신되도록 연계
+- `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료
+
+## 2026-09-17: 독서 진행률 1% 이상 도서의 '시작전' 상태 불일치 해결
+- 작업 브랜치: `fix/debate-layout-persona-name`
+- **상태 변환기 자동 승격 로직 도입 (`bookApi.js`)**:
+  - `toKoreanStatus(readingStatus, progress = 0)`: 코어 서버 DB에 아직 `PLANNED`로 남아 있더라도, `progress > 0`인 경우 화면상에서 자연스럽게 `'읽는 중'`으로 승격하도록 안전 장치 적용
+- **전역 스토어 및 카드 렌더링 연동 (`BooksProvider.jsx`, `LibrarianChat.jsx`)**:
+  - `toFrontBook`: 서버 목록 응답 변환 시 `summary.progress`를 함께 전달하여 `status`가 실시간으로 `'읽는 중'`으로 정규화되도록 반영
+  - `saveReadingProgress`: 진행률 갱신 시 `res.progress > 0`이고 기존 상태가 `'시작전'`이면 전역 상태도 즉시 `'읽는 중'`으로 동기화
+  - `LibrarianChat`: 내 서재 추천 카드 렌더링 시 `b.progress`를 전달하여 `[시작전 · 1%]` 대신 `[읽는 중 · 1%]`로 정확히 표기
+- **타이머 및 도서 상세 저장 시 서버 메타데이터 동기화 (`ReadingTimerModal.jsx`, `BookDetail.jsx`)**:
+  - `ReadingTimerModal`: 타이머 종료 후 1쪽 이상 저장(`pageNum > 0`) 시 서버 도서 상태도 `READING`(읽는 중)으로 명시적 승격 저장 호출
+  - `BookDetail`: 현재 페이지 입력 저장(`cur > 0`) 시 서버 메타데이터의 `readingStatus`를 `READING`으로 함께 동기화
+- `npx tsc --noEmit` 통과, `npm run lint`(기존 warning 5건 유지, 에러 0건), `npm run build` 번들 검증 완료

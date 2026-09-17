@@ -159,6 +159,52 @@ export async function createReadingRecord({
 }
 
 /**
+ * 독서 세션(타이머 독서 기록) 저장 API 호출.
+ *
+ * 1차적으로 백엔드 신규 엔드포인트 POST /api/v1/books/{bookId}/reading-sessions 를 시도하고,
+ * 404 등 미지원 환경인 경우 기존 POST /api/v1/records 로 자동 폴백하여 안전하게 저장합니다.
+ *
+ * @param {object} params
+ * @param {number|string} params.bookId - 대상 서재 도서 ID
+ * @param {number} params.duration - 읽은 시간 (초 또는 분 단위)
+ * @param {number|string|null} [params.pageNumber=null] - 현재 도달 페이지
+ * @param {string|null} [params.memo=null] - 독서 메모 또는 한 줄 감상
+ * @param {string|null} [params.weather=null] - 날씨 조건
+ * @returns {Promise<object>} 생성된 독서 세션 응답
+ */
+export async function createReadingSession({
+  bookId,
+  duration,
+  pageNumber = null,
+  memo = null,
+  weather = null,
+}) {
+  const durationMinutes = Math.max(1, Math.round(duration / 60));
+  const cleanMemo = memo?.trim() || `⏱️ ${durationMinutes}분 독서 세션`;
+
+  try {
+    return await authFetch(`/books/${encodeURIComponent(bookId)}/reading-sessions`, {
+      method: 'POST',
+      body: {
+        duration,
+        duration_minutes: durationMinutes,
+        page_number: pageNumber ? Number(pageNumber) : null,
+        memo: cleanMemo,
+        weather: weather || null,
+      },
+    });
+  } catch {
+    // 신규 엔드포인트 미배포(404) 시 기존 records API로 fallback 저장
+    return createReadingRecord({
+      bookId,
+      content: cleanMemo,
+      weather: weather || null,
+      title: `${durationMinutes}분 독서 세션`,
+    });
+  }
+}
+
+/**
  * 특정 도서의 독서 기록(감상문) 목록 조회 (GET /api/v1/records?book_id=...).
  *
  * @param {number|string} bookId
@@ -168,3 +214,49 @@ export async function fetchReadingRecords(bookId) {
   const query = bookId ? `?book_id=${encodeURIComponent(bookId)}` : '';
   return authFetch(`/records${query}`);
 }
+
+/**
+ * 특정 도서의 독서 세션(타이머 독서 기록) 목록 조회.
+ *
+ * 1차: GET /api/v1/books/{bookId}/reading-sessions
+ * 폴백: GET /api/v1/records?book_id=...
+ *
+ * @param {number|string} bookId
+ * @returns {Promise<Array>} 독서 세션 목록
+ */
+export async function fetchReadingSessions(bookId) {
+  if (!bookId) return [];
+  try {
+    const res = await authFetch(`/books/${encodeURIComponent(bookId)}/reading-sessions`);
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.sessions)) return res.sessions;
+    if (Array.isArray(res?.items)) return res.items;
+  } catch {
+    // 세션 엔드포인트가 없으면 records에서 조회
+  }
+
+  try {
+    const records = await fetchReadingRecords(bookId);
+    if (Array.isArray(records)) {
+      return records.map((r) => {
+        // 기존 records 모델을 세션 규격으로 정규화
+        const titleMatch = r.title?.match(/(\d+)분/);
+        const inferredDuration = titleMatch ? Number(titleMatch[1]) * 60 : 600;
+        return {
+          id: r.id || r.recordId || r.record_id,
+          bookId: r.bookId || r.book_id || bookId,
+          duration: r.duration || inferredDuration,
+          durationMinutes: r.durationMinutes || (titleMatch ? Number(titleMatch[1]) : 10),
+          memo: r.content || r.memo || '',
+          pageNumber: r.pageNumber || r.page_number || null,
+          weather: r.weather || null,
+          createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+        };
+      });
+    }
+  } catch {
+    // records도 실패하면 빈 배열 반환
+  }
+  return [];
+}
+
