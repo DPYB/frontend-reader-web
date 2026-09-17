@@ -19,11 +19,15 @@
 
 // 'NONE'은 미지정 값이라 선택 목록에서 제외
 export const GENRE_DEFS = [
-  { code: 'GENERAL', label: '총류', aliases: ['총류', '총류/교양', 'general', '백과사전', '사전'] },
+  {
+    code: 'GENERAL',
+    label: '교양',
+    aliases: ['교양', '인문교양', '인문/교양', '상식', '잡지', '매거진', '백과사전', '사전', '총류', '총류/교양', 'general'],
+  },
   {
     code: 'PHILOSOPHY',
     label: '철학',
-    aliases: ['철학', '철학/사상', '인문', '인문학', '심리', '심리학', '자기계발', 'philosophy', 'humanities', 'psychology'],
+    aliases: ['철학', '철학/사상', '인문', '인문학', '심리', '심리학', '자기계발', '독서법', '글쓰기', 'philosophy', 'humanities', 'psychology'],
   },
   { code: 'RELIGION', label: '종교', aliases: ['종교', 'religion'] },
   {
@@ -40,7 +44,10 @@ export const GENRE_DEFS = [
   {
     code: 'TECHNOLOGY',
     label: '기술과학',
-    aliases: ['기술과학', '기술', '기술/공학', '공학', '컴퓨터', 'it', 'it/컴퓨터', '프로그래밍', 'technology', '건강', '의학', '요리', '육아'],
+    aliases: [
+      '기술과학', '기술', '기술/공학', '공학', '컴퓨터', '컴퓨터/it', 'it', 'it/컴퓨터',
+      '코딩', '프로그래밍', 'ai', '인공지능', '파이썬', 'technology', '건강', '의학', '요리', '육아',
+    ],
   },
   { code: 'ARTS', label: '예술', aliases: ['예술', '미술', '음악', 'art', 'arts'] },
   { code: 'LANGUAGE', label: '언어', aliases: ['언어', '어학', 'language'] },
@@ -67,12 +74,35 @@ const BY_CODE = new Map(GENRE_DEFS.map((g) => [g.code, g]));
 const BY_LABEL = new Map(GENRE_DEFS.map((g) => [g.label, g]));
 
 /**
- * enum code → 한글 label. 없으면 빈 문자열.
- * @param {string} code
+ * enum code 또는 한글 텍스트 → UI 한글 label. 없으면 빈 문자열.
+ * 영문 Enum(LITERATURE)뿐만 아니라, 백엔드가 국문("문학", "소설")이나
+ * 세부 주제("SF", "에세이")로 내려주어도 유연하게 한글 라벨로 변환합니다.
+ * @param {string} codeOrText
  * @returns {string}
  */
-export function genreLabel(code) {
-  return BY_CODE.get(code)?.label ?? '';
+export function genreLabel(codeOrText) {
+  if (!codeOrText || typeof codeOrText !== 'string') return '';
+  const trimmed = codeOrText.trim();
+  if (trimmed === 'NONE' || trimmed === '미지정') return '';
+
+  // 1. 이미 정의된 표준 한글 라벨인 경우 ("문학", "철학" 등)
+  if (BY_LABEL.has(trimmed)) return trimmed;
+
+  // 2. 표준 Enum 코드인 경우 ("LITERATURE" 등)
+  const byCode = BY_CODE.get(trimmed);
+  if (byCode) return byCode.label;
+
+  // 3. 국문/영문 별칭 또는 세부 주제에서 감지 ("소설", "SF", "에세이", "인문/철학" 등)
+  const detectedCode = detectGenreCode(trimmed);
+  if (detectedCode && BY_CODE.has(detectedCode)) {
+    return BY_CODE.get(detectedCode).label;
+  }
+
+  // 4. 기타 유효한 한글 문자열이면 그대로 반환 (슬래시 앞부분 추출 등)
+  const firstPart = trimmed.split('/')[0].trim();
+  if (firstPart && firstPart.length <= 10) return firstPart;
+
+  return '';
 }
 
 /**

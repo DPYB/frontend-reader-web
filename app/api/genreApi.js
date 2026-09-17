@@ -53,7 +53,12 @@ export async function classifyGenre({ title, author = '', isbn = '', rawCategory
     const data = await res.json();
     // 알 수 없는 값이 오면 미지정으로 처리해 잘못된 enum이 저장되는 걸 막는다.
     const genre = GENRE_CODES.includes(data?.genre) ? data.genre : GENRE_NONE;
-    return { genre, confidence: data?.confidence ?? 0 };
+    return {
+      genre,
+      confidence: data?.confidence ?? 0,
+      subject: data?.subject ?? null,
+      displayGenre: data?.display_genre ?? data?.displayGenre ?? null,
+    };
   } catch (err) {
     console.warn('[genreApi] 장르 분류 요청 실패:', err.message);
     return null;

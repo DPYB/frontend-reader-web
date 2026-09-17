@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => {
   // 새 조직 백엔드 서버 2개 연동 지원 (기본값 설정 및 환경변수 오버라이드)
   // 1. 메인 백엔드 (인증, 도서, 서재, OCR 등)
   const MAIN_API = env.MAIN_BACKEND_URL || env.AUTH_API || 'http://127.0.0.1:8000'
-  // 2. AI/추천 에이전트 백엔드 (사서 채팅, AI 추천 등)
-  const AI_API = env.AI_BACKEND_URL || env.DISCOVERY_API || MAIN_API
+  // 2. AI/추천 에이전트 백엔드 (사서 채팅, AI 추천 등: backend-ai-agent 8001)
+  const AI_API = env.AI_BACKEND_URL || env.DISCOVERY_API || 'http://127.0.0.1:8001'
 
   // 레거시 분기용 개별 URL 지원 (필요 시)
   const RECORD_API = env.RECORD_API || MAIN_API
@@ -50,8 +50,9 @@ export default defineConfig(({ mode }) => {
         '/api/v1/chat': proxy(AI_API),
         '/api/v1/classify-genre': proxy(AI_API),
         '/api/v1/reports': proxy(AI_API),
-        '/api/v1/ocr': proxy(RECORD_API),
-        '/api/v1/records': proxy(MAIN_API),
+        '/api/v1/vision': proxy(AI_API),
+        '/api/v1/ocr': proxy(AI_API),
+        '/api/v1/records': proxy(RECORD_API),
         '/api/v1/books': proxy(BOOK_API),
         '/api/v1/library': proxy(BOOK_API),
         '/api/v1/librarians': proxy(BOOK_API),

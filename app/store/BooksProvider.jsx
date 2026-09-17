@@ -72,10 +72,16 @@ export function BooksProvider({ children }) {
     const created = await bookApi.createLibraryBook({
       title: input.title,
       author: input.author,
+      isbn: input.isbn || null,
+      publisher: input.publisher || null,
+      publishedDate: input.publishedDate || null,
+      coverUrl: input.coverUrl || null,
       totalPages: Number(input.totalPage) || null,
       readingStatus: bookApi.toReadingStatus(input.status),
       // 장르는 등록 화면에서 분류/선택한 값 (미지정이면 'NONE')
       genre: input.genre || 'NONE',
+      subject: input.subject || null,
+      displayGenre: input.displayGenre || null,
     });
     setVisual(created.bookId, {
       spineColor: input.spineColor,
@@ -122,6 +128,8 @@ export function BooksProvider({ children }) {
             title: meta.title ?? b.title,
             author: meta.author ?? b.author,
             genre: meta.genre ?? b.genre,
+            subject: meta.subject ?? b.subject,
+            displayGenre: meta.displayGenre ?? b.displayGenre,
             status: meta.readingStatus ? bookApi.toKoreanStatus(meta.readingStatus) : b.status,
           }
           : b

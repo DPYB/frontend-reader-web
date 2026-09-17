@@ -105,19 +105,25 @@ let cachedWeatherCondition = null;
  *
  * @returns {Promise<'clear'|'cloudy'|'rainy'|'snowy'|'stormy'|'foggy'|null>}
  */
-export async function getWeatherCondition() {
+export async function getWeatherCondition(latitude = null, longitude = null) {
   if (cachedWeatherCondition) {
     return cachedWeatherCondition;
   }
 
   try {
-    const loc = await getUserLocation({ timeout: 5000 });
-    if (!loc || !isValidCoords(loc.latitude, loc.longitude)) {
-      return null;
+    let lat = latitude;
+    let lon = longitude;
+    if (!isValidCoords(lat, lon)) {
+      const loc = await getUserLocation({ timeout: 5000 });
+      if (!loc || !isValidCoords(loc.latitude, loc.longitude)) {
+        return null;
+      }
+      lat = loc.latitude;
+      lon = loc.longitude;
     }
 
     // 클라이언트 사이드 Open-Meteo 경량 조회 (인증 불필요, 1-2초 내 응답)
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=weather_code`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
     const data = await res.json();

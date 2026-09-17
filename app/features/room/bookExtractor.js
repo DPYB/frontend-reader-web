@@ -88,6 +88,10 @@ export function formatRecommendedBooks(recommendedBooks) {
     return {
       title,
       author: author || '미상',
+      isbn: b.isbn || '',
+      publisher: b.publisher || '',
+      cover_url: b.cover_url || b.coverUrl || '',
+      coverUrl: b.cover_url || b.coverUrl || '',
       page_count: pageCount,
       totalPage: pageCount, // 확인 불가 시 null -> 수동 입력 유도
       genre: b.genre || 'NONE', // 추천 시점 판단된 표준 장르 Enum (CLIAR-244)
@@ -95,6 +99,7 @@ export function formatRecommendedBooks(recommendedBooks) {
       colorIdx: getColorIndex(title),
       thickness: getBookThickness(pageCount),
       reason: b.reason || '',
+      description: b.description || '',
     };
   });
 }

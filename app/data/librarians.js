@@ -41,11 +41,9 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
  *   nudi: 핑크/마젠타 계열, gecko: 초록 계열
  */
 
-// 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY와 대응)
+// 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY 및 app.models.enums.LibrarianType과 대응)
 // typeCode:       DB librarian_type enum
-//   - RUSSIAN_BLUE, SHOEBILL은 백엔드에 이미 등록되어 있음
-//   - SEA_SLUG, GECKO는 임시값이다. 백엔드 librarian_type enum에 아직 없으므로
-//     백엔드 팀과 확정한 뒤 실제 값으로 교체해야 한다 (신규 사서 2종 추가 작업).
+//   - CAT (호환: RUSSIAN_BLUE), SHOEBILL, SEA_SLUG, GECKO 백엔드 확정 등록 완료
 // species:        사서 종(품종) 표시명
 // commonNames:     채팅에서 사서를 부르는 통칭 키워드(품종명과 별개로 쓰는 일상어).
 //                  예: 러시안 블루를 '고양이'로, 넓적부리황새를 '황새'로 부르는 경우.
@@ -54,7 +52,7 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
 // speechInterjection: 답변 말미에 붙는 사서 고유 감탄사/어미(없으면 미부착)
 // formalTone:      true면 존댓말·격식체 UI 문구(예: LibrarianCursor 말풍선)를 사용
 //
-// ⚠️ 임시 데이터 안내 (누디/게코):
+// ⚠️ 에셋 현황 안내 (누디/게코):
 //   - profileImage(프로필 사진)는 적용 완료됐다(/profile/nudi.jpg, /profile/gecko.jpg).
 //   - image/imageHover(3D 서재 커서 스프라이트)는 아직 없어 미지정 상태이며,
 //     LibrarianCursor가 자동으로 icon 이모지로 대체 표시한다.
@@ -126,9 +124,9 @@ export const LIBRARIANS = [
   },
   {
     id: 'nudi',
-    // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
     typeCode: 'SEA_SLUG',
     name: '누디 사서',
+    // 바다달팽이(갯민숭달팽이) — 백엔드 SEA_SLUG 매핑 완료
     species: '갯민숭달팽이',
     commonNames: ['바다달팽이', '갯민숭달팽이', '달팽이'],
     defaultName: '누디',
@@ -147,7 +145,6 @@ export const LIBRARIANS = [
   },
   {
     id: 'gecko',
-    // 임시값 — 백엔드 librarian_type enum 확정 시 교체 필요
     typeCode: 'GECKO',
     name: '게코 사서',
     species: '크레스티드 게코',
