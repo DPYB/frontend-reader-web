@@ -142,7 +142,6 @@ export default function MonthlyReport() {
   const [, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [reportData, setReportData] = useState(DEFAULT_FALLBACK_DATA);
-  const [isLegacyView, setIsLegacyView] = useState(false);
 
   // 연/월 변경 시 백엔드 조회
   useEffect(() => {
@@ -293,15 +292,6 @@ export default function MonthlyReport() {
         </div>
 
         <div className="report-actions">
-          {/* 원본 vs 개선 버전 토글 스위치 */}
-          <button
-            className={`report-view-toggle-btn ${isLegacyView ? 'active-legacy' : 'active-modern'}`}
-            onClick={() => setIsLegacyView((prev) => !prev)}
-            title="원본 막대그래프 버전과 Recharts 시각화 버전을 전환하여 비교합니다."
-          >
-            {isLegacyView ? '📊 Recharts 시각화 뷰로 보기' : '↩️ 원본 막대 뷰로 보기'}
-          </button>
-
           <select
             className="report-month-select"
             value={`${year}-${month}`}
@@ -351,119 +341,139 @@ export default function MonthlyReport() {
           </div>
         </section>
 
-        {/* 02. 독서 리듬 (꺾은선 그래프 도입) */}
+        {/* 02. 독서 리듬 (꺾은선 그래프) */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">02</span>
             <h2 className="report-card-title">독서 리듬 (요일별 독서 궤적 · 시간대)</h2>
           </div>
 
-          {isLegacyView ? (
-            /* 원본 레거시 막대 뷰 */
-            <div className="rhythm-grid">
-              <div className="rhythm-subcard">
-                <div className="rhythm-subcard-title">📅 요일별 독서 빈도 (막대)</div>
-                {rhythm?.dayOfWeek?.map((item) => (
-                  <div key={item.day} className="rhythm-bar-item">
-                    <span className="rhythm-bar-label">{item.day}요일</span>
-                    <div className="rhythm-bar-track">
-                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 8)}%` }} />
-                    </div>
-                    <span className="rhythm-bar-count">{item.count}회</span>
-                  </div>
-                ))}
+          <div className="rhythm-modern-wrap">
+            <div className="rhythm-linechart-card">
+              <div className="rhythm-chart-header">
+                <span className="rhythm-chart-badge">주간 흐름 곡선</span>
+                <p className="rhythm-chart-desc">월요일부터 일요일까지 이어지는 나의 주간 독서 집중 궤적입니다.</p>
               </div>
-              <div className="rhythm-subcard">
-                <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
-                {rhythm?.timeOfDay?.map((item) => (
-                  <div key={item.time} className="rhythm-bar-item">
-                    <span className="rhythm-bar-label">{item.time}</span>
-                    <div className="rhythm-bar-track">
-                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
-                    </div>
-                    <span className="rhythm-bar-count">{item.count}회</span>
-                  </div>
-                ))}
+              <div className="rhythm-linechart-container">
+                <ResponsiveContainer width="100%" height={210}>
+                  <LineChart data={rhythm?.dayOfWeek || []} margin={{ top: 16, right: 24, left: -20, bottom: 0 }}>
+                    <XAxis
+                      dataKey="day"
+                      stroke="var(--text)"
+                      tick={{ fill: 'var(--text)', fontSize: 13, fontWeight: 600 }}
+                      tickFormatter={(val) => `${val}요일`}
+                      tickLine={false}
+                      axisLine={{ stroke: 'var(--border)' }}
+                    />
+                    <YAxis
+                      stroke="var(--text)"
+                      tick={{ fill: 'var(--text)', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--code-bg)',
+                        borderColor: 'var(--border)',
+                        borderRadius: '8px',
+                        color: 'var(--text-h)',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      }}
+                      formatter={(value) => [`${value}회 독서`, '빈도']}
+                      labelFormatter={(label) => `${label}요일`}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="var(--accent)"
+                      strokeWidth={3}
+                      dot={{ r: 5, fill: 'var(--accent)', strokeWidth: 2, stroke: '#ffffff' }}
+                      activeDot={{ r: 8, fill: 'var(--accent)', stroke: 'var(--bg)', strokeWidth: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          ) : (
-            /* 개선된 꺾은선 곡선 그래프 뷰 */
-            <div className="rhythm-modern-wrap">
-              <div className="rhythm-linechart-card">
-                <div className="rhythm-chart-header">
-                  <span className="rhythm-chart-badge">주간 흐름 곡선</span>
-                  <p className="rhythm-chart-desc">월요일부터 일요일까지 이어지는 나의 주간 독서 집중 궤적입니다.</p>
-                </div>
-                <div className="rhythm-linechart-container">
-                  <ResponsiveContainer width="100%" height={210}>
-                    <LineChart data={rhythm?.dayOfWeek || []} margin={{ top: 16, right: 24, left: -20, bottom: 0 }}>
-                      <XAxis
-                        dataKey="day"
-                        stroke="var(--text)"
-                        tick={{ fill: 'var(--text)', fontSize: 13, fontWeight: 600 }}
-                        tickFormatter={(val) => `${val}요일`}
-                        tickLine={false}
-                        axisLine={{ stroke: 'var(--border)' }}
-                      />
-                      <YAxis
-                        stroke="var(--text)"
-                        tick={{ fill: 'var(--text)', fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={false}
-                        allowDecimals={false}
-                      />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: 'var(--code-bg)',
-                          borderColor: 'var(--border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-h)',
-                          fontSize: '13px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        }}
-                        formatter={(value) => [`${value}회 독서`, '빈도']}
-                        labelFormatter={(label) => `${label}요일`}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="var(--accent)"
-                        strokeWidth={3}
-                        dot={{ r: 5, fill: 'var(--accent)', strokeWidth: 2, stroke: '#ffffff' }}
-                        activeDot={{ r: 8, fill: 'var(--accent)', stroke: 'var(--bg)', strokeWidth: 3 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
 
-              {/* 시간대별 분포 */}
-              <div className="rhythm-subcard rhythm-time-card">
-                <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
-                {rhythm?.timeOfDay?.map((item) => (
-                  <div key={item.time} className="rhythm-bar-item">
-                    <span className="rhythm-bar-label">{item.time}</span>
-                    <div className="rhythm-bar-track">
-                      <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
-                    </div>
-                    <span className="rhythm-bar-count">{item.count}회</span>
+            {/* 시간대별 분포 */}
+            <div className="rhythm-subcard rhythm-time-card">
+              <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
+              {rhythm?.timeOfDay?.map((item) => (
+                <div key={item.time} className="rhythm-bar-item">
+                  <span className="rhythm-bar-label">{item.time}</span>
+                  <div className="rhythm-bar-track">
+                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
                   </div>
-                ))}
-              </div>
+                  <span className="rhythm-bar-count">{item.count}회</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </section>
 
-        {/* 03. 독서 취향 (도넛 차트 도입) */}
+        {/* 03. 독서 취향 (도넛 차트) */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">03</span>
             <h2 className="report-card-title">독서 취향 (장르 비율 도넛 · 토론 키워드)</h2>
           </div>
 
-          {isLegacyView ? (
-            /* 원본 텍스트 태그 뷰 */
-            <div>
+          <div className="taste-modern-grid">
+            <div className="taste-donut-container">
+              <div className="taste-donut-chart-box">
+                <ResponsiveContainer width={240} height={240}>
+                  <PieChart>
+                    <Pie
+                      data={taste?.genreStats || []}
+                      dataKey="percentage"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={68}
+                      outerRadius={95}
+                      paddingAngle={3}
+                      stroke="none"
+                    >
+                      {(taste?.genreStats || []).map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--code-bg)',
+                        borderColor: 'var(--border)',
+                        borderRadius: '8px',
+                        color: 'var(--text-h)',
+                        fontSize: '13px',
+                      }}
+                      formatter={(val, name) => [`${val}%`, `${name}`]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* 도넛 중앙 1위 장르 타이포그래피 */}
+                <div className="taste-donut-center-label">
+                  <span className="donut-center-sub">1위 장르</span>
+                  <strong className="donut-center-main">{topGenre.name}</strong>
+                  <span className="donut-center-pct">{topGenre.percentage}%</span>
+                </div>
+              </div>
+
+              {/* 도넛 우측/하단 범례 */}
+              <div className="taste-donut-legend">
+                {(taste?.genreStats || []).map((item, idx) => (
+                  <div key={item.name} className="donut-legend-item">
+                    <span className="legend-color-dot" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                    <span className="legend-name">{item.name}</span>
+                    <span className="legend-val">{item.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 우측 키워드 및 태그 박스 */}
+            <div className="taste-right-content">
               <div className="taste-tags-wrap">
                 {taste?.tags?.map((tag) => (
                   <span key={tag} className="taste-tag">#{tag}</span>
@@ -478,78 +488,7 @@ export default function MonthlyReport() {
                 </div>
               </div>
             </div>
-          ) : (
-            /* 개선된 도넛 차트 뷰 */
-            <div className="taste-modern-grid">
-              <div className="taste-donut-container">
-                <div className="taste-donut-chart-box">
-                  <ResponsiveContainer width={240} height={240}>
-                    <PieChart>
-                      <Pie
-                        data={taste?.genreStats || []}
-                        dataKey="percentage"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={68}
-                        outerRadius={95}
-                        paddingAngle={3}
-                        stroke="none"
-                      >
-                        {(taste?.genreStats || []).map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: 'var(--code-bg)',
-                          borderColor: 'var(--border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-h)',
-                          fontSize: '13px',
-                        }}
-                        formatter={(val, name) => [`${val}%`, `${name}`]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {/* 도넛 중앙 1위 장르 타이포그래피 */}
-                  <div className="taste-donut-center-label">
-                    <span className="donut-center-sub">1위 장르</span>
-                    <strong className="donut-center-main">{topGenre.name}</strong>
-                    <span className="donut-center-pct">{topGenre.percentage}%</span>
-                  </div>
-                </div>
-
-                {/* 도넛 우측/하단 범례 */}
-                <div className="taste-donut-legend">
-                  {(taste?.genreStats || []).map((item, idx) => (
-                    <div key={item.name} className="donut-legend-item">
-                      <span className="legend-color-dot" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                      <span className="legend-name">{item.name}</span>
-                      <span className="legend-val">{item.percentage}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 우측 키워드 및 태그 박스 */}
-              <div className="taste-right-content">
-                <div className="taste-tags-wrap">
-                  {taste?.tags?.map((tag) => (
-                    <span key={tag} className="taste-tag">#{tag}</span>
-                  ))}
-                </div>
-                <div className="taste-keywords-box">
-                  <div className="taste-keywords-label">💬 이번 달 사서와 나눈 주요 대화 키워드</div>
-                  <div className="taste-keywords-list">
-                    {taste?.keywords?.map((kw) => (
-                      <span key={kw} className="taste-kw-chip">{kw}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </section>
 
         {/* 04. 독서 밸런스 */}
@@ -592,52 +531,35 @@ export default function MonthlyReport() {
             <h2 className="report-card-title">날씨와 책 (날씨별 베스트 도서 매핑)</h2>
           </div>
 
-          {isLegacyView ? (
-            /* 원본 텍스트 통계 막대 뷰 */
-            <div className="rhythm-subcard" style={{ maxWidth: 460 }}>
-              <div className="rhythm-subcard-title">🌦️ 날씨와 함께한 독서 (단순 통계)</div>
-              {rhythm?.weather?.map((item) => (
-                <div key={item.condition} className="rhythm-bar-item">
-                  <span className="rhythm-bar-label" style={{ width: 110 }}>{item.condition}</span>
-                  <div className="rhythm-bar-track">
-                    <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 5)}%` }} />
+          <div className="weather-books-grid">
+            {(rhythm?.weatherBooks || []).map((wb, idx) => (
+              <div key={idx} className="weather-book-card">
+                <div className="weather-card-top">
+                  <span className="weather-card-emoji">{wb.emoji}</span>
+                  <div className="weather-card-meta">
+                    <span className="weather-card-label">{wb.label}</span>
+                    <span className="weather-card-count">{wb.count}회 독서</span>
                   </div>
-                  <span className="rhythm-bar-count">{item.count}회</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            /* 개선된 날씨 아이콘 + 책 표지 매핑 Grid 카드 */
-            <div className="weather-books-grid">
-              {(rhythm?.weatherBooks || []).map((wb, idx) => (
-                <div key={idx} className="weather-book-card">
-                  <div className="weather-card-top">
-                    <span className="weather-card-emoji">{wb.emoji}</span>
-                    <div className="weather-card-meta">
-                      <span className="weather-card-label">{wb.label}</span>
-                      <span className="weather-card-count">{wb.count}회 독서</span>
-                    </div>
-                  </div>
 
-                  <div className="weather-book-content">
-                    <img
-                      className="weather-book-cover"
-                      src={wb.coverUrl || '/covers/default_cover.png'}
-                      alt={wb.bookTitle}
-                      onError={(e) => {
-                        e.currentTarget.src = '/covers/default_cover.png';
-                      }}
-                    />
-                    <div className="weather-book-details">
-                      <h4 className="weather-book-title">{wb.bookTitle}</h4>
-                      <p className="weather-book-author">{wb.author}</p>
-                      <p className="weather-book-quote">"{wb.quote}"</p>
-                    </div>
+                <div className="weather-book-content">
+                  <img
+                    className="weather-book-cover"
+                    src={wb.coverUrl || '/covers/default_cover.png'}
+                    alt={wb.bookTitle}
+                    onError={(e) => {
+                      e.currentTarget.src = '/covers/default_cover.png';
+                    }}
+                  />
+                  <div className="weather-book-details">
+                    <h4 className="weather-book-title">{wb.bookTitle}</h4>
+                    <p className="weather-book-author">{wb.author}</p>
+                    <p className="weather-book-quote">"{wb.quote}"</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* 07. AI가 발견한 나 (사서 말풍선 디자인) */}

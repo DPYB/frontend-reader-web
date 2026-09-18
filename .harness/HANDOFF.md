@@ -1,5 +1,20 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-18: 월간 독서 리포트 레거시 막대 버전 제거 및 Recharts 시각화 차트 기반 단일화
+- **배경**: 팀 논의 결과 Recharts 기반 시각화(02 주간 흐름 곡선 그래프, 03 장르 점유율 도넛 차트, 06 날씨별 베스트 도서 매핑 Grid 카드)를 기본이자 단일 뷰로 채택하기로 결정됨에 따라, 임시로 보존했던 레거시 막대그래프 버전 및 비교 스위치 제거
+- **수정 내용**:
+  - `app/pages/MonthlyReport.jsx`:
+    - `isLegacyView` 상태 및 액션 바 내 `[📊 Recharts 시각화 뷰로 보기 / ↩️ 원본 막대 뷰로 보기]` 토글 버튼 제거
+    - 02번 카드(독서 리듬), 03번 카드(독서 취향), 06번 카드(날씨와 책)의 `isLegacyView` 삼항 연산자 조건부 분기를 걷어내고 Recharts 차트/Grid 컴포넌트만 직접 렌더링하도록 정리
+  - `app/pages/MonthlyReport.css`:
+    - 미사용 레거시 토글 버튼(`.report-view-toggle-btn`) 및 미사용 그리드 클래스(`.rhythm-grid`) 정리
+  - 파일 삭제:
+    - `app/pages/MonthlyReport.legacy.jsx` 및 `app/pages/MonthlyReport.legacy.css` 완전 삭제
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (기존 경고 6건 유지, 신규 경고/에러 0건)
+  - `npm run build` 번들 정상 빌드 확인
+
 ## 2026-09-18: 월간 독서 리포트 추천 도서 장르 한글 매핑 정규화
 - 작업 브랜치: `fix/monthly-report-genre-mapping`
 - **배경**: 월간 독서 리포트 08번 카드(다음 달 독서 처방) 추천 도서 카드에서 장르가 `#NATURAL_SCIENCE`와 같이 백엔드 영문 Enum 코드로 노출되는 결함 해결
