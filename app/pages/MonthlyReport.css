@@ -84,26 +84,6 @@
   color: var(--text-h);
 }
 
-.report-view-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: var(--code-bg);
-  color: var(--text-h);
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.report-view-toggle-btn:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-}
-
 .report-download-btn {
   display: inline-flex;
   align-items: center;
@@ -216,12 +196,7 @@
   color: #f59e0b;
 }
 
-/* 02. Rhythm Grid (Day, Time, Weather) */
-.rhythm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
+/* 02. Rhythm Card & Modern Wrap */
 
 .rhythm-subcard {
   background: var(--code-bg);
