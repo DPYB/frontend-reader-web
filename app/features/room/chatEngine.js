@@ -18,13 +18,25 @@ function titleList(books, max = 4) {
  */
 export function answerQuestion({ text, mode, books, librarian, librarianNames = {} }) {
   const q = text.trim();
-  if (!q) return { text: '무엇을 찾아드릴까요 냥? 🐾' };
+  const libId = librarian?.id;
+  const icon = librarian?.icon || '🐾';
+  const suffix = librarian?.speechInterjection ? ` ${librarian.speechInterjection}` : '';
+
+  if (!q) {
+    if (libId === 'stork') return { text: `무엇을 찾아드릴까요? ${icon}` };
+    if (libId === 'nudi') return { text: `무엇을 찾아드릴까요 누누? ${icon}` };
+    if (libId === 'gecko') return { text: `무엇을 찾아드릴까요 크크? ${icon}` };
+    return { text: '무엇을 찾아드릴까요 냥? 🐾' };
+  }
 
   // 인사
   if (q.includes('안녕') || /^(hi|hello)/i.test(q)) {
     const myName = librarianNames[librarian.id] || librarian.defaultName || librarian.name;
+    const greetingSuffix = librarian.formalTone
+      ? `안녕하세요! ${icon} 저는 ${myName}예요. ${librarian.specialty}을 잘한답니다. 저자·제목·장르로 찾아드리거나 책을 추천해드릴게요 📚`
+      : `안녕! ${icon} 나는 ${myName} 사서야. ${librarian.specialty}에 자신 있거든${suffix}! 저자·제목·장르로 찾아주거나 좋은 책을 골라줄게 📚`;
     return {
-      text: `안녕하세요, 집사님! 🐾 저는 ${myName}예요. ${librarian.specialty}을 잘한답니다. 저자·제목·장르로 찾아드리거나 책을 추천해드릴게요 📚`,
+      text: greetingSuffix,
     };
   }
 
@@ -81,7 +93,7 @@ export function answerQuestion({ text, mode, books, librarian, librarianNames = 
     return {
       text: matches.length
         ? `${label} 책은 ${titleList(matches)} 이 있어요 📚`
-        : `서재에 ${label} 책이 아직 없네요 🐾`,
+        : `서재에 ${label} 책이 아직 없네요 ${icon}`,
       library_books: matches.map((b) => ({
         book_id: b.bookId || b.id,
         bookId: b.bookId || b.id,
@@ -114,7 +126,7 @@ export function answerQuestion({ text, mode, books, librarian, librarianNames = 
     };
   }
   return {
-    text: `'${q}'에 딱 맞는 책을 서재에서 찾지 못했어요 🐾 저자·제목·장르로 다시 알려주시면 찾아볼게요 📚`,
+    text: `'${q}'에 딱 맞는 책을 서재에서 찾지 못했어요 ${icon} 저자·제목·장르로 다시 알려주시면 찾아볼게요 📚`,
     library_books: [],
   };
 }
