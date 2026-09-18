@@ -79,7 +79,11 @@ export const LIBRARIANS = [
       '추상적이고 철학적인 주제에 관심이 많아요. 하나의 주제를 깊이 파고드는 책, 단순한 정보보다 사고할 거리를 주는 책을 선호하고, 지식이 서로 어떻게 연결되는지 이해하는 걸 즐겨요.',
     catchphrase: '겉으로 보이는 것보다 그 안에 있는 이유를 알고 싶어 냥.',
     image: '/cursors/cat/cat_03.webp',
+    // 좌클릭 모션. 예전엔 "책 선택 중"(active prop, CLIAR-239)에만 cat_04로 바뀌었는데,
+    // 누디와 동일한 클릭 방식으로 통일했다(사용자 요청, 2026-09). 좌클릭 시 clickMotionMs
+    // 동안 cat_04로 전환됐다가 자동으로 cat_03(기본)으로 복귀한다.
     imageHover: '/cursors/cat/cat_04.webp',
+    clickMotionMs: 2000,
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
     profileImage: '/profile/cat.webp',
     // 커서 이미지에서 실제 포인터가 될 지점(뻗은 앞발 끝) — 이미지 알파 채널 실측 비율
