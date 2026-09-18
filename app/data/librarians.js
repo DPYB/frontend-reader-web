@@ -185,11 +185,11 @@ export const LIBRARIANS = [
     // 좌클릭 모션 이미지. 원래 gecko_02(포즈 전환)·gecko_03(손 인사) 2장이었는데,
     // 누디(nudi_01/02 단일 클릭 이미지)와 구조를 통일하기 위해 두 프레임을 stork와
     // 같은 방식(2프레임 애니메이션 webp) 한 장으로 합쳤다(사용자 요청, 2026-09).
-    // 프레임 지속시간: gecko_02 0.5초 → gecko_03 1.5초 (총 2초, 마지막 프레임에서
-    // 정지). clickMotionMs(2000)를 애니메이션 총 재생시간과 동일하게 맞춰,
+    // 프레임 지속시간: gecko_02 0.2초 → gecko_03 1.5초 (총 1.7초, 마지막 프레임에서
+    // 정지). clickMotionMs(1700)를 애니메이션 총 재생시간과 동일하게 맞춰,
     // 애니메이션이 끝나는 시점에 정확히 기본 이미지(gecko_01)로 복귀한다.
     imageHover: '/cursors/gecko/gecko_hover.webp',
-    clickMotionMs: 2000,
+    clickMotionMs: 1700,
     // 챗봇 답변 대기(thinking) 중에만 표시하는 이미지. 다른 사서의 imageHover(책 선택/클릭
     // 모션)와 용도가 달라 별도 필드(thinkingImage)로 둔다. LibrarianCursor의 thinking prop 참고.
     // ⚠️ thinking과 imageHover(클릭 모션)가 동시에 필요할 일은 거의 없지만, 우선순위는
