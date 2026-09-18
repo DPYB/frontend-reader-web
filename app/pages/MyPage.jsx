@@ -20,13 +20,13 @@ const MENU_ITEMS = [
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const { member } = useAuth();
+  const { member, isGuest } = useAuth();
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
   const profileImage = member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
   const email = member?.email ?? '';
-  const birthDate = member?.birth_date ?? '';
-  const gender = GENDER_LABEL[member?.gender] ?? '';
+  const birthDate = member?.birth_date ?? (isGuest ? '체험 계정' : '');
+  const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '');
 
   // 마이페이지 진입 시 기본으로 '내 정보'만 보이도록, 왼쪽 메뉴로 섹션 전환
   const [activeTab, setActiveTab] = useState('info');
@@ -190,69 +190,78 @@ export default function MyPage() {
               {/* 이메일 (변경 불가 — 읽기 전용), 라벨과 값을 한 줄에 표시 */}
               <div className="mypage-field mypage-field--row">
                 <span className="mypage-field-label">이메일</span>
-                <span className="mypage-field-value">{email}</span>
+                <span className="mypage-field-value">{isGuest ? '게스트 체험 계정' : email}</span>
               </div>
 
-              {/* 비밀번호 변경 */}
-              <div className="mypage-field">
-                <div className="mypage-field-display">
-                  <span className="mypage-field-label">비밀번호</span>
-                  <button
-                    className="mypage-nickname-edit-btn"
-                    onClick={() => { setPwOpen((v) => !v); setPwError(''); setPwSuccess(false); }}
-                  >
-                    {pwOpen ? '닫기' : '변경'}
-                  </button>
+              {isGuest ? (
+                <div style={{ padding: '16px 0', color: 'var(--text)', fontSize: 15, lineHeight: 1.6 }}>
+                  🐾 <strong>체험 모드 이용 중</strong><br />
+                  체험 모드에서는 회원정보 수정, 비밀번호 변경, 회원 탈퇴 기능을 지원하지 않습니다.
                 </div>
-
-                {pwSuccess && <p className="mypage-success">비밀번호가 변경되었습니다.</p>}
-
-                {pwOpen && (
-                  <form className="mypage-field-edit" onSubmit={handlePwSubmit}>
-                    <input
-                      className="mypage-text-input"
-                      type="password"
-                      value={curPw}
-                      onChange={(e) => setCurPw(e.target.value)}
-                      placeholder="현재 비밀번호"
-                      autoComplete="current-password"
-                    />
-                    <input
-                      className="mypage-text-input"
-                      type="password"
-                      value={newPw}
-                      onChange={(e) => setNewPw(e.target.value)}
-                      placeholder="새 비밀번호"
-                      autoComplete="new-password"
-                    />
-                    <input
-                      className="mypage-text-input"
-                      type="password"
-                      value={confirmPw}
-                      onChange={(e) => setConfirmPw(e.target.value)}
-                      placeholder="새 비밀번호 확인"
-                      autoComplete="new-password"
-                    />
-                    <p className="mypage-hint">
-                      비밀번호는 8자 이상이며 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다.
-                    </p>
-                    {pwError && <p className="mypage-error">{pwError}</p>}
-                    <div className="mypage-btn-row">
-                      <button type="submit" className="mypage-btn mypage-btn--primary" disabled={pwLoading}>
-                        {pwLoading ? '변경 중...' : '변경하기'}
+              ) : (
+                <>
+                  {/* 비밀번호 변경 */}
+                  <div className="mypage-field">
+                    <div className="mypage-field-display">
+                      <span className="mypage-field-label">비밀번호</span>
+                      <button
+                        className="mypage-nickname-edit-btn"
+                        onClick={() => { setPwOpen((v) => !v); setPwError(''); setPwSuccess(false); }}
+                      >
+                        {pwOpen ? '닫기' : '변경'}
                       </button>
                     </div>
-                  </form>
-                )}
-              </div>
 
-              {/* 계정 탈퇴 (마지막 줄, 버튼은 오른쪽) */}
-              <div className="mypage-field mypage-field--row">
-                <span className="mypage-field-label">계정 탈퇴</span>
-                <button className="mypage-withdraw-btn" onClick={() => setWithdrawOpen(true)}>
-                  탈퇴하기
-                </button>
-              </div>
+                    {pwSuccess && <p className="mypage-success">비밀번호가 변경되었습니다.</p>}
+
+                    {pwOpen && (
+                      <form className="mypage-field-edit" onSubmit={handlePwSubmit}>
+                        <input
+                          className="mypage-text-input"
+                          type="password"
+                          value={curPw}
+                          onChange={(e) => setCurPw(e.target.value)}
+                          placeholder="현재 비밀번호"
+                          autoComplete="current-password"
+                        />
+                        <input
+                          className="mypage-text-input"
+                          type="password"
+                          value={newPw}
+                          onChange={(e) => setNewPw(e.target.value)}
+                          placeholder="새 비밀번호"
+                          autoComplete="new-password"
+                        />
+                        <input
+                          className="mypage-text-input"
+                          type="password"
+                          value={confirmPw}
+                          onChange={(e) => setConfirmPw(e.target.value)}
+                          placeholder="새 비밀번호 확인"
+                          autoComplete="new-password"
+                        />
+                        <p className="mypage-hint">
+                          비밀번호는 8자 이상이며 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다.
+                        </p>
+                        {pwError && <p className="mypage-error">{pwError}</p>}
+                        <div className="mypage-btn-row">
+                          <button type="submit" className="mypage-btn mypage-btn--primary" disabled={pwLoading}>
+                            {pwLoading ? '변경 중...' : '변경하기'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+
+                  {/* 계정 탈퇴 (마지막 줄, 버튼은 오른쪽) */}
+                  <div className="mypage-field mypage-field--row">
+                    <span className="mypage-field-label">계정 탈퇴</span>
+                    <button className="mypage-withdraw-btn" onClick={() => setWithdrawOpen(true)}>
+                      탈퇴하기
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

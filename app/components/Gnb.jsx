@@ -25,7 +25,7 @@ function MoonIcon() {
 export default function Gnb() {
     const { theme, setTheme } = useTheme();
     const { librarian } = useLibrarian();
-    const { logout } = useAuth();
+    const { logout, isGuest } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const navigate = useNavigate();
@@ -58,6 +58,23 @@ export default function Gnb() {
                     <img className="gnb-logo" src="/logo_nv.webp" alt="Don't Paw-get Your Book" width={30} height={30} decoding="async" />
                 </span>
                 <img className="gnb-service-name" src="/service name.webp" alt="Don't Paw-get Your Book" width={174} height={25} decoding="async" />
+                {isGuest && (
+                    <span
+                        style={{
+                            marginLeft: 10,
+                            padding: '3px 8px',
+                            background: 'var(--accent-bg, rgba(255, 154, 60, 0.15))',
+                            border: '1px solid var(--accent-border, rgba(255, 154, 60, 0.5))',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: 'var(--accent, #ff9a3c)',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        🐾 체험 모드
+                    </span>
+                )}
             </NavLink>
 
             <div className="gnb-menu">

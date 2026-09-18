@@ -1,5 +1,32 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-18: 해커톤 게스트 체험 모드(Guest JWT 발급, 조용한 갱신 및 UI 제한) 구현
+- **배경**: 인증 생략에 따른 데이터 파이프라인 결함을 방지하기 위해 임시 출입증인 '게스트 JWT' 발급(`role: "guest"`, `sub: "guest-{uuid}"`) 및 조용한 갱신을 지원하고 게스트용 UI 쓰기 제한 및 403 에러 토스트 팝업 연동.
+- **수정 내용**:
+  - `app/api/authApi.js`:
+    - `parseJwtPayload(token)`: base64url 디코더를 구현하여 JWT에서 `role`과 `sub`을 안전하게 파싱.
+    - `loginAsGuest(guestId)`: `POST /api/v1/auth/guest` 호출 및 토큰/클레임 메모리 등록.
+    - `refreshAccessToken()`: 게스트 세션일 때 기존 `guest_id(sub)`를 요청 바디에 담아 백그라운드에서 조용히 갱신 처리 (채팅 끊김 방지).
+    - `authFetch()`: `_retry: true` 플래그로 401 Silent Refresh 무한 루프 1회 재시도 방어 및 403 발생 시 공통 토스트(`"체험 모드에서는 지원하지 않는 기능입니다"`) 알림 트리거.
+  - `app/components/Toast.jsx`, `app/components/toastContext.js`, `app/components/Toast.css`:
+    - 전역 토스트 Context 및 모듈 레벨에서 즉시 호출 가능한 `showGlobalToast()` 인프라 구축.
+    - `App.jsx` 최상단에 `ToastProvider` 래핑.
+  - `app/store/AuthProvider.jsx`:
+    - 전역 Auth Context에 `role`, `isGuest` (`role === 'guest'`) 및 `loginAsGuest()` 노출.
+    - 세션 복원 시 게스트 상태 유지 지원.
+  - `app/pages/LoginPage.jsx`, `LoginPage.css`:
+    - 로그인 하단 간편 로그인 영역에 `[🐾 DPYB 체험하기 (로그인 없이 둘러보기)]` CTA 버튼 추가 및 클릭 시 게스트 로그인 후 서재 진입 연동.
+  - `app/pages/MyPage.jsx`:
+    - 게스트 모드일 때 '비밀번호 변경', '계정 탈퇴' 폼과 버튼을 숨기고 "체험 모드 이용 중" 안내 박스 표시.
+  - `app/features/room/BookDetail.jsx`:
+    - 게스트 모드일 때 서재 도서 '삭제' 버튼 숨김 처리.
+  - `app/components/Gnb.jsx`:
+    - 게스트 로그인 시 로고 옆에 `🐾 체험 모드` 뱃지 렌더링.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors).
+  - `npm run lint` 통과 (기존 경고 6건 유지, 신규 에러/경고 0건).
+  - `npm run build` 번들 정상 빌드 확인.
+
 ## 2026-09-18: 월간 독서 리포트 레거시 막대 버전 제거 및 Recharts 시각화 차트 기반 단일화
 - **배경**: 팀 논의 결과 Recharts 기반 시각화(02 주간 흐름 곡선 그래프, 03 장르 점유율 도넛 차트, 06 날씨별 베스트 도서 매핑 Grid 카드)를 기본이자 단일 뷰로 채택하기로 결정됨에 따라, 임시로 보존했던 레거시 막대그래프 버전 및 비교 스위치 제거
 - **수정 내용**:

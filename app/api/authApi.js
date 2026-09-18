@@ -13,23 +13,68 @@
  */
 
 import { fetchWithTimeout } from './fetchWithTimeout';
-
+import { showGlobalToast } from '../components/toastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
+// ── JWT Payload Decoder (base64url) ──
+export function parseJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (err) {
+    console.warn('[authApi] JWT payload parse failed:', err);
+    return null;
+  }
+}
+
 // ── Access Token (메모리 보관) ──
 let accessToken = null;
+let currentRole = null;
+let currentSub = null;
 
 export function getAccessToken() {
   return accessToken;
 }
 
+export function getCurrentRole() {
+  return currentRole;
+}
+
+export function getCurrentSub() {
+  return currentSub;
+}
+
+export function isGuestSession() {
+  return currentRole === 'guest';
+}
+
 export function setAccessToken(token) {
   accessToken = token || null;
+  if (token) {
+    const payload = parseJwtPayload(token);
+    currentRole = payload?.role || null;
+    currentSub = payload?.sub || null;
+  } else {
+    currentRole = null;
+    currentSub = null;
+  }
 }
 
 export function clearAccessToken() {
   accessToken = null;
+  currentRole = null;
+  currentSub = null;
 }
 
 // 세션 만료(refresh 실패) 시 호출될 콜백 — AuthProvider에서 등록
@@ -95,7 +140,11 @@ export class ApiError extends Error {
 let refreshPromise = null;
 
 /**
- * Access Token 갱신. Refresh Token은 HttpOnly Cookie에 있으므로 body는 없다.
+ * Access Token 갱신.
+ * - 일반 회원: Refresh Token이 HttpOnly Cookie에 있으므로 body는 없다.
+ * - 게스트(role: "guest"): 백그라운드에서 POST /api/v1/auth/guest를 호출하되,
+ *   기존 guest_id (sub) 값을 바디에 담아 세션 끊김을 방지한다.
+ *
  * @returns {Promise<boolean>} 갱신 성공 여부
  */
 export async function refreshAccessToken() {
@@ -103,6 +152,24 @@ export async function refreshAccessToken() {
 
   refreshPromise = (async () => {
     try {
+      if (isGuestSession() && currentSub) {
+        // 게스트 조용한 갱신: 기존 guest_id(sub)를 유지하여 호출
+        const res = await fetchWithTimeout(`${API_BASE}/auth/guest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guest_id: currentSub }),
+        });
+        if (!res.ok) return false;
+        const data = await parseBody(res);
+        const token = data?.access_token || data?.accessToken;
+        if (token) {
+          setAccessToken(token);
+          return true;
+        }
+        return false;
+      }
+
+      // 일반 회원 쿠키 기반 갱신
       const res = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
@@ -129,14 +196,16 @@ export async function refreshAccessToken() {
  * backend-auth 공통 fetch.
  * - credentials: 'include' 항상 포함
  * - auth=true(기본)면 Authorization: Bearer 자동 첨부
- * - 401이고 refresh 가능하면 refresh 후 1회 재시도, 실패 시 onSessionExpired
+ * - 401이고 refresh 가능하면 refresh 후 1회 재시도 (_retry: true 방어)
+ * - 게스트 토큰 만료 시 에러 팝업 없이 백그라운드에서 guest_id 포함 갱신 후 재시도
+ * - 쓰기 액션 등에서 403 발생 시 공통 안내 토스트 팝업 트리거
  *
  * @param {string} path - '/auth/login' 등 API_BASE 기준 경로
  * @param {object} [options]
  * @param {string} [options.method='GET']
  * @param {object} [options.body] - JSON 직렬화할 본문 (FormData면 그대로 전송, Content-Type 미지정)
  * @param {boolean} [options.auth=true] - Authorization 헤더 첨부 여부
- * @param {boolean} [options._retry] - 내부 재시도 플래그
+ * @param {boolean} [options._retry] - 내부 재시도 플래그 (무한 루프 방어)
  * @returns {Promise<any>} 파싱된 응답 본문
  * @throws {ApiError}
  */
@@ -154,11 +223,8 @@ export async function authFetch(path, { method = 'GET', body, auth = true, _retr
     ...(body !== undefined ? { body: isFormData ? body : JSON.stringify(body) } : {}),
   });
 
-  // 401 → refresh 1회 시도 후 재시도 (refresh/login 자체는 제외)
-  // 단, 원래 accessToken이 없었다면(우회 모드 등) 세션 만료가 아니므로
-  // onSessionExpired를 호출하지 않는다 — BooksProvider 같은 데이터 로드 실패로
-  // 로그인 직후 강제 로그아웃되는 현상을 방지한다.
-  if (res.status === 401 && auth && !_retry && path !== '/auth/refresh') {
+  // 401 → refresh 1회 시도 후 재시도 (refresh/guest/login 자체는 제외)
+  if (res.status === 401 && auth && !_retry && path !== '/auth/refresh' && path !== '/auth/guest') {
     if (accessToken) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
@@ -168,6 +234,13 @@ export async function authFetch(path, { method = 'GET', body, auth = true, _retr
       if (onSessionExpired) onSessionExpired();
     }
     throw new ApiError(401, await parseBody(res));
+  }
+
+  // 403 Forbidden 발생 시 (특히 게스트 쓰기 제한 시) 공통 토스트 띄우기
+  if (res.status === 403) {
+    const errorBody = await parseBody(res);
+    showGlobalToast('체험 모드에서는 지원하지 않는 기능입니다', 'warning');
+    throw new ApiError(403, errorBody);
   }
 
   if (!res.ok) {
@@ -257,6 +330,24 @@ export async function loginWithKakao(kakaoAccessToken) {
   const data = await authFetch('/auth/social/kakao', {
     method: 'POST',
     body: { token: kakaoAccessToken },
+    auth: false,
+  });
+  const token = data?.access_token || data?.accessToken;
+  if (token) setAccessToken(token);
+  return data;
+}
+
+/**
+ * 해커톤 게스트 체험 모드 로그인 (임시 출입증 JWT 발급).
+ * POST /api/v1/auth/guest 호출 → role: "guest", sub: "guest-{uuid}" 토큰 발급.
+ * @param {string} [guestId] - 기존 guest_id가 있다면 전달
+ * @returns {Promise<{access_token, role, sub, member}>}
+ */
+export async function loginAsGuest(guestId = null) {
+  const payload = guestId ? { guest_id: guestId } : {};
+  const data = await authFetch('/auth/guest', {
+    method: 'POST',
+    body: payload,
     auth: false,
   });
   const token = data?.access_token || data?.accessToken;

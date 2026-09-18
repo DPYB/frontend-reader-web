@@ -82,7 +82,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithGoogle, loginWithKakao } = useAuth();
+  const { login, loginWithGoogle, loginWithKakao, loginAsGuest } = useAuth();
   // 보호 라우트에서 리다이렉트된 경우 로그인 후 원래 위치로 복귀
   const from = location.state?.from || '/library';
   const [eyeActive, setEyeActive] = useState(false);
@@ -91,6 +91,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const googleBtnRef = useRef(null);
+
+  const handleGuestLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await loginAsGuest();
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err?.message || '체험 모드 진입에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
   const kakaoJsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY || '';
@@ -367,6 +381,19 @@ export default function LoginPage() {
             <span className="social-text">카카오 로그인</span>
           </button>
         </div>
+
+        {/* DPYB 체험하기 (게스트 체험 모드) 버튼 */}
+        <button
+          type="button"
+          className="guest-experience-btn"
+          onClick={handleGuestLogin}
+          disabled={loading}
+          aria-label="DPYB 체험하기"
+        >
+          <span className="guest-paw-icon">🐾</span>
+          <span className="guest-btn-text">DPYB 체험하기 (로그인 없이 둘러보기)</span>
+        </button>
+
         {/* 숨김 처리된 Google 표준 버튼 렌더링 컨테이너 (필요 시 One Tap 트리거) */}
         <div ref={googleBtnRef} style={{ display: 'none' }} />
       </div>
