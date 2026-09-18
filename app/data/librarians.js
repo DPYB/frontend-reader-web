@@ -105,9 +105,15 @@ export const LIBRARIANS = [
     catchphrase: '직접 보면 더 잘 이해할 수 있지 두둥.',
     // 황새 서재로 전환했을 때 기본으로 유지되는 커서 이미지 (CLIAR-198)
     image: '/cursors/stork/stork_1.webp',
-    // 책 위에 올렸을 때: 날개를 펄럭이는 2프레임 애니메이션 WebP 1장
-    // (원본 stork_2·stork_3을 합쳐 에셋 장수는 고양이와 동일하게 2장 유지)
+    // 좌클릭 모션: 날개를 펄럭이는 2프레임 애니메이션 WebP 1장(원본 stork_2·stork_3
+    // 합성). 예전엔 "책 선택 중"(active prop)에만 재생되는 hover 방식이었는데,
+    // 실제로는 클릭해도 잘 트리거되지 않는다는 피드백이 있어 누디/게코와 동일한
+    // clickMotionMs 방식(좌클릭 시 일정 시간 재생 후 자동 복귀)으로 통일했다
+    // (사용자 요청, 2026-09). 지속시간은 애니메이션 총 재생시간(약 1.16초, 프레임
+    // 0=0.16초 + 프레임 1=1초)에 맞춰 정확히 끝나는 시점에 기본 이미지로 복귀하도록
+    // 1200ms로 설정.
     imageHover: '/cursors/stork/stork_hover.webp',
+    clickMotionMs: 1200,
     // 포인터 지점은 부리 끝 — 알파 채널 실측값 (168,84)/300, hover는 (178,65)/300
     tip: { x: 0.56, y: 0.28 },
     tipHover: { x: 0.593, y: 0.217 },
@@ -176,11 +182,22 @@ export const LIBRARIANS = [
     // 기본(대기) 커서 이미지. 원본 PNG(각 ~500KB)를 동일 해상도(800x1200) webp로 변환해
     // 용량을 1/5로 줄여 적용했다(gecko_01.png→webp 110KB, gecko_thinking.png→webp 104KB).
     image: '/cursors/gecko/gecko_01.webp',
+    // 좌클릭 모션 이미지. 원래 gecko_02(포즈 전환)·gecko_03(손 인사) 2장이었는데,
+    // 누디(nudi_01/02 단일 클릭 이미지)와 구조를 통일하기 위해 두 프레임을 stork와
+    // 같은 방식(2프레임 애니메이션 webp) 한 장으로 합쳤다(사용자 요청, 2026-09).
+    // 프레임 지속시간: gecko_02 0.2초 → gecko_03 1.5초 (총 1.7초, 마지막 프레임에서
+    // 정지). clickMotionMs(1700)를 애니메이션 총 재생시간과 동일하게 맞춰,
+    // 애니메이션이 끝나는 시점에 정확히 기본 이미지(gecko_01)로 복귀한다.
+    imageHover: '/cursors/gecko/gecko_hover.webp',
+    clickMotionMs: 1700,
     // 챗봇 답변 대기(thinking) 중에만 표시하는 이미지. 다른 사서의 imageHover(책 선택/클릭
     // 모션)와 용도가 달라 별도 필드(thinkingImage)로 둔다. LibrarianCursor의 thinking prop 참고.
+    // ⚠️ thinking과 imageHover(클릭 모션)가 동시에 필요할 일은 거의 없지만, 우선순위는
+    // LibrarianCursor.jsx에서 thinking > 클릭모션 > 기본 순으로 처리한다.
     thinkingImage: '/cursors/gecko/gecko_thinking.webp',
     // 포인터 지점 — 800x1200 원본 기준 얼굴/눈 부근 추정치. 실측 후 조정 필요.
     tip: { x: 0.42, y: 0.32 },
+    tipHover: { x: 0.42, y: 0.32 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
     profileImage: '/profile/gecko.jpg',
   },
