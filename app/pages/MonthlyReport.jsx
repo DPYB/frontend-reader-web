@@ -13,6 +13,7 @@ import {
 import { useLibrarian } from '../store/librarianStore';
 import { fetchMonthlyReport } from '../api/reportApi';
 import { downloadReportAsPdf } from '../lib/pdfExport';
+import { genreLabel } from '../data/genres';
 import './MonthlyReport.css';
 
 /**
@@ -158,11 +159,14 @@ export default function MonthlyReport() {
           // 장르 데이터 정규화 (백엔드 genreStats 또는 fallback)
           let normalizedGenres = [];
           if (Array.isArray(data.taste?.genreStats) && data.taste.genreStats.length > 0) {
-            normalizedGenres = data.taste.genreStats.map((g) => ({
-              name: g.genreName || g.name || g.genre,
-              count: g.count ?? 0,
-              percentage: Math.round(g.percentage ?? 0),
-            }));
+            normalizedGenres = data.taste.genreStats.map((g) => {
+              const originalName = g.genreName || g.name || g.genre;
+              return {
+                name: genreLabel(originalName) || originalName,
+                count: g.count ?? 0,
+                percentage: Math.round(g.percentage ?? 0),
+              };
+            });
           } else {
             normalizedGenres = DEFAULT_FALLBACK_DATA.taste.genreStats;
           }
@@ -677,7 +681,7 @@ export default function MonthlyReport() {
             <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 · 장르)</h2>
           </div>
           <div className="prescription-genre-banner">
-            추천 장르 테마: <span className="prescription-genre-highlight">{prescription?.recommendedGenre}</span>
+            추천 장르 테마: <span className="prescription-genre-highlight">{genreLabel(prescription?.recommendedGenre) || prescription?.recommendedGenre}</span>
           </div>
           {prescription?.advice && (
             <p className="prescription-advice-text">
@@ -699,7 +703,7 @@ export default function MonthlyReport() {
                   <h3 className="prescription-book-title">{book.title}</h3>
                   <p className="prescription-book-author">{book.author}</p>
                   {book.genre && (
-                    <span className="prescription-book-genre">#{book.genre}</span>
+                    <span className="prescription-book-genre">#{genreLabel(book.genre) || book.genre}</span>
                   )}
                   <p className="prescription-book-reason">{book.reason}</p>
                 </div>

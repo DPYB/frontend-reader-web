@@ -6,6 +6,7 @@
  */
 
 import { authFetch } from './authApi';
+import { genreLabel } from '../data/genres';
 
 /**
  * 백엔드 AI Agent 월간 독서 리포트 DTO(MonthlyReportResponse)를
@@ -78,12 +79,17 @@ export function normalizeMonthlyReport(raw) {
   };
 
   // 03. 독서 취향 & 키워드 & 장르 통계 (도넛 차트용)
-  const topGenreTags = raw.preferences?.topGenres?.map((g) => g.genreName || g.genre) || [];
+  const topGenreTags =
+    raw.preferences?.topGenres?.map((g) => {
+      const gName = g.genreName || g.name || g.genre;
+      return genreLabel(gName) || gName;
+    }) || [];
   const topSubjects = raw.preferences?.topSubjects || [];
-  const tasteTags =
+  const rawTasteTags =
     Array.isArray(raw.taste?.tags) && raw.taste.tags.length > 0
       ? raw.taste.tags
       : Array.from(new Set([...topGenreTags, ...topSubjects]));
+  const tasteTags = rawTasteTags.map((tag) => genreLabel(tag) || tag);
 
   const debateKeywords = raw.preferences?.debateKeywords || [];
   const tasteKeywords =
@@ -95,7 +101,16 @@ export function normalizeMonthlyReport(raw) {
 
   // 도넛 차트용 장르 통계 (genreBreakdown 또는 topGenres 활용)
   const rawGenreBreakdown = Array.isArray(raw.balance?.genreBreakdown) ? raw.balance.genreBreakdown : [];
-  const genreStats = rawGenreBreakdown.filter((g) => (g.count ?? 0) > 0 || (g.percentage ?? 0) > 0);
+  const genreStats = rawGenreBreakdown
+    .filter((g) => (g.count ?? 0) > 0 || (g.percentage ?? 0) > 0)
+    .map((g) => {
+      const originalName = g.genreName || g.name || g.genre;
+      return {
+        ...g,
+        genreName: genreLabel(originalName) || originalName,
+        name: genreLabel(originalName) || originalName,
+      };
+    });
 
   const taste = {
     tags: tasteTags,
@@ -105,16 +120,20 @@ export function normalizeMonthlyReport(raw) {
   };
 
   // 04. 독서 밸런스
+  const rawDominant = raw.balance?.dominantGenre || null;
+  const dominantGenre = rawDominant ? (genreLabel(rawDominant) || rawDominant) : null;
+  const unreadGenres = (raw.balance?.unreadGenres || []).map((ug) => genreLabel(ug) || ug);
+
   const balance = {
     diversityScore: raw.balance?.diversityScore ?? 0,
-    dominantGenre: raw.balance?.dominantGenre || null,
+    dominantGenre,
     isBiased: Boolean(raw.balance?.isBiased),
-    unreadGenres: raw.balance?.unreadGenres || [],
+    unreadGenres,
     analysisText:
       raw.balance?.analysisText ||
       raw.aiAnalysis?.summary ||
-      (raw.balance?.dominantGenre
-        ? `${raw.balance.dominantGenre} 중심의 깊이 있는 탐독이 돋보였습니다.`
+      (dominantGenre
+        ? `${dominantGenre} 중심의 깊이 있는 탐독이 돋보였습니다.`
         : '균형 잡힌 독서 여정이 순조롭게 이어지고 있습니다.'),
   };
 
@@ -151,15 +170,20 @@ export function normalizeMonthlyReport(raw) {
     author: b.author || '저자 미상',
     coverUrl: b.coverUrl || '/covers/default_cover.png',
     reason: b.reason || '',
-    genre: b.genre || '',
+    genre: b.genre ? (genreLabel(b.genre) || b.genre) : '',
     isbn: b.isbn || '',
     publisher: b.publisher || '',
     pageCount: b.pageCount || null,
     description: b.description || '',
   }));
 
+  const rawRecommendedGenre = raw.prescription?.recommendedGenre;
+  const recommendedGenre = rawRecommendedGenre
+    ? (genreLabel(rawRecommendedGenre) || rawRecommendedGenre)
+    : '다양한 주제의 교양 도서';
+
   const prescription = {
-    recommendedGenre: raw.prescription?.recommendedGenre || '다양한 주제의 교양 도서',
+    recommendedGenre,
     suggestedGoalBooks: raw.prescription?.suggestedGoalBooks || 3,
     advice: raw.prescription?.advice || '',
     books: recommendedBooks,

@@ -1,5 +1,23 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-18: 월간 독서 리포트 추천 도서 장르 한글 매핑 정규화
+- 작업 브랜치: `fix/monthly-report-genre-mapping`
+- **배경**: 월간 독서 리포트 08번 카드(다음 달 독서 처방) 추천 도서 카드에서 장르가 `#NATURAL_SCIENCE`와 같이 백엔드 영문 Enum 코드로 노출되는 결함 해결
+- **수정 내용**:
+  - `app/api/reportApi.js`:
+    - `data/genres.js`의 `genreLabel()` 유틸 함수 임포트
+    - 백엔드 DTO 정규화 어댑터 `normalizeMonthlyReport`에서 `prescription.books[].genre`를 `genreLabel(b.genre) || b.genre`로 변환하여 한글명(`자연과학` 등)으로 공급
+    - `prescription.recommendedGenre`, `taste.tags`, `taste.genreStats[].name`, `balance.dominantGenre`, `balance.unreadGenres` 등 리포트 내 모든 장르/태그 필드에도 일괄 한글 라벨 정규화 적용
+  - `app/pages/MonthlyReport.jsx`:
+    - 08번 카드 추천 도서 목록 렌더링 시 `#{genreLabel(book.genre) || book.genre}` 방어 코드 적용
+    - 추천 장르 테마 배너 `genreLabel(prescription?.recommendedGenre)` 적용
+    - `taste.genreStats` 로컬 정규화 매핑에도 `genreLabel()` 보강
+  - `app/pages/MonthlyReport.legacy.jsx`:
+    - 레거시 뷰 추천 도서 카드 및 추천 테마 배너에도 동일하게 `genreLabel` 적용
+- **검증**:
+  - `npx tsc --noEmit` 타입 검사 통과 (0 errors)
+  - `npm run lint` 통과 (기존 경고 6건 유지, 신규 경고/에러 0건)
+
 ## 2026-09-18: Google & Kakao 소셜 로그인 연동 및 기본 UI 레이아웃(와꾸) 구현
 - 작업 브랜치: `feat/social-login-google-kakao`
 - **원격 동기화**: `develop` 최신 커밋(`88be5ad`: 사서 프로필 카드 정렬 및 문구 정리) fast-forward 머지 후 작업 브랜치 분기
