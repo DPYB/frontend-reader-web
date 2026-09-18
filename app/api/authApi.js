@@ -232,6 +232,38 @@ export async function login({ email, password }) {
   return data;
 }
 
+/**
+ * Google 소셜 로그인.
+ * @param {string} idToken - Google Identity Services에서 발급받은 ID 토큰 (credential)
+ * @returns {Promise<{access_token, id_token, expires_in, token_type, member}>}
+ */
+export async function loginWithGoogle(idToken) {
+  const data = await authFetch('/auth/social/google', {
+    method: 'POST',
+    body: { token: idToken },
+    auth: false,
+  });
+  const token = data?.access_token || data?.accessToken;
+  if (token) setAccessToken(token);
+  return data;
+}
+
+/**
+ * Kakao 소셜 로그인.
+ * @param {string} kakaoAccessToken - Kakao JS SDK에서 발급받은 access_token
+ * @returns {Promise<{access_token, id_token, expires_in, token_type, member}>}
+ */
+export async function loginWithKakao(kakaoAccessToken) {
+  const data = await authFetch('/auth/social/kakao', {
+    method: 'POST',
+    body: { token: kakaoAccessToken },
+    auth: false,
+  });
+  const token = data?.access_token || data?.accessToken;
+  if (token) setAccessToken(token);
+  return data;
+}
+
 export async function logout() {
   try {
     await authFetch('/auth/logout', { method: 'POST', auth: false });

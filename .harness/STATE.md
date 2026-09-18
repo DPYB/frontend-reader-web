@@ -32,3 +32,4 @@
 - 사서 세션 캐시 격리 누수 수정 및 발신자 메타데이터 보존 완료: `loadSavedChatSessionByLibrarian` 공용 세션 Fallback 버그 제거(완전 독점 분리) 및 말풍선 발신자 헤더(senderIcon, senderName) 생성 시점 영구 보존으로 다중 인격 렌더링 결함 영구 해소
 - 게코 3D 서재 커서(기본/thinking) 및 챗봇 답변 대기 상태 연동 완료
 - 사서 프로필 페이지 카드 정렬(한줄소개·장르·문구 min-height 통일) 및 문구 정리 완료
+- Google & Kakao 소셜 로그인 연동(GIS/Kakao SDK 로더, authApi, AuthProvider useAuth 노출) 및 로그인 화면 기본 버튼 레이아웃(와꾸) 배치 완료
