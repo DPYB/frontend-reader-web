@@ -34,49 +34,52 @@ function normalizeTitle(str) {
  */
 function getContextualLoadingMessage(message, librarianId) {
   const q = (message || '').trim().toLowerCase();
-  const isStork = librarianId === 'stork';
 
   // 1. 단순 인사 및 소개
   if (/^(안녕|반가|하이|hi|hello|누구|소개|안뇽)/i.test(q)) {
-    return isStork
-      ? '🪿 정중하게 인사를 준비하고 있습니다... 🪶'
-      : '🐾 반갑게 인사를 건네려고 준비 중이다 냥...';
+    if (librarianId === 'stork') return '🪿 정중하게 인사를 준비하고 있습니다... 🪶';
+    if (librarianId === 'nudi') return '🐌 부드럽게 인사를 건네려고 준비하고 있어요 누누...';
+    if (librarianId === 'gecko') return '🦎 반갑게 인사할 준비를 하고 있지 크크!';
+    return '🐾 반갑게 인사를 건네려고 준비 중이다 냥...';
   }
 
   // 2. 내 서재 조회 (서재, 읽던 책, 진행률, 내 책, 목록, 읽은 책)
   if (/(서재|읽던|내\s*책|내책|진행|완독|기록|보유|내가\s*읽|목록)/i.test(q)) {
-    return isStork
-      ? '🪿 서재의 독서 기록을 차분히 살피고 있습니다... 🪶'
-      : '🐾 서재에서 집사님의 책 기록을 찾아보고 있다 냥...';
+    if (librarianId === 'stork') return '🪿 서재의 독서 기록을 차분히 살피고 있습니다... 🪶';
+    if (librarianId === 'nudi') return '🐌 서재 속 소중한 독서 기록들을 조용히 돌아보고 있어요 누누...';
+    if (librarianId === 'gecko') return '🦎 서재에 남긴 책 기록들을 신나게 살펴보고 있지 크크!';
+    return '🐾 서재에서 집사님의 책 기록을 찾아보고 있다 냥...';
   }
 
   // 3. 도서 추천 (추천, 골라, 책 찾아, 소설, 장르 등)
   if (/(추천|골라|책\s*찾|도서\s*찾|소설|인문|경제|경영|스릴러|미스터리)/i.test(q)) {
-    return isStork
-      ? '🪿 슈빌 사서가 전문 분야의 맞춤 명저를 선별하고 있습니다... 🪶'
-      : '어떤 책이 좋을지 생각해볼게 냥…📖🐈';
+    if (librarianId === 'stork') return '🪿 슈빌 사서가 전문 분야의 맞춤 명저를 선별하고 있습니다... 🪶';
+    if (librarianId === 'nudi') return '🐌 마음에 깊은 여운을 남겨줄 책을 떠올리고 있어요 누누... 📖';
+    if (librarianId === 'gecko') return '🦎 흥미롭고 딱 맞는 책이 뭔지 탐색하고 있지 크크! 📚';
+    return '어떤 책이 좋을지 생각해볼게 냥…📖🐈';
   }
 
   // 4. 날씨 / 분위기 / 기분
   if (/(날씨|비|눈|더위|추위|기분|우울|신나|위로)/i.test(q)) {
-    return isStork
-      ? '🪿 오늘의 날씨와 기분에 어울리는 이야기를 생각하고 있습니다... 🪶'
-      : '🐾 오늘 분위기에 맞는 이야기를 떠올리고 있다 냥...';
+    if (librarianId === 'stork') return '🪿 오늘의 날씨와 기분에 어울리는 이야기를 생각하고 있습니다... 🪶';
+    if (librarianId === 'nudi') return '🐌 오늘의 날씨와 마음에 스며드는 이야기를 느끼고 있어요 누누... 💧';
+    if (librarianId === 'gecko') return '🦎 오늘 같은 날씨와 분위기에 딱 어울리는 이야기를 찾고 있지 크크! 🌤️';
+    return '🐾 오늘 분위기에 맞는 이야기를 떠올리고 있다 냥...';
   }
 
   // 5. 독서 토론 마무리 / 총평 요청
   if (/(토론\s*마무리|토론\s*종료|총평|피날레|마무리\s*및|책\s*추천받기)/i.test(q)) {
-    return isStork
-      ? '🪿 토론 내용을 깊이 있게 정리하고 서재 기억으로 저장하고 있습니다... 🪶'
-      : '🐾 오늘 나눈 토론 이야기를 갈무리하고 서재 기억에 담고 있다 냥... 🧠✨';
+    if (librarianId === 'stork') return '🪿 토론 내용을 깊이 있게 정리하고 서재 기억으로 저장하고 있습니다... 🪶';
+    if (librarianId === 'nudi') return '🐌 함께 나눈 소중한 생각들을 가슴 깊이 간직하고 있어요 누누... 💭';
+    if (librarianId === 'gecko') return '🦎 오늘 나눈 멋진 토론의 핵심을 쏙쏙 정리하고 있지 크크! 💡';
+    return '🐾 오늘 나눈 토론 이야기를 갈무리하고 서재 기억에 담고 있다 냥... 🧠✨';
   }
 
   // 6. 일반 질문 / 일상 대화
-  // 특정 사서 이름을 박아두지 않고 일반화한다 (사서가 cat/stork 2종에서 4종으로
-  // 늘어나며 여기서 '블루'를 하드코딩하면 다른 사서로 채팅할 때도 '블루'라고 나온다).
-  return isStork
-    ? '🪿 사서가 답변을 정리하고 있습니다... 🪶'
-    : '🐾 사서가 열심히 생각하고 있다 냥...';
+  if (librarianId === 'stork') return '🪿 사서가 답변을 정리하고 있습니다... 🪶';
+  if (librarianId === 'nudi') return '🐌 사서가 마음에 담아둘 이야기를 생각하고 있어요 누누...';
+  if (librarianId === 'gecko') return '🦎 사서가 열심히 생각하고 있지 크크!';
+  return '🐾 사서가 열심히 생각하고 있다 냥...';
 }
 
 /**
@@ -91,9 +94,10 @@ function isBookRecommendationQuery(message) {
  * 도서 추천 대기 문구 (사서별)
  */
 function getRecommendationLoadingMessage(librarianId) {
-  return librarianId === 'stork'
-    ? '🪿 슈빌 사서가 전문 분야의 맞춤 명저를 선별하고 있습니다... 🪶'
-    : '어떤 책이 좋을지 생각해볼게 냥…📖🐈';
+  if (librarianId === 'stork') return '🪿 슈빌 사서가 전문 분야의 맞춤 명저를 선별하고 있습니다... 🪶';
+  if (librarianId === 'nudi') return '🐌 마음에 깊은 여운을 남겨줄 책을 떠올리고 있어요 누누... 📖';
+  if (librarianId === 'gecko') return '🦎 흥미롭고 딱 맞는 책이 뭔지 탐색하고 있지 크크! 📚';
+  return '어떤 책이 좋을지 생각해볼게 냥…📖🐈';
 }
 
 /**

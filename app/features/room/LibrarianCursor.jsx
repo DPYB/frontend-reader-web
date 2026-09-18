@@ -32,14 +32,21 @@ function getShortBubbleText(rawText, librarian, answer) {
   if (!rawText) return '';
   // <br> 태그 텍스트 노출 방지 및 개행 정규화
   const text = rawText.replace(/<br\s*\/?>/gi, '\n').trim();
-  const isStork = librarian?.id === 'stork';
+  const libId = librarian?.id;
 
   // 1. 내 서재 도서 결과 (ADR 0006: ### 📚 또는 library_books)
   const isLibrary = text.includes('### 📚') || (answer?.library_books && answer.library_books.length > 0);
   if (isLibrary) {
-    return isStork
-      ? `✨ 두둥! 서재에서 도서를 확인했습니다 🪶\n아래 채팅창에서 확인해 보세요`
-      : `✨ 서재에서 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
+    if (libId === 'stork') {
+      return `✨ 두둥! 서재에서 도서를 확인했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'nudi') {
+      return `✨ 서재에서 소중한 책을 찾았어요 누누... 🐌\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'gecko') {
+      return `✨ 서재에서 도서를 바로 찾아냈지 크크! 🦎\n아래 채팅창에서 확인해봐`;
+    }
+    return `✨ 서재에서 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
   }
 
   // 2. 짧은 문구(로딩 중, 사서 변경 알림, 단순 안내 등)는 마크다운 기호 정제 후 표시
@@ -56,20 +63,42 @@ function getShortBubbleText(rawText, librarian, answer) {
   const isRecommend = backendRec.length > 0 || text.includes('### 📖');
   const recommendedBooks = backendRec.length > 0 ? backendRec : (isRecommend ? extractBooksFromAnswer(text) : []);
   if (recommendedBooks.length >= 2) {
-    return isStork
-      ? `✨ 두둥! 추천 도서 ${recommendedBooks.length}권을 선별했습니다 🪶\n아래 채팅창에서 확인해 보세요`
-      : `✨ 추천 도서 ${recommendedBooks.length}권을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
+    const count = recommendedBooks.length;
+    if (libId === 'stork') {
+      return `✨ 두둥! 추천 도서 ${count}권을 선별했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'nudi') {
+      return `✨ 마음에 닿을 추천 도서 ${count}권을 찾았어요 누누 🐌\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'gecko') {
+      return `✨ 흥미로운 추천 도서 ${count}권을 골라왔지 크크! 🦎\n아래 채팅창에서 확인해봐`;
+    }
+    return `✨ 추천 도서 ${count}권을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
   }
   if (recommendedBooks.length === 1) {
     const bookTitle = recommendedBooks[0].title || '';
-    return isStork
-      ? `✨ 두둥! 『${bookTitle}』 도서를 선별했습니다 🪶\n아래 채팅창에서 확인해 보세요`
-      : `✨ 『${bookTitle}』 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
+    if (libId === 'stork') {
+      return `✨ 두둥! 『${bookTitle}』 도서를 선별했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'nudi') {
+      return `✨ 마음을 울릴 『${bookTitle}』을 골라봤어요 누누 🐌\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'gecko') {
+      return `✨ 딱 어울리는 『${bookTitle}』을 골라왔어 크크! 🦎\n아래 채팅창에서 확인해봐`;
+    }
+    return `✨ 『${bookTitle}』 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
   }
 
-  return isStork
-    ? `✨ 두둥! 사서의 답변이 도착했습니다 🪶\n아래 채팅창에서 확인해 보세요`
-    : `✨ 사서 답변이 도착했다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
+  if (libId === 'stork') {
+    return `✨ 두둥! 사서의 답변이 도착했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
+  }
+  if (libId === 'nudi') {
+    return `✨ 사서의 포근한 답변이 도착했어요 누누 🐌\n아래 채팅창에서 확인해 보세요`;
+  }
+  if (libId === 'gecko') {
+    return `✨ 사서 답변이 도착했지 크크! 🦎\n아래 채팅창에서 확인해봐`;
+  }
+  return `✨ 사서 답변이 도착했다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
 }
 
 export default function LibrarianCursor({ librarian, answer, active, thinking }) {
