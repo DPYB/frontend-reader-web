@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from './authStore';
 import {
   login as apiLogin,
+  loginWithGoogle as apiLoginWithGoogle,
+  loginWithKakao as apiLoginWithKakao,
   logout as apiLogout,
   refreshAccessToken,
   getAccessToken,
@@ -81,6 +83,32 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken) => {
+    if (AUTH_BYPASS) {
+      const data = { member: { ...BYPASS_MEMBER, email: 'google_user@test.com' } };
+      setMember(data.member);
+      setStatus('authenticated');
+      return data;
+    }
+    const data = await apiLoginWithGoogle(idToken);
+    setMember(data?.member ?? null);
+    setStatus('authenticated');
+    return data;
+  }, []);
+
+  const loginWithKakao = useCallback(async (kakaoToken) => {
+    if (AUTH_BYPASS) {
+      const data = { member: { ...BYPASS_MEMBER, email: 'kakao_user@test.com' } };
+      setMember(data.member);
+      setStatus('authenticated');
+      return data;
+    }
+    const data = await apiLoginWithKakao(kakaoToken);
+    setMember(data?.member ?? null);
+    setStatus('authenticated');
+    return data;
+  }, []);
+
   const logout = useCallback(async () => {
     // 우회 모드에서는 서버 세션이 없으므로 로컬 상태만 정리한다.
     if (!AUTH_BYPASS) await apiLogout();
@@ -95,11 +123,13 @@ export function AuthProvider({ children }) {
       status,
       isAuthenticated: status === 'authenticated',
       login,
+      loginWithGoogle,
+      loginWithKakao,
       logout,
       setMember,
       getAccessToken,
     }),
-    [member, status, login, logout]
+    [member, status, login, loginWithGoogle, loginWithKakao, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

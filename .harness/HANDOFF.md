@@ -1,5 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-18: Google & Kakao 소셜 로그인 연동 및 기본 UI 레이아웃(와꾸) 구현
+- 작업 브랜치: `feat/social-login-google-kakao`
+- **원격 동기화**: `develop` 최신 커밋(`88be5ad`: 사서 프로필 카드 정렬 및 문구 정리) fast-forward 머지 후 작업 브랜치 분기
+- **API 클라이언트 함수 추가 (`app/api/authApi.js`)**:
+  - `loginWithGoogle(idToken)`: Google Identity Services credential 토큰을 `POST /api/v1/auth/social/google` 전송 및 access_token 메모리 등록
+  - `loginWithKakao(kakaoAccessToken)`: Kakao JS SDK access_token을 `POST /api/v1/auth/social/kakao` 전송 및 access_token 메모리 등록
+- **전역 상태 Provider 연동 (`app/store/AuthProvider.jsx`)**:
+  - `loginWithGoogle`, `loginWithKakao` 메서드를 구현하여 `useAuth()` 훅에 노출
+  - 개발 우회 모드(`AUTH_BYPASS`) 시에도 더미 소셜 사용자 계정으로 로그인되어 원활한 화면 전환 테스트 지원
+- **소셜 인증 SDK 유틸 구현 (`app/utils/socialAuth.js`)**:
+  - Google Identity Services SDK 동적 로더 및 `renderGoogleButton`, `triggerGoogleLogin` 구현
+  - Kakao JavaScript SDK(2.7.4) 동적 로더 및 `triggerKakaoLogin` 팝업 로그인 구현
+- **로그인 페이지 UI 레이아웃 (`app/pages/LoginPage.jsx`, `LoginPage.css`)**:
+  - 기존 2560x1440 일러스트 레이어 및 비밀번호/로그인/회원가입 버튼에 영향을 주지 않도록 하단 중앙(`.login-social-container`)에 구분선 및 Google / Kakao 심플 버튼 와꾸 배치
+  - 소셜 로그인 성공 시 대상 페이지(`from` / 기본 `/library`) 리다이렉트 연동
+  - 추후 팀원/디자이너가 최종 전용 그래픽 버튼으로 교체하기 용이하도록 컴포넌트 및 클래스 분리
+- **검증**:
+  - `npx tsc --noEmit` 통과
+  - `npm run lint` 통과 (기존 경고 6건 유지, 신규 경고/에러 0건)
+  - `npm run build` 번들 정상 빌드 확인
+
 ## 2026-09-17: 로그인 불가 버그 수정 (AUTH_BYPASS + BooksProvider 401 레이스)
 
 ### 근본 원인
