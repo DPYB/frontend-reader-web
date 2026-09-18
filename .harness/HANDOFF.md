@@ -550,3 +550,15 @@
   수정 없이 데이터만 추가해 두 사서 모두 적용됨
 - `npx eslint .`(기존 warning 6건 유지, 신규 0), `npx tsc --noEmit`, `npm run build`
   통과 및 dist/cursors/{gecko,stork}에 산출물 포함 확인
+
+## 2026-09-19: 블루(cat) 커서 클릭 모션을 누디와 동일한 방식으로 통일
+- 블루도 슈빌과 같은 문제였음 — `imageHover`(cat_04)가 "책 선택 중"(active prop,
+  CLIAR-239)에만 반응해 실제 좌클릭과는 무관했음. 사용자가 "누디와 동일하게"로
+  명시해 요청, 누디와 동일한 `clickMotionMs`(2000ms) 방식으로 통일
+- `app/data/librarians.js`: 블루에 `clickMotionMs: 2000` 추가 (기존 `image`/
+  `imageHover`/`tip`/`tipHover`는 그대로 재사용, 신규 에셋 불필요)
+- 이제 4개 사서(블루/누디/게코/슈빌) 모두 `clickMotionMs` 방식으로 통일 완료 —
+  더 이상 `active` prop 기반의 구식 hover 방식을 쓰는 사서 없음
+- `LibrarianCursor.jsx`는 이미 `clickMotionMs` 유무로 분기하는 범용 로직이라
+  코드 수정 없이 데이터만 추가
+- `npx eslint .`(신규 이슈 0), `npx tsc --noEmit`, `npm run build` 통과 확인
