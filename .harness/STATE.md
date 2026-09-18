@@ -33,3 +33,4 @@
 - 게코 3D 서재 커서(기본/thinking) 및 챗봇 답변 대기 상태 연동 완료
 - 사서 프로필 페이지 카드 정렬(한줄소개·장르·문구 min-height 통일) 및 문구 정리 완료
 - Google & Kakao 소셜 로그인 연동(GIS/Kakao SDK 로더, authApi, AuthProvider useAuth 노출) 및 로그인 화면 기본 버튼 레이아웃(와꾸) 배치 완료
+- 월간 독서 리포트 장르 매핑 정규화: 백엔드 영문 Enum(`NATURAL_SCIENCE` 등)을 KDC 표준 한글 라벨(`자연과학`)로 변환(API 정규화 계층 `reportApi.js` 및 `MonthlyReport.jsx`/`MonthlyReport.legacy.jsx` 추천 카드·배너 방어 코드) 완료
