@@ -40,9 +40,7 @@ export default function LibrarianProfiles() {
   return (
     <section className="lp">
       <h2 className="lp-heading">사서 프로필</h2>
-      <p className="lp-desc">
-        사서를 선택하면 내 서재가 그 사서의 공간으로 바뀝니다. 사서 이름은 자유롭게 바꿀 수 있어요.
-      </p>
+      <p className="lp-desc">사서를 고르고, 나만의 서재를 만들어보세요.🐾</p>
 
       <div className="lp-grid">
         {librarians.map((lib) => {
@@ -83,7 +81,7 @@ export default function LibrarianProfiles() {
                 ) : (
                   <>
                     <strong className="lp-name">{lib.displayName}</strong>
-                    <button className="lp-btn lp-btn--ghost" onClick={() => startEdit(lib)}>이름 수정</button>
+                    <button className="lp-btn lp-btn--ghost" onClick={() => startEdit(lib)}>수정</button>
                   </>
                 )}
               </div>
@@ -96,7 +94,7 @@ export default function LibrarianProfiles() {
                   <dt>종</dt>
                   <dd>{lib.species}</dd>
                 </div>
-                <div className="lp-meta-row">
+                <div className="lp-meta-row lp-meta-row--genre">
                   <dt>특화 장르</dt>
                   <dd>{genreLabelForLibrarian(lib)}</dd>
                 </div>
