@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Gnb from './components/Gnb';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ToastProvider } from './components/Toast';
 import { AuthProvider } from './store/AuthProvider';
 import { BooksProvider } from './store/BooksProvider';
 import { ThemeProvider } from './store/ThemeProvider';
@@ -34,23 +35,26 @@ function AppLayout() {
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <LibrarianProvider>
-          <BooksProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/password/forgot" element={<PasswordReset />} />
-                <Route path="/*" element={<AppLayout />} />
-              </Routes>
-            </BrowserRouter>
-          </BooksProvider>
-        </LibrarianProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <LibrarianProvider>
+            <BooksProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  <Route path="/password/forgot" element={<PasswordReset />} />
+                  <Route path="/*" element={<AppLayout />} />
+                </Routes>
+              </BrowserRouter>
+            </BooksProvider>
+          </LibrarianProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 
 export default App;
+

@@ -290,3 +290,44 @@
 .social-icon {
   flex-shrink: 0;
 }
+
+/* DPYB 체험하기 (게스트 모드) 버튼 */
+.guest-experience-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--accent, #ff9a3c);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  color: #2a1809;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 154, 60, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.guest-experience-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(255, 154, 60, 0.4);
+}
+
+.guest-experience-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.guest-experience-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.guest-paw-icon {
+  font-size: 16px;
+}
+

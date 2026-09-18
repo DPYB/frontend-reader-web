@@ -4,10 +4,14 @@ import {
   login as apiLogin,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithKakao as apiLoginWithKakao,
+  loginAsGuest as apiLoginAsGuest,
   logout as apiLogout,
   refreshAccessToken,
   getAccessToken,
   clearAccessToken,
+  getCurrentRole,
+  getCurrentSub,
+  isGuestSession,
   setOnSessionExpired,
   getMe,
 } from '../api/authApi';
@@ -18,6 +22,7 @@ import { AUTH_BYPASS, BYPASS_MEMBER } from './authBypass';
  * 인증 전역 상태 (CLIAR-163).
  *
  * - member: 로그인한 회원 정보 (null이면 비로그인)
+ * - role: 'guest' | 'user' | null (게스트 여부)
  * - status: 'loading'(초기 복원 중) | 'authenticated' | 'unauthenticated'
  *
  * Access Token은 메모리(authApi 모듈)에만 있으므로 새로고침하면 사라진다.
@@ -26,6 +31,7 @@ import { AUTH_BYPASS, BYPASS_MEMBER } from './authBypass';
  */
 export function AuthProvider({ children }) {
   const [member, setMember] = useState(null);
+  const [role, setRole] = useState(null);
   // 우회 모드에서는 복원할 세션이 없으므로 'loading' 없이 로그인 화면부터 시작한다.
   const [status, setStatus] = useState(AUTH_BYPASS ? 'unauthenticated' : 'loading');
 
@@ -34,6 +40,7 @@ export function AuthProvider({ children }) {
     setOnSessionExpired(() => {
       clearChatSession();
       setMember(null);
+      setRole(null);
       setStatus('unauthenticated');
     });
     return () => setOnSessionExpired(null);
@@ -48,19 +55,38 @@ export function AuthProvider({ children }) {
       const refreshed = await refreshAccessToken();
       if (cancelled) return;
       if (refreshed) {
-        try {
-          const me = await getMe();
+        const detectedRole = getCurrentRole() || 'user';
+        setRole(detectedRole);
+
+        if (detectedRole === 'guest') {
+          const guestSub = getCurrentSub() || 'guest-user';
           if (!cancelled) {
-            setMember(me);
+            setMember({
+              member_id: guestSub,
+              sub: guestSub,
+              email: 'guest@dpyb.local',
+              nickname: '체험 손님 🐾',
+              role: 'guest',
+            });
             setStatus('authenticated');
             return;
           }
-        } catch {
-          // getMe 실패 시 비로그인 처리
+        } else {
+          try {
+            const me = await getMe();
+            if (!cancelled) {
+              setMember(me);
+              setStatus('authenticated');
+              return;
+            }
+          } catch {
+            // getMe 실패 시 비로그인 처리
+          }
         }
       }
       if (!cancelled) {
         clearAccessToken();
+        setRole(null);
         setStatus('unauthenticated');
       }
     })();
@@ -100,11 +126,43 @@ export function AuthProvider({ children }) {
     if (AUTH_BYPASS) {
       const data = { member: { ...BYPASS_MEMBER, email: 'kakao_user@test.com' } };
       setMember(data.member);
+      setRole('user');
       setStatus('authenticated');
       return data;
     }
     const data = await apiLoginWithKakao(kakaoToken);
     setMember(data?.member ?? null);
+    setRole(getCurrentRole() || 'user');
+    setStatus('authenticated');
+    return data;
+  }, []);
+
+  const loginAsGuest = useCallback(async (guestId = null) => {
+    if (AUTH_BYPASS) {
+      const guestSub = guestId || 'guest-dev-bypass';
+      const guestMember = {
+        member_id: guestSub,
+        sub: guestSub,
+        email: 'guest@dpyb.local',
+        nickname: '체험 손님 🐾',
+        role: 'guest',
+      };
+      setMember(guestMember);
+      setRole('guest');
+      setStatus('authenticated');
+      return { access_token: 'dummy_guest_token', member: guestMember, role: 'guest', sub: guestSub };
+    }
+    const data = await apiLoginAsGuest(guestId);
+    const guestSub = getCurrentSub() || data?.sub || 'guest-user';
+    const guestMember = data?.member || {
+      member_id: guestSub,
+      sub: guestSub,
+      email: 'guest@dpyb.local',
+      nickname: '체험 손님 🐾',
+      role: 'guest',
+    };
+    setMember(guestMember);
+    setRole('guest');
     setStatus('authenticated');
     return data;
   }, []);
@@ -114,23 +172,28 @@ export function AuthProvider({ children }) {
     if (!AUTH_BYPASS) await apiLogout();
     clearChatSession();
     setMember(null);
+    setRole(null);
     setStatus('unauthenticated');
   }, []);
 
   const value = useMemo(
     () => ({
       member,
+      role,
+      isGuest: role === 'guest' || isGuestSession(),
       status,
       isAuthenticated: status === 'authenticated',
       login,
       loginWithGoogle,
       loginWithKakao,
+      loginAsGuest,
       logout,
       setMember,
       getAccessToken,
     }),
-    [member, status, login, loginWithGoogle, loginWithKakao, logout]
+    [member, role, status, login, loginWithGoogle, loginWithKakao, loginAsGuest, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+

@@ -36,3 +36,4 @@
 - Google & Kakao 소셜 로그인 연동(GIS/Kakao SDK 로더, authApi, AuthProvider useAuth 노출) 및 로그인 화면 기본 버튼 레이아웃(와꾸) 배치 완료
 - 월간 독서 리포트 장르 매핑 정규화: 백엔드 영문 Enum(`NATURAL_SCIENCE` 등)을 KDC 표준 한글 라벨(`자연과학`)로 변환(API 정규화 계층 `reportApi.js` 및 `MonthlyReport.jsx`/`MonthlyReport.legacy.jsx` 추천 카드·배너 방어 코드) 완료
 - 월간 독서 리포트 레거시 막대 버전 제거 및 Recharts 시각화 차트 기반 단일화(토글 버튼·삼항 분기·`MonthlyReport.legacy.*` 파일 정리) 완료
+- 해커톤 게스트 체험 모드 구현: `POST /api/v1/auth/guest` 게스트 토큰 발급 및 `sub(guest_id)` 기반 조용한 갱신(_retry 플래그 무한 루프 방어), 로그인 화면 [DPYB 체험하기] 버튼, 게스트 쓰기 제한(마이페이지 수정/탈퇴 숨김, 도서 상세 삭제 숨김, GNB 뱃지) 및 403 에러 토스트 연동 완료

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useBooks } from '../../store/booksStore'
+import { useAuth } from '../../store/authStore'
 import { getLibraryBook, toReadingStatus } from '../../api/bookApi'
 import { GENRE_NONE, genreLabel } from '../../data/genres'
 import SentenceCollectModal from './SentenceCollectModal'
@@ -18,6 +19,7 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
  * @param {()=>void} onClose - 닫기 콜백
  */
 export default function BookDetail({ book, onClose }) {
+  const { isGuest } = useAuth()
   const { removeBook, saveReadingProgress, saveBookMeta } = useBooks()
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPage, setTotalPage] = useState(0)
@@ -347,21 +349,23 @@ export default function BookDetail({ book, onClose }) {
             >
               수정
             </button>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: '1px solid #e74c3c',
-                background: 'transparent',
-                color: '#e74c3c',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              삭제
-            </button>
+            {!isGuest && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #e74c3c',
+                  background: 'transparent',
+                  color: '#e74c3c',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                삭제
+              </button>
+            )}
           </>
         )}
       </div>
