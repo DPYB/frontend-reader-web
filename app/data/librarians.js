@@ -163,7 +163,11 @@ export const LIBRARIANS = [
     persona: '친근한 반말과 "~크크" 어미로 공감하며 이야기해요',
     specialtyCodes: ['SOCIAL_SCIENCE', 'LANGUAGE', 'HISTORY'],
     speechInterjection: '크크',
-    oneLiner: '사람과 사회의 이야기를 연결하는 공감형 탐구자',
+    // '\n'은 프로필 카드에서 항상 이 위치("연결하는" 다음)에서 줄바꿈되도록 하는
+    // 의도적 개행이다(사용자 요청, 2026-09) — "탐구자"가 "탐/구자"로 잘리는
+    // 자연 줄바꿈 문제를 피하기 위해 자연스러운 단어 경계에서 끊는다.
+    // LibrarianProfiles.css의 .lp-oneliner(white-space: pre-line)가 이를 렌더링한다.
+    oneLiner: '사람과 사회의 이야기를 연결하는\n공감형 탐구자',
     personality:
       '사람과 사회에 관심이 많으며 다양한 사람들의 생각과 이야기를 이해하려 해요. 개인의 행동이 사회와 문화 속에서 어떻게 만들어지는지 궁금해하고, 과거의 사건을 단순한 사실로 기억하기보다 "그 시대의 사람들은 왜 그렇게 행동했을까?"를 생각해요.',
     readingStyle:

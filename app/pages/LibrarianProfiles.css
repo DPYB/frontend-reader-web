@@ -32,6 +32,8 @@
   gap: 20px;
   width: 100%;
   max-width: 1180px;
+  /* 같은 행에 놓인 카드끼리 높이를 동일하게 맞춘다 (기본 grid item 동작) */
+  align-items: stretch;
 }
 
 @media (max-width: 1024px) {
@@ -177,13 +179,25 @@
   border-color: var(--accent);
 }
 
-/* 한 줄 소개 */
+/*
+ * 한 줄 소개. white-space: pre-line으로 데이터의 '\n'을 실제 줄바꿈으로 렌더링한다
+ * (예: 게코의 "…연결하는\n공감형 탐구자" — "탐구자"가 "탐/구자"로 잘리는 자연
+ * 줄바꿈을 피해 단어 경계에서 개행, 사용자 요청 2026-09).
+ */
 .lp-oneliner {
   width: 100%;
   text-align: center;
   font-size: 15px;
   color: var(--text);
   line-height: 1.5;
+  white-space: pre-line;
+  /*
+   * 사서마다 소개 문구 길이가 달라 1줄/2줄로 다르게 줄바꿈되면, 그 아래
+   * 구분선·"성격 독서 성향 보기"·말투 문구·버튼 위치가 카드마다 어긋난다.
+   * 항상 2줄 높이를 미리 확보해 아래 요소들이 카드 간에 수평으로 맞춰지게 한다
+   * (사용자 요청, 2026-09).
+   */
+  min-height: calc(1.5em * 2);
 }
 
 /* 메타 정보 */
@@ -201,6 +215,18 @@
   align-items: baseline;
   gap: 10px;
   font-size: 16px;
+}
+
+/*
+ * 사서마다 특화 장르 목록 길이가 달라("총류·철학·종교" vs "사회과학·언어·역사")
+ * 줄바꿈 여부가 카드마다 다를 수 있다. 최대 2줄 높이를 미리 확보해 그 아래
+ * 구분선·문구·버튼이 카드 간에 수평으로 맞춰지게 한다 (사용자 요청, 2026-09).
+ */
+.lp-meta-row--genre dd {
+  min-height: calc(1.5em * 2);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .lp-meta dt {
@@ -279,7 +305,11 @@
   text-align: left;
 }
 
-/* 페르소나 핵심 문장 */
+/*
+ * 페르소나 핵심 문장. 사서마다 문장 길이가 달라(예: 게코가 가장 길다) 1줄/2줄로
+ * 다르게 줄바꿈되면 바로 아래 버튼 위치가 카드마다 어긋난다. 최대 2줄 높이를
+ * 미리 확보해 버튼이 카드 간에 수평으로 맞춰지게 한다 (사용자 요청, 2026-09).
+ */
 .lp-catchphrase {
   width: 100%;
   box-sizing: border-box;
@@ -292,6 +322,10 @@
   font-style: italic;
   line-height: 1.5;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(1.5em * 2 + 20px);
 }
 
 /* 선택 버튼 */

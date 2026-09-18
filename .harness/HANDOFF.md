@@ -431,3 +431,18 @@
   - `npx tsc --noEmit` 통과
   - `npm run lint` 통과 (에러 0건)
   - `npm run build` 번들 빌드 정상 통과
+
+## 2026-09-17: 사서 프로필 페이지 UI 정리
+- 게코 한 줄 소개 줄바꿈 위치 수정: 데이터에 `\n`을 넣어 "…연결하는" 다음에서 항상
+  줄바꿈되도록 함(기존엔 자연 줄바꿈으로 "탐구자"가 "탐/구자"로 잘림). CSS는
+  `.lp-oneliner`에 `white-space: pre-line` 추가해 렌더링
+- 카드 내부 수평 정렬 문제 해결: 한 줄 소개·특화 장르·페르소나 문장이 사서마다
+  줄바꿈 수가 달라 그 아래 구분선(성격·독서 성향 보기)·문장·버튼 위치가 카드마다
+  어긋났던 문제. `.lp-oneliner`/`.lp-meta-row--genre dd`/`.lp-catchphrase`에
+  `min-height`(최대 예상 줄수 기준)를 부여해 4개 카드가 항상 수평으로 맞춰지게 함
+- "이름 수정" 버튼 → "수정"으로 문구 축약
+- 상단 안내 문구를 "사서를 고르고, 나만의 서재를 만들어보세요.🐾"로 교체
+- 변경 파일: `app/data/librarians.js`(게코 oneLiner에 개행 추가),
+  `app/pages/LibrarianProfiles.jsx`(버튼 문구·상단 안내·genre row 클래스 추가),
+  `app/pages/LibrarianProfiles.css`(정렬용 min-height, pre-line)
+- `npx eslint .`(신규 이슈 0), `npx tsc --noEmit`, `npm run build` 통과 확인
