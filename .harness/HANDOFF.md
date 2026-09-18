@@ -500,3 +500,26 @@
   `app/pages/LibrarianProfiles.jsx`(버튼 문구·상단 안내·genre row 클래스 추가),
   `app/pages/LibrarianProfiles.css`(정렬용 min-height, pre-line)
 - `npx eslint .`(신규 이슈 0), `npx tsc --noEmit`, `npm run build` 통과 확인
+
+## 2026-09-18: 게코 클릭 모션을 animated webp 단일 파일로 통일 + 슈빌 클릭 이슈 수정
+- **게코**: 클릭 모션 이미지가 `gecko_02.png`(포즈 전환)·`gecko_03.png`(손 인사) 2장으로
+  분리돼 있어 누디(기본 1장+클릭 1장 구조)와 불일치했음. ImageMagick으로 2프레임
+  애니메이션 webp 한 장(`gecko_hover.webp`, 91KB)으로 합쳐 구조를 통일:
+  - 프레임 지속시간: gecko_02 0.5초 → gecko_03 1.5초(총 2초, 마지막 프레임에서 정지,
+    `-loop 1`). `app/data/librarians.js`의 `clickMotionMs: 2000`을 애니메이션 총
+    재생시간과 동일하게 맞춰 정확히 끝나는 시점에 기본 이미지(gecko_01)로 복귀
+  - 원본 `gecko_02.png`/`gecko_03.png`는 webp로 합친 뒤 삭제 (재작업 중 실수로 두 파일이
+    동일 파일로 겹쳐 올라온 적이 있어, 재업로드 후 SHA-256 해시로 실제로 다른 두 포즈인지
+    확인하고 프레임 순서까지 시각 검증 완료)
+- **슈빌**: 사용자가 "예전엔 hover 방식이었는데 클릭으로 바꿨더니 잘 안 트리거된다"고
+  전달한 문제의 원인 확인 — `imageHover`가 여전히 `active` prop(=책 선택 중 상태,
+  CLIAR-239)에만 반응하도록 남아 있어 실제 마우스 좌클릭과는 무관했음. 누디/게코와
+  동일한 `clickMotionMs`(1200ms) 방식으로 통일해 좌클릭 시 `stork_hover.webp`
+  (날개 펄럭임, 총 재생시간 1.16초)가 재생되고 자동 복귀하도록 수정
+- 변경 파일: `app/data/librarians.js`(게코 imageHover/clickMotionMs/tipHover 추가,
+  슈빌 clickMotionMs 추가), `public/cursors/gecko/gecko_hover.webp`(신규),
+  `public/cursors/gecko/{gecko_02,gecko_03}.png`(삭제, webp로 합쳐짐)
+- `LibrarianCursor.jsx`는 이미 `clickMotionMs` 유무로 분기하는 범용 로직이라 코드
+  수정 없이 데이터만 추가해 두 사서 모두 적용됨
+- `npx eslint .`(기존 warning 6건 유지, 신규 0), `npx tsc --noEmit`, `npm run build`
+  통과 및 dist/cursors/{gecko,stork}에 산출물 포함 확인
