@@ -3,6 +3,7 @@
  */
 
 import { genreLabel } from '../../data/genres';
+import { normalizeTitle } from './bookExtractor';
 
 /**
  * 인라인 볼드(**...**), <br> 태그 및 특수문자를 React 노드로 안전하게 변환
@@ -206,10 +207,17 @@ function BookCardView({ type = 'recommend', title, author, reason, status, genre
  * @param {object} props
  * @param {string} props.text - 마크다운 텍스트
  * @param {Array} [props.recommendedBooks] - 백엔드 recommended_books 구조화 데이터
+ * @param {Array} [props.libraryBooks] - 사용자의 실제 내 서재 도서 목록 (교차 검증용)
  * @param {(book: object) => void} [props.onRegister] - 추천 도서 등록 콜백
  * @param {(book: object) => void} [props.onOpenDetail] - 내 서재 도서 상세 열기 콜백
  */
-export default function MarkdownRenderer({ text, recommendedBooks = [], onRegister, onOpenDetail }) {
+export default function MarkdownRenderer({
+  text,
+  recommendedBooks = [],
+  libraryBooks = [],
+  onRegister,
+  onOpenDetail,
+}) {
   if (!text) return null;
 
   // <br>, <br/>, <BR> 태그를 마크다운 개행(\n)으로 정규화하여 텍스트 노출 방지
@@ -222,6 +230,38 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
 
   const flushBook = (keyPrefix) => {
     if (currentBook) {
+      // 내 서재 카드인 경우: 실제 서재(libraryBooks)에 존재하는지 엄격히 교차 검증
+      if (currentBook.type === 'library') {
+        const normTitle = normalizeTitle(currentBook.title);
+        const inMyLibrary = libraryBooks.some((b) => {
+          if (!b.title) return false;
+          return normalizeTitle(b.title) === normTitle || b.title.trim() === currentBook.title.trim();
+        });
+
+        // 서재에 없는 도서명이면 잘못된 헤딩/서두이므로 일반 헤딩/텍스트로 안전 강등
+        if (!inMyLibrary) {
+          elements.push(
+            <div
+              key={`fallback-heading-${keyPrefix}`}
+              style={{
+                fontWeight: 700,
+                fontSize: 17.5,
+                color: 'var(--accent)',
+                marginTop: elements.length > 0 ? 10 : 2,
+                marginBottom: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              📚 {currentBook.title}
+            </div>
+          );
+          currentBook = null;
+          return;
+        }
+      }
+
       elements.push(
         <BookCardView
           key={`book-card-${keyPrefix}-${currentBook.title}`}
@@ -286,6 +326,7 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
       const matchedRec = recommendedBooks.find(
         (b) =>
           (b.title || '').trim() === title ||
+          normalizeTitle(b.title) === normalizeTitle(title) ||
           (b.title || '').trim().replace(/^[『《"'\s]+|[』》"'\s]+$/g, '') === title
       );
 
@@ -300,7 +341,7 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
       return;
     }
 
-    // 2-B. 내 서재 도서 카드 시작: ### 📚 {도서 제목}
+    // 2-B. 내 서재 도서 카드 시작: ### 📚 {도서 제목} (내 서재에 실제 있을 때만 카드로 승격)
     if (/^#{1,4}\s*📚\s*/.test(trimmed)) {
       flushList(idx);
       flushBook(idx);
@@ -310,11 +351,36 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
       return;
     }
 
-    // 2-1. 도서 카드 내부 항목 파싱 (- **저자**:, - **추천 이유**:, - **독서 상태**:)
+    // 2-C. 번호 매김 추천 도서 목록 포맷 (예: 1. 《살고 싶다는 농담》 - 백영옥 에세이 또는 1. 『천개의 파란』)
+    // 에이전트가 ### 📖 대신 1. 《도서명》 형태로 추천을 보낸 경우에도 [등록 ➔] 추천 도서 카드로 자동 승격
+    const numberedRecMatch = trimmed.match(/^\d+\.\s*(?:\*\*)?[『《]([^』》]+)[』》](?:\*\*)?(?:\s*[-–—:]\s*([^\n]+))?/);
+    if (numberedRecMatch) {
+      flushList(idx);
+      flushBook(idx);
+      const rawTitle = numberedRecMatch[1].trim();
+      const rawAuthor = numberedRecMatch[2] ? numberedRecMatch[2].split(/[,\n]/)[0].trim() : '';
+
+      const matchedRec = recommendedBooks.find(
+        (b) =>
+          (b.title || '').trim() === rawTitle ||
+          normalizeTitle(b.title) === normalizeTitle(rawTitle)
+      );
+
+      currentBook = {
+        type: 'recommend',
+        title: rawTitle,
+        author: matchedRec?.author || rawAuthor,
+        reason: matchedRec?.reason || '',
+        genre: matchedRec?.genre || '',
+        bookData: matchedRec || { title: rawTitle, author: rawAuthor, page_count: null, totalPage: null },
+      };
+      return;
+    }
+
+    // 2-1. 도서 카드 내부 항목 파싱 (- **저자**:, - **추천 이유**:, - **독서 상태**:, 어떤 이야기냐면요:, 이런 마음일 때:)
     if (currentBook) {
-      if (/^[-*•]\s*\*\*저자\*\*\s*[:：]\s*/.test(trimmed)) {
-        const rawAuthor = trimmed.replace(/^[-*•]\s*\*\*저자\*\*\s*[:：]\s*/, '').trim();
-        // 구조화된 author가 없는 경우에만 마크다운 텍스트에서 저자 세팅
+      if (/^[-*•]?\s*(?:\*\*)?저자(?:\*\*)?\s*[:：]\s*/.test(trimmed)) {
+        const rawAuthor = trimmed.replace(/^[-*•]?\s*(?:\*\*)?저자(?:\*\*)?\s*[:：]\s*/, '').trim();
         if (!currentBook.author) {
           currentBook.author = rawAuthor;
           if (currentBook.bookData) {
@@ -323,17 +389,21 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
         }
         return;
       }
-      if (/^[-*•]\s*\*\*추천\s*이유\*\*\s*[:：]\s*/.test(trimmed)) {
-        const rawReason = trimmed.replace(/^[-*•]\s*\*\*추천\s*이유\*\*\s*[:：]\s*/, '').trim();
+      if (/^[-*•]?\s*(?:\*\*)?(?:추천\s*이유|추천\s*사유|어떤\s*이야기냐면요)(?:\*\*)?\s*[:：]\s*/.test(trimmed)) {
+        const rawReason = trimmed.replace(/^[-*•]?\s*(?:\*\*)?(?:추천\s*이유|추천\s*사유|어떤\s*이야기냐면요)(?:\*\*)?\s*[:：]\s*/, '').trim();
         if (!currentBook.reason) {
           currentBook.reason = rawReason;
         }
         return;
       }
+      if (/^[-*•]?\s*(?:\*\*)?이런\s*마음일\s*때(?:\s*추천해요)?(?:\*\*)?\s*[:：]\s*/.test(trimmed)) {
+        const extraReason = trimmed.replace(/^[-*•]?\s*(?:\*\*)?이런\s*마음일\s*때(?:\s*추천해요)?(?:\*\*)?\s*[:：]\s*/, '').trim();
+        if (extraReason) {
+          currentBook.reason = currentBook.reason ? `${currentBook.reason} (${extraReason})` : extraReason;
+        }
+        return;
+      }
       if (/^[-*•]\s*\*\*장르\*\*\s*[:：]\s*/.test(trimmed)) {
-        // 장르 라인은 카드 칩으로 표시하므로 일반 목록(<li>)으로 새지 않도록 소비한다.
-        // 표시값은 구조화 필드(matchedRec.genre)를 우선 사용하되, 없으면 마크다운의
-        // Enum 텍스트를 fallback으로 채운다(예: 'MYSTERY_THRILLER').
         if (!currentBook.genre) {
           currentBook.genre = trimmed.replace(/^[-*•]\s*\*\*장르\*\*\s*[:：]\s*/, '').trim();
         }
@@ -344,7 +414,7 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
         return;
       }
       // 도서 카드가 끝난 후 일반 마크다운이 시작될 때 flush
-      if (/^#{1,4}\s+/.test(trimmed) || !trimmed.startsWith('-')) {
+      if (/^#{1,4}\s+/.test(trimmed) || /^\d+\.\s+/.test(trimmed)) {
         flushBook(idx);
       }
     }
@@ -423,6 +493,7 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
       );
       return;
     }
+
 
     // 6. 일반 본문 단락 (사서 서두/마무리 멘트 등)
     flushList(idx);
