@@ -5,7 +5,9 @@ import { createOcrSentence, createReadingRecord } from '../../api/recordApi';
 import { getWeatherCondition } from '../../api/geolocation';
 import { ApiError } from '../../api/authApi';
 import WebcamCaptureModal from './WebcamCaptureModal';
+import ImageCropModal from '../../components/ImageCropModal';
 import LoadingSequence from '../../components/LoadingSequence';
+
 
 /**
  * OCR 실패 원인을 사용자에게 구체적으로 안내한다.
@@ -53,6 +55,8 @@ export default function SentenceCollectModal({ book, onClose }) {
   const [saving, setSaving] = useState(false);
   const [ocrError, setOcrError] = useState('');
   const [webcamOpen, setWebcamOpen] = useState(false);
+  // 크롭 모달에 넘길 원본 File 객체
+  const [cropTargetFile, setCropTargetFile] = useState(null);
   // OCR로 스캔한(또는 수정 중인 기존 스크랩의) 원본 이미지 URL.
   // backend-book이 scrapImageUrl을 필수로 요구하므로, 저장 시 이 값을 함께 보낸다.
   // 새 문장은 스캔을 해야 이 값이 생기고, 값이 없으면 저장할 수 없다.
@@ -75,28 +79,38 @@ export default function SentenceCollectModal({ book, onClose }) {
     reloadQuotes();
   }, [reloadQuotes]);
 
-  /*
-   * 확인 후 저장 흐름(CLIAR-228): 사진을 backend-record에 OCR-only(save_scrap=false)로
-   * 보내 텍스트만 인식하고 원본 이미지는 S3에 저장한다. 인식 결과를 편집창에 채워
-   * 사용자가 확인/수정한 뒤 "저장"을 누르면 그때 backend-book에 스크랩을 저장한다.
-   * (여기서는 아직 저장하지 않는다)
+  /**
+   * 파일 선택 또는 카메라 촬영 시 즉시 OCR을 부르지 않고 크롭 모달을 먼저 오픈
    */
-  async function handleFile(file) {
+  function handleFile(file) {
     if (!file) return;
-    setPreviewUrl(URL.createObjectURL(file));
+    setCropTargetFile(file);
+  }
+
+  /**
+   * 크롭 모달에서 사각 영역 지정 후 [추출]을 눌렀을 때 실행되는 실제 OCR 요청
+   */
+  async function handleCroppedComplete(croppedBlob, croppedDataUrl) {
+    setCropTargetFile(null);
+    setPreviewUrl(croppedDataUrl);
     setOcrLoading(true);
     setOcrError('');
     setEditingQuoteId(null);
+
+    // File 객체로 포장 (파일명 유지)
+    const croppedFile = new File([croppedBlob], 'cropped_sentence.jpg', { type: 'image/jpeg' });
+
     try {
       const result = await createOcrSentence({
-        imageFile: file,
+        imageFile: croppedFile,
         bookId: book.bookId,
         saveScrap: false,
       });
       setText(result.text || '');
-      setPendingImageUrl(result.scrapImageUrl || null);
+      // 서버에서 준 Data URL 또는 크롭된 캔버스 Data URL을 스크랩 이미지로 등록
+      setPendingImageUrl(result.scrapImageUrl || croppedDataUrl);
       if (!result.text?.trim()) {
-        setOcrError('이미지에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 찍어 주세요.');
+        setOcrError('선택한 영역에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 영역을 지정해 주세요.');
       }
     } catch (err) {
       setOcrError(describeOcrError(err));
@@ -105,11 +119,12 @@ export default function SentenceCollectModal({ book, onClose }) {
     }
   }
 
-  // 웹캠 모달에서 캡처된 프레임(File)을 받아 기존 사진 업로드 흐름과 동일하게 처리 (CLIAR-210)
+  // 웹캠 모달에서 캡처된 프레임(File)을 받아 크롭 모달로 전달
   function handleWebcamCapture(file) {
     setWebcamOpen(false);
     handleFile(file);
   }
+
 
   function resetForm() {
     setText('');
@@ -472,6 +487,16 @@ export default function SentenceCollectModal({ book, onClose }) {
       {webcamOpen && (
         <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
+      {cropTargetFile && (
+        <ImageCropModal
+          imageSource={cropTargetFile}
+          title="문장 영역 자르기"
+          aspectMode="free"
+          onCropComplete={handleCroppedComplete}
+          onClose={() => setCropTargetFile(null)}
+        />
+      )}
     </>
   );
 }
+
