@@ -1,5 +1,14 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 채팅 로딩 인디케이터 위치를 메시지 목록 안으로 이동
+- 작업 브랜치: `fix/채팅-로딩위치`
+- **배경**: 질문을 보내면 로딩 애니메이션(LoadingSequence)이 메신저형 대화 히스토리(`lc-messages-list`) 위쪽에 렌더링되고 있어, 대화가 쌓일수록 로딩 표시가 스크롤 위로 밀려 안 보이는 문제. 자동 스크롤(`messagesEndRef`)은 메시지 목록 바로 아래에 있어 로딩 블록까지는 안 따라갔음.
+- **수정 내용**: `app/features/room/LibrarianChat.jsx`
+  - 기존에 메시지 목록보다 위에 있던 `{loading && (<LoadingSequence .../>)}` 블록을 `lc-messages-list`(`display:flex; flex-direction:column`) 내부, `.map()` 렌더링 뒤로 이동
+  - 이제 로딩 블록이 방금 보낸 사용자 질문(마지막 메시지) 바로 아래에 나타나고, 응답이 오면 그 자리에서 사라지며 메신저형 UI 흐름과 자연스럽게 이어짐. 자동 스크롤도 메시지 목록 끝을 따라가므로 로딩 표시가 항상 화면에 보임
+  - 로직/스타일 변경 없이 JSX 위치만 이동
+- **검증**: `npx eslint app/features/room/LibrarianChat.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공(dist 삭제 완료)
+
 ## 2026-09-19: 백엔드 최신화 재검토 및 스트리밍 채팅 library_books 필드 반영
 - 작업 브랜치: `fix/스트리밍-library-books`
 - **배경**: 프론트/백엔드 매칭 검토를 진행하던 중 팀원이 두 백엔드 레포(backend-core-api, backend-ai-agent)를 모두 최신화. 이전 검토 시점과 달라진 부분을 다시 대조.

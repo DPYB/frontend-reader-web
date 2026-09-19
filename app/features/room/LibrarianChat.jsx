@@ -1114,36 +1114,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
           </div>
         )}
 
-        {/* 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285) */}
-        {loading && (
-          <div
-            style={{
-              marginBottom: 8,
-              background: 'var(--code-bg)',
-              borderRadius: 10,
-              border: '1px solid var(--border)',
-            }}
-          >
-            <LoadingSequence
-              size={120}
-              padding={20}
-              label={
-                turnCount <= 1 ? (
-                  <>
-                    따스한 햇살 아래 포근히 잠든{' '}
-                    <strong>{librarianNames[librarian.id] || librarian.name} 사서</strong>를 살며시 깨우고 있어요...
-                  </>
-                ) : isBookRecommendationQuery(lastUserMessage) ? (
-                  getRecommendationLoadingMessage(librarian.id)
-                ) : (
-                  // 2번째 질문부터 추천 질문이 아니면 로딩 애니메이션만 표시 (CLIAR-285)
-                  ''
-                )
-              }
-            />
-          </div>
-        )}
-
         {/* 🧠 토론 기억 저장 완료 뱃지 (피날레 시 백엔드 agent.debate_insights 자동 저장 연계) */}
         {isConcluded && !loading && (
           <div className="lc-debate-concluded-badge">
@@ -1193,6 +1163,42 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
               </div>
             );
           })}
+
+          {/*
+           * 로딩 중일 때 순차 로딩 애니메이션과 안내 문구 표시 (CLIAR-285).
+           * 예전엔 메시지 목록(lc-messages-list) 위쪽에 있어서, 대화가 쌓일수록 로딩
+           * 표시가 스크롤 위로 밀려 안 보이는 문제가 있었다(사용자 요청, 2026-09).
+           * 메시지 목록 맨 끝(방금 보낸 질문 바로 다음)에 배치해 자동 스크롤이 항상
+           * 여기까지 따라오도록 옮겼다.
+           */}
+          {loading && (
+            <div
+              style={{
+                marginBottom: 8,
+                background: 'var(--code-bg)',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+              }}
+            >
+              <LoadingSequence
+                size={120}
+                padding={20}
+                label={
+                  turnCount <= 1 ? (
+                    <>
+                      따스한 햇살 아래 포근히 잠든{' '}
+                      <strong>{librarianNames[librarian.id] || librarian.name} 사서</strong>를 살며시 깨우고 있어요...
+                    </>
+                  ) : isBookRecommendationQuery(lastUserMessage) ? (
+                    getRecommendationLoadingMessage(librarian.id)
+                  ) : (
+                    // 2번째 질문부터 추천 질문이 아니면 로딩 애니메이션만 표시 (CLIAR-285)
+                    ''
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
         {/* 1. 내 서재 도서 목록 카드 (일반 대화 및 서재 모드에서만 노출, 토론 모드에서는 제외) */}
