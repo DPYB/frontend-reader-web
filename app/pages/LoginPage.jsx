@@ -37,6 +37,37 @@ const BUTTONS = [
     tooltip: '비밀번호 보기',
     left: 59.2, top: 53.3, width: 2.2, height: 3.8,
   },
+  /*
+   * 하단 3버튼 (2026-09 신규 UI). 기존 버튼들과 동일한 방식 — 배경 시안에 버튼이
+   * 그려져 있고, 같은 좌표의 투명 2560x1440 레이어를 덮어 hover 밝기 효과를 준다.
+   *
+   * 세 버튼은 테두리 선만 있는 둥근 사각형이고 내부는 완전히 비어 있어(알파 0),
+   * 클릭 영역은 "선 안쪽"이 되도록 알파 bbox에서 선 두께만큼 안쪽으로 줄인 값을 쓴다.
+   * 2560x1440 기준 실측:
+   *   알파 bbox(선 외곽 포함)  366x63 — dpyb +1123+1154 / kakao +1123+1232 / google +1123+1310
+   *   선 두께                  좌우·상하 각 약 3~4px
+   *   선 안쪽(내부) 영역        bbox 기준 x 4~361(358px), y 4~57(54px)
+   * → left 1127/2560=44.0%, width 358/2560=13.98%, height 54/1440=3.75%
+   *   top  dpyb 1158/1440=80.42% / kakao 1236/1440=85.83% / google 1314/1440=91.25%
+   */
+  {
+    id: 'dpyb',
+    src: '/button/dpyb_btn.webp',
+    tooltip: 'DPYB 체험하기 (로그인 없이 둘러보기)',
+    left: 44.0, top: 80.42, width: 13.98, height: 3.75,
+  },
+  {
+    id: 'kakao',
+    src: '/button/kakao_btn.webp',
+    tooltip: '카카오 계정으로 로그인',
+    left: 44.0, top: 85.83, width: 13.98, height: 3.75,
+  },
+  {
+    id: 'google',
+    src: '/button/google_btn.webp',
+    tooltip: 'Google 계정으로 로그인',
+    left: 44.0, top: 91.25, width: 13.98, height: 3.75,
+  },
 ];
 
 // 입력 필드 위치 (bbox 비율)
@@ -233,7 +264,7 @@ export default function LoginPage() {
         googleClientId,
         (token) => handleSocialSuccess('google', token),
         (err) => console.warn('Google button init failed:', err)
-      ).catch(() => {});
+      ).catch(() => { });
     }
   }, [googleClientId, handleSocialSuccess]);
 
@@ -251,7 +282,23 @@ export default function LoginPage() {
       case 'eye':
         handleEyeClick();
         break;
+      case 'google':
+        handleGoogleClick();
+        break;
+      case 'kakao':
+        handleKakaoClick();
+        break;
+      case 'dpyb':
+        handleGuestLogin();
+        break;
     }
+  };
+
+  /** 버튼별 비활성 조건 — 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
+  const isButtonDisabled = (id) => {
+    if (id === 'login') return !isLoginEnabled;
+    if (id === 'google' || id === 'kakao' || id === 'dpyb') return loading;
+    return false;
   };
 
   return (
@@ -338,74 +385,20 @@ export default function LoginPage() {
             key={btn.id}
             btn={resolvedBtn}
             onClick={() => handleClick(btn.id)}
-            disabled={btn.id === 'login' && !isLoginEnabled}
+            disabled={isButtonDisabled(btn.id)}
           />
         );
       })}
 
-      {/* 소셜 로그인 및 체험 모드 버튼 */}
-      <div className="login-social-container">
-        <div className="login-social-buttons">
-          <button
-            type="button"
-            className="social-btn social-btn--google"
-            onClick={handleGoogleClick}
-            disabled={loading}
-            aria-label="Google 계정으로 로그인"
-          >
-            <svg className="social-icon" viewBox="0 0 24 24" width="20" height="20">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span className="social-text">Google 로그인</span>
-          </button>
+      {/*
+        소셜 로그인(Google/Kakao)·DPYB 체험하기 버튼은 위 BUTTONS 배열의 이미지 레이어
+        방식으로 통합했다(2026-09 신규 UI). 예전에는 배경 시안에 이 버튼들이 없어 CSS로
+        만든 별도 버튼(.login-social-container)을 화면 하단에 띄웠는데, 새 시안에 세
+        버튼이 그려져 들어오면서 다른 버튼들과 같은 방식으로 맞췄다.
+      */}
 
-          <button
-            type="button"
-            className="social-btn social-btn--kakao"
-            onClick={handleKakaoClick}
-            disabled={loading}
-            aria-label="카카오 계정으로 로그인"
-          >
-            <svg className="social-icon" viewBox="0 0 24 24" width="20" height="20">
-              <path
-                fill="#000000"
-                d="M12 3C6.48 3 2 6.48 2 10.77c0 2.78 1.87 5.22 4.67 6.55-.21.77-.75 2.78-.86 3.21-.13.54.2.53.42.38.17-.11 2.76-1.88 3.87-2.64.63.09 1.26.14 1.9.14 5.52 0 10-3.48 10-7.77C22 6.48 17.52 3 12 3z"
-              />
-            </svg>
-            <span className="social-text">카카오 로그인</span>
-          </button>
-        </div>
-
-        {/* DPYB 체험하기 (게스트 체험 모드) 버튼 */}
-        <button
-          type="button"
-          className="guest-experience-btn"
-          onClick={handleGuestLogin}
-          disabled={loading}
-          aria-label="DPYB 체험하기"
-        >
-          <span className="guest-paw-icon">🐾</span>
-          <span className="guest-btn-text">DPYB 체험하기 (로그인 없이 둘러보기)</span>
-        </button>
-
-        {/* 숨김 처리된 Google 표준 버튼 렌더링 컨테이너 (필요 시 One Tap 트리거) */}
-        <div ref={googleBtnRef} style={{ display: 'none' }} />
-      </div>
+      {/* 숨김 처리된 Google 표준 버튼 렌더링 컨테이너 (필요 시 One Tap 트리거) */}
+      <div ref={googleBtnRef} style={{ display: 'none' }} />
 
       {/* 비밀번호 표시 상태 인디케이터 */}
       {eyeActive && (
