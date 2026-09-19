@@ -21,22 +21,26 @@ export default function ImageCropModal({
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
-  const imageUrl = useMemo(() => {
-    if (!imageSource) return '';
-    if (typeof imageSource === 'string') return imageSource;
-    if (imageSource instanceof Blob || imageSource instanceof File) {
-      return URL.createObjectURL(imageSource);
-    }
-    return '';
-  }, [imageSource]);
+  const [imageUrl, setImageUrl] = useState('');
 
+  // StrictMode 언마운트/리마운트에서 URL이 즉시 파기되는 문제를 방지
   useEffect(() => {
-    return () => {
-      if (imageUrl && (imageSource instanceof Blob || imageSource instanceof File)) {
-        URL.revokeObjectURL(imageUrl);
-      }
-    };
-  }, [imageUrl, imageSource]);
+    if (!imageSource) {
+      setImageUrl('');
+      return;
+    }
+    if (typeof imageSource === 'string') {
+      setImageUrl(imageSource);
+      return;
+    }
+    if (imageSource instanceof Blob || imageSource instanceof File) {
+      const url = URL.createObjectURL(imageSource);
+      setImageUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [imageSource]);
 
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [renderedSize, setRenderedSize] = useState({ width: 0, height: 0, left: 0, top: 0 });
@@ -62,6 +66,7 @@ export default function ImageCropModal({
   }, []);
 
 
+  // 이미지 로드 완료 시
   const handleImageLoad = (e) => {
     const img = e.currentTarget;
     setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
@@ -70,8 +75,8 @@ export default function ImageCropModal({
     // 초기 크롭 박스 설정
     if (aspectMode === 'square') {
       const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const wRatio = minDim / img.naturalWidth * 0.7;
-      const hRatio = minDim / img.naturalHeight * 0.7;
+      const wRatio = (minDim / img.naturalWidth) * 0.7;
+      const hRatio = (minDim / img.naturalHeight) * 0.7;
       setCrop({
         x: (1 - wRatio) / 2,
         y: (1 - hRatio) / 2,
@@ -79,7 +84,7 @@ export default function ImageCropModal({
         height: hRatio,
       });
     } else {
-      // 문장 수집용: 기본 중앙 80% 너비, 40% 높이
+      // 캡처 도구 방식: 기본 중앙 영역을 직관적으로 잡아주고, 배경 드래그로 언제든 다시 그릴 수 있음
       setCrop({ x: 0.1, y: 0.3, width: 0.8, height: 0.4 });
     }
   };
@@ -95,6 +100,24 @@ export default function ImageCropModal({
     e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    if (type === 'draw') {
+      if (!imageRef.current || renderedSize.width === 0 || renderedSize.height === 0) return;
+      const imgRect = imageRef.current.getBoundingClientRect();
+      const startNormX = Math.max(0, Math.min(1, (clientX - imgRect.left) / renderedSize.width));
+      const startNormY = Math.max(0, Math.min(1, (clientY - imgRect.top) / renderedSize.height));
+
+      setCrop({ x: startNormX, y: startNormY, width: 0.01, height: 0.01 });
+      setDragState({
+        type: 'draw',
+        startX: clientX,
+        startY: clientY,
+        originX: startNormX,
+        originY: startNormY,
+        initialCrop: { x: startNormX, y: startNormY, width: 0.01, height: 0.01 },
+      });
+      return;
+    }
 
     setDragState({
       type,
@@ -114,55 +137,77 @@ export default function ImageCropModal({
       const dx = (clientX - dragState.startX) / renderedSize.width;
       const dy = (clientY - dragState.startY) / renderedSize.height;
 
-      const { type, initialCrop } = dragState;
-      let nextCrop = { ...initialCrop };
+      const { type, initialCrop, originX, originY } = dragState;
 
-      if (type === 'move') {
-        nextCrop.x = Math.max(0, Math.min(1 - initialCrop.width, initialCrop.x + dx));
-        nextCrop.y = Math.max(0, Math.min(1 - initialCrop.height, initialCrop.y + dy));
-      } else {
-        // 핸들 리사이징
-        let nx = initialCrop.x;
-        let ny = initialCrop.y;
-        let nw = initialCrop.width;
-        let nh = initialCrop.height;
+      // 1. 캡처 도구처럼 배경 드래그로 새로 그리기
+      if (type === 'draw') {
+        const currentNormX = Math.max(0, Math.min(1, originX + dx));
+        const currentNormY = Math.max(0, Math.min(1, originY + dy));
 
-        if (type.includes('w')) {
-          const maxDx = initialCrop.width - 0.05;
-          const actualDx = Math.max(-initialCrop.x, Math.min(maxDx, dx));
-          nx = initialCrop.x + actualDx;
-          nw = initialCrop.width - actualDx;
-        }
-        if (type.includes('e')) {
-          nw = Math.max(0.05, Math.min(1 - initialCrop.x, initialCrop.width + dx));
-        }
-        if (type.includes('n')) {
-          const maxDy = initialCrop.height - 0.05;
-          const actualDy = Math.max(-initialCrop.y, Math.min(maxDy, dy));
-          ny = initialCrop.y + actualDy;
-          nh = initialCrop.height - actualDy;
-        }
-        if (type.includes('s')) {
-          nh = Math.max(0.05, Math.min(1 - initialCrop.y, initialCrop.height + dy));
-        }
+        let nx = Math.min(originX, currentNormX);
+        let ny = Math.min(originY, currentNormY);
+        let nw = Math.max(0.02, Math.abs(currentNormX - originX));
+        let nh = Math.max(0.02, Math.abs(currentNormY - originY));
 
-        // 1:1 정사각 모드 보정
         if (aspectMode === 'square' && naturalSize.width > 0 && naturalSize.height > 0) {
-          // 가로 픽셀 = nw * naturalWidth, 세로 픽셀 = nh * naturalHeight
-          if (type.includes('e') || type.includes('w')) {
-            nh = (nw * naturalSize.width) / naturalSize.height;
-          } else {
-            nw = (nh * naturalSize.height) / naturalSize.width;
-          }
+          const pixelW = nw * naturalSize.width;
+          const pixelH = nh * naturalSize.height;
+          const side = Math.max(pixelW, pixelH);
+          nw = side / naturalSize.width;
+          nh = side / naturalSize.height;
           if (nx + nw > 1) nw = 1 - nx;
           if (ny + nh > 1) nh = 1 - ny;
         }
 
-
-        nextCrop = { x: Math.max(0, nx), y: Math.max(0, ny), width: nw, height: nh };
+        setCrop({ x: nx, y: ny, width: nw, height: nh });
+        return;
       }
 
-      setCrop(nextCrop);
+      // 2. 박스 전체 이동
+      if (type === 'move') {
+        const nextX = Math.max(0, Math.min(1 - initialCrop.width, initialCrop.x + dx));
+        const nextY = Math.max(0, Math.min(1 - initialCrop.height, initialCrop.y + dy));
+        setCrop({ ...initialCrop, x: nextX, y: nextY });
+        return;
+      }
+
+      // 3. 모서리 및 핸들 리사이징
+      let nx = initialCrop.x;
+      let ny = initialCrop.y;
+      let nw = initialCrop.width;
+      let nh = initialCrop.height;
+
+      if (type.includes('w')) {
+        const maxDx = initialCrop.width - 0.05;
+        const actualDx = Math.max(-initialCrop.x, Math.min(maxDx, dx));
+        nx = initialCrop.x + actualDx;
+        nw = initialCrop.width - actualDx;
+      }
+      if (type.includes('e')) {
+        nw = Math.max(0.05, Math.min(1 - initialCrop.x, initialCrop.width + dx));
+      }
+      if (type.includes('n')) {
+        const maxDy = initialCrop.height - 0.05;
+        const actualDy = Math.max(-initialCrop.y, Math.min(maxDy, dy));
+        ny = initialCrop.y + actualDy;
+        nh = initialCrop.height - actualDy;
+      }
+      if (type.includes('s')) {
+        nh = Math.max(0.05, Math.min(1 - initialCrop.y, initialCrop.height + dy));
+      }
+
+      // 1:1 정사각 모드 보정
+      if (aspectMode === 'square' && naturalSize.width > 0 && naturalSize.height > 0) {
+        if (type.includes('e') || type.includes('w')) {
+          nh = (nw * naturalSize.width) / naturalSize.height;
+        } else {
+          nw = (nh * naturalSize.height) / naturalSize.width;
+        }
+        if (nx + nw > 1) nw = 1 - nx;
+        if (ny + nh > 1) nh = 1 - ny;
+      }
+
+      setCrop({ x: Math.max(0, nx), y: Math.max(0, ny), width: nw, height: nh });
     },
     [dragState, renderedSize, aspectMode, naturalSize]
   );
@@ -256,8 +301,8 @@ export default function ImageCropModal({
     top: `${renderedSize.top + crop.y * renderedSize.height}px`,
     width: `${crop.width * renderedSize.width}px`,
     height: `${crop.height * renderedSize.height}px`,
-    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.65)',
-    border: '2px solid #3b82f6',
+    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7)',
+    border: '2px solid var(--accent)',
     cursor: 'move',
     touchAction: 'none',
     boxSizing: 'border-box',
@@ -270,7 +315,7 @@ export default function ImageCropModal({
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -288,13 +333,14 @@ export default function ImageCropModal({
           width: '100%',
           maxWidth: '720px',
           maxHeight: '90vh',
-          backgroundColor: '#1e293b',
+          backgroundColor: 'var(--bg)',
           borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+          color: 'var(--text-h)',
         }}
       >
         {/* 상단 헤더 */}
@@ -304,16 +350,16 @@ export default function ImageCropModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#f8fafc',
+            borderBottom: '1px solid var(--border)',
+            backgroundColor: 'var(--code-bg)',
           }}
         >
           <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{title}</h3>
-            <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-h)' }}>{title}</h3>
+            <span style={{ fontSize: '13px', color: 'var(--text)', opacity: 0.85 }}>
               {aspectMode === 'square'
                 ? '원하는 프로필 영역을 네모칸으로 맞춰주세요.'
-                : '스마트폰처럼 네모칸을 조절해 추출할 문장 영역만 지정하세요.'}
+                : '마우스로 사진 위를 드래그하여 추출할 문장 영역을 자유롭게 그려보세요.'}
             </span>
           </div>
           <button
@@ -322,7 +368,7 @@ export default function ImageCropModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text)',
               cursor: 'pointer',
               fontSize: '20px',
               padding: '4px',
@@ -344,9 +390,10 @@ export default function ImageCropModal({
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            backgroundColor: '#0f172a',
+            backgroundColor: '#000000',
             userSelect: 'none',
             touchAction: 'none',
+            cursor: 'crosshair',
           }}
         >
           {imageUrl && (
@@ -365,9 +412,29 @@ export default function ImageCropModal({
             />
           )}
 
+          {/* 캡처 도구 방식: 이미지 영역 위에서 드래그하여 새로 그리는 레이어 */}
+          {renderedSize.width > 0 && (
+            <div
+              onPointerDown={(e) => handlePointerDown('draw', e)}
+              style={{
+                position: 'absolute',
+                left: `${renderedSize.left}px`,
+                top: `${renderedSize.top}px`,
+                width: `${renderedSize.width}px`,
+                height: `${renderedSize.height}px`,
+                cursor: 'crosshair',
+                touchAction: 'none',
+                zIndex: 1,
+              }}
+            />
+          )}
+
           {/* 사각 크롭 조절 박스 */}
           {renderedSize.width > 0 && (
-            <div style={cropBoxStyle} onPointerDown={(e) => handlePointerDown('move', e)}>
+            <div
+              style={{ ...cropBoxStyle, zIndex: 2 }}
+              onPointerDown={(e) => handlePointerDown('move', e)}
+            >
               {/* 그리드 가이드라인 (삼분할선) */}
               <div
                 style={{
@@ -377,7 +444,7 @@ export default function ImageCropModal({
                   gridTemplateColumns: '1fr 1fr 1fr',
                   gridTemplateRows: '1fr 1fr 1fr',
                   pointerEvents: 'none',
-                  opacity: 0.3,
+                  opacity: 0.35,
                 }}
               >
                 <div style={{ borderRight: '1px dashed #fff', borderBottom: '1px dashed #fff' }} />
@@ -391,7 +458,7 @@ export default function ImageCropModal({
                 <div />
               </div>
 
-              {/* 4대 모서리 핸들 (크고 터치하기 편하게 24px) */}
+              {/* 4대 모서리 핸들 (크고 터치하기 편하게 20px) */}
               {['nw', 'ne', 'se', 'sw'].map((handle) => {
                 const isTop = handle.includes('n');
                 const isLeft = handle.includes('w');
@@ -407,13 +474,13 @@ export default function ImageCropModal({
                       right: !isLeft ? -8 : 'auto',
                       width: '20px',
                       height: '20px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: 'var(--accent)',
                       border: '2px solid #ffffff',
                       borderRadius: '4px',
                       cursor: `${handle}-resize`,
                       touchAction: 'none',
                       zIndex: 10,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                     }}
                   />
                 );
@@ -436,11 +503,13 @@ export default function ImageCropModal({
                         transform: isHorizontal ? 'translateX(-50%)' : 'translateY(-50%)',
                         width: isHorizontal ? '32px' : '8px',
                         height: isHorizontal ? '8px' : '32px',
-                        backgroundColor: '#60a5fa',
+                        backgroundColor: 'var(--accent)',
+                        opacity: 0.9,
                         borderRadius: '4px',
                         cursor: `${handle}-resize`,
                         touchAction: 'none',
                         zIndex: 9,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
                       }}
                     />
                   );
@@ -456,8 +525,8 @@ export default function ImageCropModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '14px 20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: '#1e293b',
+            borderTop: '1px solid var(--border)',
+            backgroundColor: 'var(--code-bg)',
             gap: '12px',
             flexWrap: 'wrap',
           }}
@@ -469,9 +538,9 @@ export default function ImageCropModal({
               style={{
                 padding: '8px 14px',
                 borderRadius: '8px',
-                border: '1px solid #475569',
+                border: '1px solid var(--border)',
                 backgroundColor: 'transparent',
-                color: '#cbd5e1',
+                color: 'var(--text)',
                 fontSize: '14px',
                 cursor: 'pointer',
               }}
@@ -484,9 +553,9 @@ export default function ImageCropModal({
               style={{
                 padding: '8px 14px',
                 borderRadius: '8px',
-                border: '1px solid #475569',
+                border: '1px solid var(--border)',
                 backgroundColor: 'transparent',
-                color: '#cbd5e1',
+                color: 'var(--text)',
                 fontSize: '14px',
                 cursor: 'pointer',
               }}
@@ -502,9 +571,9 @@ export default function ImageCropModal({
               style={{
                 padding: '8px 16px',
                 borderRadius: '8px',
-                border: '1px solid #475569',
-                backgroundColor: '#334155',
-                color: '#f8fafc',
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent',
+                color: 'var(--text)',
                 fontSize: '14px',
                 cursor: 'pointer',
               }}
@@ -519,15 +588,16 @@ export default function ImageCropModal({
                 padding: '8px 20px',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                fontSize: '14px',
+                backgroundColor: 'var(--accent)',
+                color: 'var(--accent-fg)',
+                fontSize: '15px',
                 fontWeight: 600,
                 cursor: processing ? 'not-allowed' : 'pointer',
                 opacity: processing ? 0.7 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
               }}
             >
               {processing ? '자르는 중...' : '✂️ 이 영역으로 선택 완료'}
