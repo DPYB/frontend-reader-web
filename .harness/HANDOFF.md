@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-19: 로그인 페이지 신규 UI 적용 및 소셜/체험 버튼 이미지 전환
+- 작업 브랜치: `feat/로그인페이지-신규UI`
+- **배경**: 새 로그인 시안(`loginPage_new`)에 Google 로그인·Kakao 로그인·DPYB 체험하기 버튼이 그려져 들어옴. 기존에는 이 세 버튼이 시안에 없어 CSS로 만든 별도 버튼을 화면 하단에 띄우고 있었음.
+- **에셋 변환 (서재 이미지와 동일한 규칙)**:
+  - `loginPage_new.png`(2560x1440, 5.5MB) → `public/login-bg.webp`(1920x1080, 779KB, quality 92)로 교체. 배경 에셋은 1920px webp 규칙을 따름
+  - `google_button.png` / `kako_button.png` / `dpyb_button.png` → `public/button/{google,kakao,dpyb}_btn.webp`(각 2560x1440 유지, ~9.6KB). 버튼 오버레이는 좌표 정합을 위해 2560x1440 원본 해상도를 유지하는 기존 규칙을 따름(투명 배경 보존)
+  - 변환 후 원본 PNG 4개 삭제
+- **클릭 영역을 "선 안쪽"으로 정밀 산출**:
+  - 세 버튼은 테두리 선만 그려져 있고 내부는 알파 0(완전 투명)임을 픽셀 단위로 확인
+  - 알파 bbox는 366x63(선 외곽 포함), 선 두께는 상하좌우 약 3~4px → 내부 영역은 bbox 기준 x 4~361(358px), y 4~57(54px)
+  - 이를 백분율로 환산해 히트 영역을 선 안쪽에 맞춤: `left 44.0%`, `width 13.98%`, `height 3.75%`, `top` dpyb 80.42% / kakao 85.83% / google 91.25%
+- **수정 내용**:
+  - `app/pages/LoginPage.jsx`:
+    - `BUTTONS` 배열에 `dpyb`/`kakao`/`google` 3개 추가(기존 버튼과 동일한 이미지 레이어 + 히트 영역 방식, hover 밝기 효과 자동 적용)
+    - `handleClick`에 `google`→`handleGoogleClick`, `kakao`→`handleKakaoClick`, `dpyb`→`handleGuestLogin` 연결
+    - `isButtonDisabled(id)` 헬퍼 신설 — 로그인은 입력 검증(`!isLoginEnabled`), 소셜/체험은 요청 중(`loading`) 기준으로 분기(기존엔 로그인 버튼만 disabled 처리)
+    - 기존 CSS 기반 소셜/체험 버튼 JSX(`.login-social-container` 블록) 제거. Google One Tap용 숨김 컨테이너(`googleBtnRef`)는 `renderGoogleButton`이 참조하므로 유지
+  - `app/pages/LoginPage.css`: 미사용이 된 `.login-social-container`, `.login-social-buttons`, `.social-btn*`, `.social-icon`, `.guest-experience-btn`, `.guest-paw-icon` 제거
+  - 기존 버튼(회원가입·비밀번호 찾기·로그인·발바닥 토글)과 입력 필드 좌표는 사용자 요청대로 현재 상태 그대로 유지(변경 없음)
+- **검증**: `npx eslint app/pages/LoginPage.jsx` 통과(0 issue), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 실제 화면에서 세 버튼의 클릭 영역이 선 안쪽에 정확히 맞는지, 16:9가 아닌 화면비에서 배경 `object-fit: cover` 크롭으로 좌표가 밀리지 않는지 육안 확인 권장
+
 ## 2026-09-19: 누디 사서 전용 컬러 팔레트(청록/그린) 전 페이지 적용
 - 작업 브랜치: `feat/누디-컬러-팔레트`
 - **배경**: 고양이(주황)·황새(보라)처럼 사서별 테마 컬러가 `data-librarian` 속성 기반으로 앱 전체(GNB, 채팅, 버튼 등)에 자동 적용되는 기존 구조가 있음. 누디는 이 구조에 아직 값이 없어 항상 고양이(주황) 팔레트로 대체 표시되고 있었음. 사용자가 누디 서재 배경 이미지(청록/그린 톤)와 어울리는 팔레트로 지정 요청.
