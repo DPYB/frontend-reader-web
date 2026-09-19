@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -493,6 +493,10 @@ export default function ImageCropModal({
                   return (
                     <div
                       key={handle}
+                      // react-hooks/refs 오탐 억제: handlePointerDown은 onPointerDown 이벤트가
+                      // 발생할 때만 ref.current를 읽으므로 렌더 중 ref 접근이 아니다. 위쪽 코너
+                      // 핸들의 동일 패턴은 통과하는데 이 .map() 호출부만 규칙이 걸고 넘어진다.
+                      // eslint-disable-next-line react-hooks/refs
                       onPointerDown={(e) => handlePointerDown(handle, e)}
                       style={{
                         position: 'absolute',
