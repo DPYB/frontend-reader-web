@@ -170,23 +170,62 @@ export async function sendChatMessage({
 }
 
 /**
- * 사서에게 실시간 스트리밍 대화 메시지를 요청합니다.
+ * 사서에게 실시간 SSE 스트리밍 대화 메시지를 요청합니다.
+ * 백엔드 POST /chat/stream 엔드포인트와 연동하여 토큰 단위로 실시간 수신합니다.
  *
  * @param {object} params
  * @param {string} params.message - 사용자 질문 메시지
  * @param {string|null} [params.sessionId] - 대화 세션 ID (첫 요청 시 null)
- * @param {string} [params.librarianId] - 사서 id ('cat' | 'stork', 미전달 시 백엔드 기본값 cat)
- * @param {number} [params.latitude] - 사용자 위치 위도 (날씨 연동용, 없으면 백엔드가 서울 기본값 사용)
+ * @param {string} [params.librarianId] - 사서 id ('cat' | 'stork' | 'CAT' 등)
+ * @param {number} [params.latitude] - 사용자 위치 위도 (날씨 연동용)
  * @param {number} [params.longitude] - 사용자 위치 경도
- * @param {(chunk: string, fullText: string) => void} [params.onChunk] - 청크 수신 시 콜백
- * @returns {Promise<{text: string, sessionId: string, switchTo: object|null, signals: object|null, libraryBooks: Array, library_books: Array}|null>} 최종 응답 또는 null(실패 시)
+ * @param {'chat'|'debate'} [params.mode='chat'] - 대화 모드
+ * @param {string|null} [params.persona=null] - 토론 페르소나 ID
+ * @param {string|number|null} [params.bookId=null] - 토론 대상 서재 도서 ID
+ * @param {string|null} [params.topic=null] - 토론 논제
+ * @param {'chat'|'conclude'} [params.action='chat'] - 토론 액션
+ * @param {(delta: string, fullText: string) => void} [params.onToken] - 실시간 텍스트 토큰 수신 콜백
+ * @param {(books: Array) => void} [params.onBooks] - 추천 도서 수신 콜백
+ * @param {(meta: object) => void} [params.onMetadata] - 메타데이터(세션, 날씨 등) 수신 콜백
+ * @param {(suggestion: object) => void} [params.onSwitchSuggestion] - 사서 전환 제안 수신 콜백
+ * @returns {Promise<{text: string, sessionId: string, switchTo: object|null, signals: object|null, libraryBooks: Array, library_books: Array, recommendedBooks: Array, recommended_books: Array, isConcluded: boolean, debateSummary: string|null}|null>} 최종 응답 또는 null(실패 시)
  */
-export async function streamChatMessage({ message, sessionId = null, librarianId = null, latitude = null, longitude = null, onChunk }) {
+export async function streamChatMessage({
+  message,
+  sessionId = null,
+  librarianId = null,
+  latitude = null,
+  longitude = null,
+  mode = 'chat',
+  persona = null,
+  bookId = null,
+  topic = null,
+  action = 'chat',
+  onToken,
+  onBooks,
+  onMetadata,
+  onSwitchSuggestion,
+}) {
   try {
     const payload = {
       message,
       stream: true,
     };
+    if (mode === 'debate' || mode === 'DEBATE') {
+      payload.mode = 'DEBATE';
+    }
+    if (persona) {
+      payload.persona = persona;
+    }
+    if (action && action !== 'chat') {
+      payload.action = action;
+    }
+    if (bookId) {
+      payload.book_id = bookId;
+    }
+    if (topic) {
+      payload.topic = topic;
+    }
     if (sessionId) {
       payload.session_id = sessionId;
     }
@@ -200,7 +239,7 @@ export async function streamChatMessage({ message, sessionId = null, librarianId
       console.warn('[chatApi] 유효하지 않은 좌표라 전송하지 않습니다:', { latitude, longitude });
     }
 
-    const response = await fetchWithTimeout(`${API_BASE}/chat`, {
+    const response = await fetchWithTimeout(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(payload),
@@ -212,52 +251,6 @@ export async function streamChatMessage({ message, sessionId = null, librarianId
       return null;
     }
 
-    // 응답 헤더에서 세션 ID, switchTo, signals, libraryBooks 확인
-    const activeSessionId = response.headers.get('X-Session-Id') || sessionId;
-    const switchToHeader = response.headers.get('X-Switch-To');
-    let switchTo = null;
-    if (switchToHeader) {
-      try {
-        switchTo = JSON.parse(decodeURIComponent(switchToHeader));
-      } catch {
-        try {
-          switchTo = JSON.parse(switchToHeader);
-        } catch {
-          switchTo = null;
-        }
-      }
-    }
-
-    // signals(날씨·무드)는 스트리밍에서 X-Signals 헤더(JSON 문자열)로 전달됨 (없으면 null)
-    let signals = null;
-    const signalsHeader = response.headers.get('X-Signals');
-    if (signalsHeader) {
-      try {
-        signals = JSON.parse(decodeURIComponent(signalsHeader));
-      } catch {
-        try {
-          signals = JSON.parse(signalsHeader);
-        } catch {
-          signals = null;
-        }
-      }
-    }
-
-    // 내 서재 도서 목록(library_books)은 스트리밍에서 X-Library-Books 헤더(JSON 문자열)로 전달될 수 있음
-    let libraryBooks = [];
-    const libraryBooksHeader = response.headers.get('X-Library-Books');
-    if (libraryBooksHeader) {
-      try {
-        libraryBooks = JSON.parse(decodeURIComponent(libraryBooksHeader));
-      } catch {
-        try {
-          libraryBooks = JSON.parse(libraryBooksHeader);
-        } catch {
-          libraryBooks = [];
-        }
-      }
-    }
-
     if (!response.body) {
       console.warn('[chatApi] 스트리밍 응답 바디가 없습니다.');
       return null;
@@ -265,28 +258,113 @@ export async function streamChatMessage({ message, sessionId = null, librarianId
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
-    let fullText = '';
+    let buffer = '';
+    let accumulatedText = '';
+    let currentSessionId = sessionId;
+    let finalSwitchTo = null;
+    let finalSignals = null;
+    let finalBooks = [];
+    let finalIsConcluded = false;
+    let finalDebateSummary = null;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      fullText += chunk;
-      if (onChunk) {
-        onChunk(chunk, fullText);
+
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || '';
+
+      for (const block of parts) {
+        if (!block.trim()) continue;
+
+        let eventType = 'message';
+        let eventDataRaw = '';
+
+        const lines = block.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventType = line.replace('event:', '').trim();
+          } else if (line.startsWith('data:')) {
+            eventDataRaw = line.replace('data:', '').trim();
+          }
+        }
+
+        if (!eventDataRaw) continue;
+
+        let eventData = null;
+        try {
+          eventData = JSON.parse(eventDataRaw);
+        } catch {
+          eventData = eventDataRaw;
+        }
+
+        if (eventType === 'metadata') {
+          if (eventData?.session_id) {
+            currentSessionId = eventData.session_id;
+          }
+          if (eventData?.signals) {
+            finalSignals = eventData.signals;
+          }
+          onMetadata?.(eventData);
+        } else if (eventType === 'token') {
+          const delta = eventData?.delta || '';
+          if (delta) {
+            accumulatedText += delta;
+            onToken?.(delta, accumulatedText);
+          }
+        } else if (eventType === 'books') {
+          const books = eventData?.books || [];
+          finalBooks = books;
+          onBooks?.(books);
+        } else if (eventType === 'switch_suggestion') {
+          finalSwitchTo = eventData;
+          onSwitchSuggestion?.(eventData);
+        } else if (eventType === 'done') {
+          if (eventData?.session_id) {
+            currentSessionId = eventData.session_id;
+          }
+          if (eventData?.reply && !accumulatedText) {
+            accumulatedText = eventData.reply;
+            onToken?.(accumulatedText, accumulatedText);
+          }
+          if (eventData?.switch_suggestion) {
+            finalSwitchTo = eventData.switch_suggestion;
+          }
+          if (eventData?.recommended_books) {
+            finalBooks = eventData.recommended_books;
+          }
+          if (eventData?.signals) {
+            finalSignals = eventData.signals;
+          }
+          if (eventData?.is_concluded != null) {
+            finalIsConcluded = Boolean(eventData.is_concluded);
+          }
+          if (eventData?.debate_summary) {
+            finalDebateSummary = eventData.debate_summary;
+          }
+        } else if (eventType === 'error') {
+          console.warn('[chatApi] SSE 스트리밍 에러 이벤트:', eventData);
+        }
       }
     }
 
     return {
-      text: fullText,
-      switchTo,
-      sessionId: activeSessionId,
-      signals,
-      libraryBooks: Array.isArray(libraryBooks) ? libraryBooks : [],
-      library_books: Array.isArray(libraryBooks) ? libraryBooks : [],
+      text: accumulatedText,
+      sessionId: currentSessionId,
+      switchTo: finalSwitchTo,
+      signals: finalSignals,
+      libraryBooks: [],
+      library_books: [],
+      recommendedBooks: finalBooks,
+      recommended_books: finalBooks,
+      isConcluded: finalIsConcluded,
+      is_concluded: finalIsConcluded,
+      debateSummary: finalDebateSummary,
+      debate_summary: finalDebateSummary,
     };
   } catch (err) {
-    console.warn('[chatApi] 스트리밍 실패, 로컬 fallback 사용:', err.message);
+    console.warn('[chatApi] 스트리밍 실패, fallback 처리:', err.message);
     return null;
   }
 }
