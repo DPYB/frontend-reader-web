@@ -1,5 +1,32 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 토론 모드 UI 간소화, 채팅창 확장, 날씨 뱃지 정리
+- 작업 브랜치: `fix/채팅-로딩위치` (로딩 위치 수정에 이어서 진행)
+- **사용자 요청 요약**: (1) 탭 "사서 토론" → "토론" (2) 토론 대화 시작 전 화면엔 카드 4개만, 배너/대형 버튼 제거 (3) 토론자 카드 클릭 즉시 카드가 사라지고 상단 고정 배너(끝내기+설정)만 노출, 스크롤해도 고정 (4) "마무리" → "끝내기" 용어 통일 (5) 채팅창 세로 길이 확장 (6) "토론 대상 도서 선택" 드롭다운 제거, 토론자 선택은 카드 유지 (7) 날씨 뱃지 온도 반올림 및 중복 제거, description 간결화(괄호/"기온" 단어 제거)해 분위기 태그와 한 줄에 들어가도록.
+- **수정 내용**: `app/features/room/LibrarianChat.jsx`
+  - 탭 라벨 "💡 사서 토론" → "💡 토론"
+  - 토론 상단 고정 배너를 스크롤 영역(`lc-content-body`) **바깥**, 탭 아래로 이동 — `chatMode === 'debate' && debateCollapsed`일 때만 렌더링되어 대화 시작 후(카드 클릭 시점)부터 나타나고 스크롤해도 항상 보임
+  - 스크롤 영역 안의 토론 뷰는 `!debateCollapsed`(카드 선택 화면)일 때만 렌더링 — 도서 선택 드롭다운과 대형 "토론 마무리 및 맞춤 책 추천받기" 버튼 완전 제거, 토론자 4인 카드만 남김
+  - 토론자 카드 `onClick`에 `setDebaterPersona(dp.id)` + `setDebateCollapsed(true)`를 함께 호출해 클릭 즉시 카드 화면이 사라지고 상단 고정 배너로 전환되도록 함(기존엔 첫 메시지를 보내야 접혔음)
+  - 도서 선택 자체를 제거함에 따라 `debateBookId`/`setDebateBookId`/`selectedDebateBook` state와 모든 참조(배너 타이틀, `sendQuery`의 `bookId`, `handleConcludeDebate`의 도서명 조합)를 정리 — 이제 토론은 항상 "일반 주제"로 시작
+  - 미니 배너 버튼/타이틀의 "마무리" 텍스트를 "끝내기"로 변경(`title`, 버튼 라벨)
+  - 채팅창 `maxHeight`를 `min(420px, calc(100vh - 180px))` → `min(700px, calc(100vh - 173px))`로 확장(GNB 높이 약 60px + 여유 약 3cm 정도만 상단에 남기도록 상한 축소)
+  - `app/features/room/LibrarianChat.css`: 미사용이 된 `.lc-debate-select`, `.lc-debate-conclude-btn` 스타일 제거(미니 배너의 `.lc-debate-mini-conclude-btn`은 계속 사용)
+- **수정 내용**: `app/features/room/WeatherMoodBadge.jsx`
+  - description(예: `"맑음(쾌청한 하늘), 기온 19.4°C"`)을 정리하는 후처리 체인 추가: 괄호 부연설명 제거 → `"기온"` 단어 제거 → 온도 소수점 반올림 → 결과 `"맑음, 19°C"`
+  - description에 이미 `°C`가 포함되어 있으면 뱃지가 별도로 덧붙이던 근사 온도(`≈19°C`)를 표시하지 않도록 해 온도가 중복 표시(예: `"기온 18°C ≈18°C"`)되던 버그 수정
+  - 문구가 짧아져 분위기 태그가 같은 줄에 들어가고 줄바꿈이 줄어듦
+- **검증**: `npx eslint` 관련 파일 전체 통과(기존 warning만 유지, 신규 에러 0건), `npm run build` 성공(dist 삭제 완료)
+
+## 2026-09-20: 채팅 로딩 인디케이터 위치를 메시지 목록 안으로 이동
+- 작업 브랜치: `fix/채팅-로딩위치`
+- **배경**: 질문을 보내면 로딩 애니메이션(LoadingSequence)이 메신저형 대화 히스토리(`lc-messages-list`) 위쪽에 렌더링되고 있어, 대화가 쌓일수록 로딩 표시가 스크롤 위로 밀려 안 보이는 문제. 자동 스크롤(`messagesEndRef`)은 메시지 목록 바로 아래에 있어 로딩 블록까지는 안 따라갔음.
+- **수정 내용**: `app/features/room/LibrarianChat.jsx`
+  - 기존에 메시지 목록보다 위에 있던 `{loading && (<LoadingSequence .../>)}` 블록을 `lc-messages-list`(`display:flex; flex-direction:column`) 내부, `.map()` 렌더링 뒤로 이동
+  - 이제 로딩 블록이 방금 보낸 사용자 질문(마지막 메시지) 바로 아래에 나타나고, 응답이 오면 그 자리에서 사라지며 메신저형 UI 흐름과 자연스럽게 이어짐. 자동 스크롤도 메시지 목록 끝을 따라가므로 로딩 표시가 항상 화면에 보임
+  - 로직/스타일 변경 없이 JSX 위치만 이동
+- **검증**: `npx eslint app/features/room/LibrarianChat.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공(dist 삭제 완료)
+
 ## 2026-09-19: 백엔드 최신화 재검토 및 스트리밍 채팅 library_books 필드 반영
 - 작업 브랜치: `fix/스트리밍-library-books`
 - **배경**: 프론트/백엔드 매칭 검토를 진행하던 중 팀원이 두 백엔드 레포(backend-core-api, backend-ai-agent)를 모두 최신화. 이전 검토 시점과 달라진 부분을 다시 대조.

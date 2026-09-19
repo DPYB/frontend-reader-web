@@ -181,21 +181,6 @@
   color: var(--text);
 }
 
-.lc-debate-select {
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-h);
-  font-size: 13px;
-  outline: none;
-}
-
-.lc-debate-select:focus {
-  border-color: var(--accent);
-}
-
 .lc-debate-banner {
   background: linear-gradient(135deg, var(--accent-bg), transparent);
   border: 1px solid var(--accent-border);
@@ -343,40 +328,6 @@
   overflow: hidden;
 }
 
-/* 토론 피날레(마무리 및 맞춤 책 추천) 액션 버튼 */
-.lc-debate-conclude-btn {
-  margin-top: 8px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--accent-border);
-  background: linear-gradient(135deg, var(--accent-bg), var(--code-bg));
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.lc-debate-conclude-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  transform: translateY(-1px);
-}
-
-.lc-debate-conclude-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
 /* 🧠 토론 기억 저장 완료 뱃지 */
 .lc-debate-concluded-badge {
   display: flex;
@@ -429,6 +380,7 @@
     opacity: 0;
     transform: translateY(-3px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

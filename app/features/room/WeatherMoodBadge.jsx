@@ -61,11 +61,33 @@ const TEMP_NOTE = '실제 기온과 약 2~3°C 차이가 날 수 있어요.';
 function WeatherChip({ weather }) {
   const [hover, setHover] = useState(false);
   const emoji = WEATHER_EMOJI[weather.condition] || '🌡️';
-  const desc = weather.description || '';
   const source = weather.location_source;
 
-  // "user"이고 온도가 있을 때만 온도 표시 (기상 모델 추정치라 근사 표시 '≈')
-  const showTemp = source === 'user' && weather.temperature != null;
+  /*
+   * 백엔드 description(예: "맑음(쾌청한 하늘), 기온 19.4°C")을 짧게 정리한다
+   * (사용자 요청, 2026-09):
+   *  1. 괄호 부연설명 제거 → "맑음(쾌청한 하늘)" → "맑음"
+   *  2. "기온" 단어 제거 → 단위(°C)만 봐도 온도인 걸 알 수 있어 불필요
+   *  3. 소수점 온도를 반올림
+   * 결과: "맑음(쾌청한 하늘), 기온 19.4°C" → "맑음, 19°C"
+   * 길이가 줄어야 같은 줄에 분위기 태그가 함께 들어간다(줄바꿈 방지).
+   */
+  const rawDesc = weather.description || '';
+  const desc = rawDesc
+    .replace(/\([^)]*\)/g, '')
+    .replace(/기온\s*/g, '')
+    .replace(/(-?\d+(?:\.\d+)?)(\s*)°C/, (_match, num, space) => `${Math.round(Number(num))}${space}°C`)
+    .replace(/\s*,\s*/g, ', ')
+    .trim();
+
+  /*
+   * description에 이미 "°C" 온도가 포함되어 있으면 뱃지가 덧붙이는 근사 온도(≈19°C)는
+   * 중복이라 표시하지 않는다. 예전엔 source==='user'이면 항상 tempText를 추가로
+   * 붙여서 "기온 18°C ≈18°C"처럼 온도가 두 번 나오는 문제가 있었다(사용자 제보,
+   * 2026-09). description에 온도가 없는 경우에만 근사 온도를 보조로 붙인다.
+   */
+  const descHasTemp = /°C/.test(rawDesc);
+  const showTemp = source === 'user' && weather.temperature != null && !descHasTemp;
   const tempText = showTemp ? ` ≈${Math.round(weather.temperature)}°C` : '';
 
   return (
