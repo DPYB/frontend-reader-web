@@ -218,23 +218,6 @@
   max-width: 320px;
 }
 
-.login-social-divider {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  color: rgba(42, 24, 9, 0.65);
-  font-size: 13px;
-  font-weight: 600;
-  gap: 12px;
-}
-
-.login-social-divider::before,
-.login-social-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(42, 24, 9, 0.2);
-}
 
 .login-social-buttons {
   display: flex;

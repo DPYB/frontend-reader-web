@@ -343,11 +343,8 @@ export default function LoginPage() {
         );
       })}
 
-      {/* 소셜 로그인 기본 버튼 와꾸 (디자이너 최종 그래픽 적용 전 임시 레이아웃) */}
+      {/* 소셜 로그인 및 체험 모드 버튼 */}
       <div className="login-social-container">
-        <div className="login-social-divider">
-          <span>간편 로그인</span>
-        </div>
         <div className="login-social-buttons">
           <button
             type="button"

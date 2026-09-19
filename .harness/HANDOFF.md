@@ -9,10 +9,12 @@
   - `app/pages/LoginPage.css`:
     - `.login-hit-area`의 `z-index`를 `3`에서 `6`으로 상향하여 인풋 필드(`z-index: 4`) 위에서 항상 클릭 이벤트를 수신하도록 보장.
     - `.login-social-container`의 위치를 `top: 73%`에서 `bottom: 3.5vh` 기준으로 변경하여 화면 세로가 길어져도 하단에 안정적으로 고정되도록 개선.
+    - 간편로그인 구분선(`login-social-divider`) 및 텍스트를 제거하여 일러스트 테마와 어울리도록 미니멀하게 정리.
   - `app/pages/LoginPage.jsx`:
     - `INPUT_FIELDS`의 `id` 너비를 `15.2%`에서 `17.5%`로 확장하여 긴 이메일이 잘리지 않도록 개선.
     - 발바닥 눈 버튼(`eye`) 히트 영역의 너비와 높이를 `width: 2.2%`, `height: 3.8%`, `left: 59.2%`로 최적화하여 클릭 범위를 넓힘.
     - 발바닥 클릭 타이머를 `useRef`(`eyeTimerRef`)로 관리하고 컴포넌트 언마운트 시 클린업 로직 추가.
+    - 소셜 로그인 구분선 영역 제거.
 - **검증**:
   - `npx tsc --noEmit` 통과 (0 errors).
   - `npm run lint` 통과 (기존 경고 6건 외 신규 경고/에러 0건).
