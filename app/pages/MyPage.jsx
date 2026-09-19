@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { changePassword, deleteMe, logout, updateMe, ApiError } from '../api/authApi';
 import { useAuth } from '../store/authStore';
+import ImageCropModal from '../components/ImageCropModal';
 import './MyPage.css';
 
-// 회원이 프로필 사진을 올리지 않았을 때 쓰는 기본 아바타 (고양이 사서 프로필 이미지 재사용)
-const DEFAULT_PROFILE_IMAGE = '/profile/cat.webp';
+// 회원이 프로필 사진을 올리지 않았을 때 쓰는 기본 아바타 (깔끔한 기본 실루엣)
+const DEFAULT_PROFILE_IMAGE = '/profile/default_avatar.svg';
+
 // 백엔드 gender(MALE/FEMALE) → 화면 표시용 한글
 const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 const GENDER_MAP = { 남성: 'MALE', 여성: 'FEMALE', '선택 안 함': null };
@@ -44,8 +46,14 @@ export default function MyPage() {
   // 마이페이지 진입 시 기본으로 '내 정보'만 보이도록, 왼쪽 메뉴로 섹션 전환
   const [activeTab, setActiveTab] = useState('info');
 
+  // ── 프로필 사진 변경 ──
+  const profileFileInputRef = useRef(null);
+  const [cropImageFile, setCropImageFile] = useState(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
   // ── 내 정보 수정 ──
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+
   const [editNickname, setEditNickname] = useState('');
   const [editBirthDate, setEditBirthDate] = useState('');
   const [editGender, setEditGender] = useState('선택 안 함');
@@ -116,8 +124,51 @@ export default function MyPage() {
     }
   };
 
+  // 프로필 사진 파일 선택 시 크롭 모달 열기
+  const handleProfileFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCropImageFile(file);
+    }
+    // 재선택 가능하게 input 초기화
+    e.target.value = '';
+  };
+
+  // 1:1 크롭 완료 시 백엔드 PATCH /users/me 호출
+  const handleProfileCropComplete = async (croppedBlob, croppedDataUrl) => {
+    setCropImageFile(null);
+    if (isGuest) {
+      // 게스트 모드일 때는 세션 내 즉각 반영
+      setMember((prev) => ({ ...prev, profile_image_url: croppedDataUrl }));
+      setInfoSuccess(true);
+      return;
+    }
+
+    setAvatarLoading(true);
+    setInfoError('');
+    try {
+      // Data URL을 profile_image_url로 전송
+      const updated = await updateMe({ profile_image_url: croppedDataUrl });
+      if (updated) {
+        setMember(updated);
+      } else {
+        setMember((prev) => ({ ...prev, profile_image_url: croppedDataUrl }));
+      }
+      setInfoSuccess(true);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setInfoError(err.message || '프로필 사진 변경 실패');
+      } else {
+        setInfoError('프로필 사진 저장 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
   // 내 정보 수정 시작
   const handleStartEdit = () => {
+
     setEditNickname(member?.nickname ?? '');
     setEditBirthDate(member?.birthDate || member?.birth_date || '');
     const currentGender = member?.gender === 'MALE' ? '남성' : member?.gender === 'FEMALE' ? '여성' : '선택 안 함';
@@ -215,7 +266,25 @@ export default function MyPage() {
                   height={102}
                   decoding="async"
                 />
+                <input
+                  ref={profileFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleProfileFileChange}
+                />
+                <button
+                  type="button"
+                  className="mypage-avatar-edit-btn"
+                  onClick={() => profileFileInputRef.current?.click()}
+                  disabled={avatarLoading}
+                  title="프로필 사진 변경"
+                  aria-label="프로필 사진 변경"
+                >
+                  📷
+                </button>
               </div>
+
 
               {infoSuccess && <p className="mypage-success">회원 정보가 수정되었습니다.</p>}
 
@@ -438,6 +507,19 @@ export default function MyPage() {
           </div>
         </div>
       )}
+
+      {/* 프로필 사진 1:1 크롭 모달 */}
+      {cropImageFile && (
+        <ImageCropModal
+          imageSource={cropImageFile}
+          title="프로필 사진 맞추기"
+          aspectMode="square"
+          onCropComplete={handleProfileCropComplete}
+          onClose={() => setCropImageFile(null)}
+        />
+      )}
     </section>
   );
+
 }
+

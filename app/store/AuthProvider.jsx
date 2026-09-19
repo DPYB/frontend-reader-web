@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
               sub: guestSub,
               email: 'guest@dpyb.local',
               nickname: '체험 손님 🐾',
+              profile_image_url: '/profile/clia.png',
               role: 'guest',
             });
             setStatus('authenticated');
@@ -145,6 +146,7 @@ export function AuthProvider({ children }) {
         sub: guestSub,
         email: 'guest@dpyb.local',
         nickname: '체험 손님 🐾',
+        profile_image_url: '/profile/clia.png',
         role: 'guest',
       };
       setMember(guestMember);
@@ -159,6 +161,7 @@ export function AuthProvider({ children }) {
       sub: guestSub,
       email: 'guest@dpyb.local',
       nickname: '체험 손님 🐾',
+      profile_image_url: '/profile/clia.png',
       role: 'guest',
     };
     setMember(guestMember);
@@ -166,6 +169,7 @@ export function AuthProvider({ children }) {
     setStatus('authenticated');
     return data;
   }, []);
+
 
   const logout = useCallback(async () => {
     // 우회 모드에서는 서버 세션이 없으므로 로컬 상태만 정리한다.
