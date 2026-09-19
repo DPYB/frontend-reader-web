@@ -152,18 +152,21 @@
 /* 성별 라디오 */
 .signup-gender-row {
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .signup-radio {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 17px;
+  gap: 4px;
+  font-size: 15px;
   color: var(--text-h);
   cursor: pointer;
+  white-space: nowrap;
 }
+
 
 .signup-radio input[type='radio'] {
   accent-color: var(--accent);

@@ -14,8 +14,9 @@ const TERMS_FALLBACK_NAME = {
 
 // 비밀번호 정책: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PW_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-// 폼 표시용 성별(한글) → 백엔드 계약(MALE/FEMALE) 매핑
-const GENDER_MAP = { 남성: 'MALE', 여성: 'FEMALE' };
+// 폼 표시용 성별(한글) → 백엔드 계약(MALE/FEMALE/null) 매핑
+const GENDER_MAP = { 남성: 'MALE', 여성: 'FEMALE', '선택 안 함': null };
+
 
 /**
  * 생년월일로 선택 가능한 최댓값 (어제, 로컬 타임존 기준 YYYY-MM-DD).
@@ -316,9 +317,20 @@ export default function SignupPage() {
                   />
                   <span>여성</span>
                 </label>
+                <label className="signup-radio">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="선택 안 함"
+                    checked={form.gender === '선택 안 함'}
+                    onChange={handleChange}
+                  />
+                  <span>선택 안 함</span>
+                </label>
               </div>
             </div>
           </div>
+
 
           {/* 약관 동의 (3개) */}
           <div className="signup-field signup-terms">
