@@ -131,13 +131,47 @@ const DEFAULT_FALLBACK_DATA = {
 // 도넛 차트용 파스텔 톤 테마 색상 팔레트
 const PIE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 
+// 서비스 런칭 시점 (2026년 9월)
+const SERVICE_START_YEAR = 2026;
+const SERVICE_START_MONTH = 9;
+
+// 서비스 런칭월부터 현재 월까지의 선택 가능 목록 동적 생성 (최신순 정렬)
+function getAvailableMonths() {
+  const list = [];
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
+
+  let y = curYear;
+  let m = curMonth;
+
+  // 만약 로컬 시간이 2026년 9월 이전(테스트 환경 등)인 경우 기본 2026년 9월 1개 노출
+  if (y < SERVICE_START_YEAR || (y === SERVICE_START_YEAR && m < SERVICE_START_MONTH)) {
+    return [{ year: SERVICE_START_YEAR, month: SERVICE_START_MONTH, label: `${SERVICE_START_YEAR}년 ${SERVICE_START_MONTH}월` }];
+  }
+
+  while (y > SERVICE_START_YEAR || (y === SERVICE_START_YEAR && m >= SERVICE_START_MONTH)) {
+    list.push({
+      year: y,
+      month: m,
+      label: `${y}년 ${m}월`,
+    });
+    m -= 1;
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  return list;
+}
+
 export default function MonthlyReport() {
   const { librarian } = useLibrarian();
   const reportRef = useRef(null);
 
-  const currentDate = new Date();
-  const [year, setYear] = useState(currentDate.getFullYear());
-  const [month, setMonth] = useState(currentDate.getMonth() + 1);
+  const availableMonths = useMemo(() => getAvailableMonths(), []);
+  const [year, setYear] = useState(() => availableMonths[0]?.year || 2026);
+  const [month, setMonth] = useState(() => availableMonths[0]?.month || 9);
 
   const [, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -301,9 +335,11 @@ export default function MonthlyReport() {
               setMonth(Number(m));
             }}
           >
-            <option value="2026-9">2026년 9월</option>
-            <option value="2026-8">2026년 8월</option>
-            <option value="2026-7">2026년 7월</option>
+            {availableMonths.map((opt) => (
+              <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
+                {opt.label}
+              </option>
+            ))}
           </select>
 
           <button
