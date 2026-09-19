@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { changePassword, deleteMe, logout, ApiError } from '../api/authApi';
+import { changePassword, deleteMe, logout, updateMe, ApiError } from '../api/authApi';
 import { useAuth } from '../store/authStore';
 import './MyPage.css';
 
@@ -8,6 +8,16 @@ import './MyPage.css';
 const DEFAULT_PROFILE_IMAGE = '/profile/cat.webp';
 // 백엔드 gender(MALE/FEMALE) → 화면 표시용 한글
 const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
+const GENDER_MAP = { 남성: 'MALE', 여성: 'FEMALE', '선택 안 함': null };
+
+function maxBirthDateString() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yyyy = yesterday.getFullYear();
+  const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const dd = String(yesterday.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 // 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PW_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -20,16 +30,24 @@ const MENU_ITEMS = [
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const { member, isGuest } = useAuth();
+  const { member, setMember, isGuest } = useAuth();
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
   const profileImage = member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
   const email = member?.email ?? '';
-  const birthDate = member?.birth_date ?? (isGuest ? '체험 계정' : '');
-  const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '');
+  const birthDate = member?.birth_date ?? (isGuest ? '체험 계정' : '-');
+  const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '선택 안 함');
 
   // 마이페이지 진입 시 기본으로 '내 정보'만 보이도록, 왼쪽 메뉴로 섹션 전환
   const [activeTab, setActiveTab] = useState('info');
+
+  // ── 내 정보 수정 ──
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [editBirthDate, setEditBirthDate] = useState('');
+  const [editGender, setEditGender] = useState('선택 안 함');
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoError, setInfoError] = useState('');
+  const [infoSuccess, setInfoSuccess] = useState(false);
 
   // ── 비밀번호 ──
   const [pwOpen, setPwOpen] = useState(false);
@@ -94,6 +112,50 @@ export default function MyPage() {
     }
   };
 
+  // 내 정보 수정 시작
+  const handleStartEdit = () => {
+    setEditBirthDate(member?.birth_date ?? '');
+    const currentGender = member?.gender === 'MALE' ? '남성' : member?.gender === 'FEMALE' ? '여성' : '선택 안 함';
+    setEditGender(currentGender);
+    setInfoError('');
+    setInfoSuccess(false);
+    setIsEditingInfo(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingInfo(false);
+    setInfoError('');
+  };
+
+  const handleSaveInfo = async (e) => {
+    e.preventDefault();
+    if (infoLoading) return;
+    setInfoLoading(true);
+    setInfoError('');
+    setInfoSuccess(false);
+
+    try {
+      const payload = {
+        birth_date: editBirthDate ? editBirthDate : null,
+        gender: GENDER_MAP[editGender] ?? null,
+      };
+      const updated = await updateMe(payload);
+      if (updated) {
+        setMember(updated);
+      }
+      setInfoSuccess(true);
+      setIsEditingInfo(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setInfoError(err.message || '회원정보 수정 중 오류가 발생했습니다.');
+      } else {
+        setInfoError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    } finally {
+      setInfoLoading(false);
+    }
+  };
+
   // 계정 탈퇴: DELETE /users/me 후 쿠키 정리를 위해 logout 호출 → 로그인 화면
   const handleWithdraw = async () => {
     if (withdrawLoading) return;
@@ -145,16 +207,77 @@ export default function MyPage() {
                 />
               </div>
 
-              <dl className="mypage-info">
-                <div className="mypage-info-row">
-                  <dt>생년월일</dt>
-                  <dd>{birthDate}</dd>
-                </div>
-                <div className="mypage-info-row">
-                  <dt>성별</dt>
-                  <dd>{gender}</dd>
-                </div>
-              </dl>
+              {infoSuccess && <p className="mypage-success">회원 정보가 수정되었습니다.</p>}
+
+              {isEditingInfo ? (
+                <form className="mypage-info-edit-form" onSubmit={handleSaveInfo}>
+                  <div className="mypage-info-edit-group">
+                    <label className="mypage-info-edit-label" htmlFor="mypage-birthdate">생년월일</label>
+                    <input
+                      id="mypage-birthdate"
+                      type="date"
+                      className="mypage-text-input"
+                      value={editBirthDate}
+                      max={maxBirthDateString()}
+                      onChange={(e) => setEditBirthDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="mypage-info-edit-group">
+                    <span className="mypage-info-edit-label">성별</span>
+                    <div className="mypage-gender-row">
+                      {['남성', '여성', '선택 안 함'].map((opt) => (
+                        <label key={opt} className="mypage-gender-option">
+                          <input
+                            type="radio"
+                            name="mypage-gender"
+                            value={opt}
+                            checked={editGender === opt}
+                            onChange={() => setEditGender(opt)}
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {infoError && <p className="mypage-error">{infoError}</p>}
+
+                  <div className="mypage-btn-row mypage-btn-row--center">
+                    <button type="submit" className="mypage-btn mypage-btn--primary" disabled={infoLoading}>
+                      {infoLoading ? '저장 중...' : '저장'}
+                    </button>
+                    <button type="button" className="mypage-btn mypage-btn--ghost" onClick={handleCancelEdit} disabled={infoLoading}>
+                      취소
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <dl className="mypage-info">
+                    <div className="mypage-info-row">
+                      <dt>생년월일</dt>
+                      <dd>{birthDate}</dd>
+                    </div>
+                    <div className="mypage-info-row">
+                      <dt>성별</dt>
+                      <dd>{gender}</dd>
+                    </div>
+                  </dl>
+
+                  {!isGuest && (
+                    <div className="mypage-btn-row mypage-btn-row--center">
+                      <button
+                        type="button"
+                        className="mypage-nickname-edit-btn"
+                        onClick={handleStartEdit}
+                      >
+                        내 정보 수정
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
