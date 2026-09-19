@@ -1,5 +1,18 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-19: 누디 서재 전용 배경 이미지 적용
+- 작업 브랜치: `feature/누디-서재-배경`
+- **배경**: 사용자가 누디(nudi) 서재용 배경 이미지(`readingroom_nudi.png`, 2560x1440)를 제공. 블루/슈빌과 동일한 방식으로 내 서재 배경으로 적용.
+- **수정 내용**:
+  - `public/room/readingroom_nudi.png` → `readingroom_nudi.webp`로 변환(1920x1080, 6.4MB→474KB, cat/stork와 동일 해상도·포맷 규칙) 후 원본 PNG 삭제
+  - `app/features/room/shelfLayout.js`:
+    - `BG_SRC_NUDI = '/room/readingroom_nudi.webp'` 상수 추가
+    - `BG_SRC_BY_LIBRARIAN`(사서id → 배경 매핑) 및 `getBgSrc(librarianId)` 헬퍼 신설 — 기존엔 `LibraryScene.jsx`에 `librarianId === 'stork' ? BG_SRC_STORK : BG_SRC_CAT` 3항 연산자로 cat/stork 2개만 하드코딩되어 있어 사서가 늘어날수록 분기가 불어나는 구조였음. 매핑 테이블 방식으로 바꿔 신규 사서 배경 추가 시 이 객체에 한 줄만 추가하면 되도록 확장성 확보
+    - 카메라/선반 배치(`CAMERA_BY_LIBRARIAN`/`SHELVES_BY_LIBRARIAN`)는 누디 전용 값이 아직 없어 기존과 동일하게 고양이 기준으로 대체(변경 없음) — 배경 이미지만 전용화
+  - `app/features/room/LibraryScene.jsx`: `BG_SRC_CAT`/`BG_SRC_STORK` 개별 import 및 3항 분기를 `getBgSrc(librarianId)` 호출로 교체
+- **검증**: `npx eslint` 통과(기존 warning 1건 외 신규 0건), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 누디 전용 카메라/선반 배치, 글로우 컬러(`GLOW_COLOR`)는 여전히 고양이 대체 중(BACKLOG 기존 항목 유지)
+
 ## 2026-09-19: 로그인 화면 UI 레이아웃 및 발바닥 버튼 인터랙션 개선
 - **배경**:
   - 비밀번호 입력칸 우측 발바닥 버튼 클릭 시 비밀번호가 3초간 평문으로 표시되는 기능이 마우스 클릭 이벤트를 받지 못하는 현상 해결.
