@@ -105,8 +105,21 @@ export function formatRecommendedBooks(recommendedBooks) {
 }
 
 /**
- * 마크다운 텍스트에서 추천 도서 제목 목록만 최소한으로 추출 (fallback 용도)
- * 기존의 복잡한 저자/쪽수 정규식 파싱을 제거하고 수동 입력을 유도합니다. (CLIAR-229)
+ * 도서명 공백 및 특수기호 무시 정규화 (책 매칭 및 비교용)
+ * @param {string} str
+ * @returns {string}
+ */
+export function normalizeTitle(str) {
+  return (str || '')
+    .trim()
+    .replace(/[\s\-_:.,·'"`『』《》()（）]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * 마크다운 텍스트에서 추천 도서 목록 추출 (fallback 용도)
+ * 1) 표준 헤딩: ### 📖 {제목}
+ * 2) 번호 매김 목록: 1. 《제목》 - 저자, 1. 『제목』 - 저자, 1. **《제목》** 등
  * @param {string} text - AI 사서의 답변 텍스트
  * @returns {Array<{title: string, author: string, page_count: null, totalPage: null, currentPage: number, colorIdx: number, thickness: number}>}
  */
@@ -116,12 +129,8 @@ export function extractBooksFromAnswer(text) {
   const books = [];
   const seenTitles = new Set();
 
-  // 마크다운 추천 도서 헤딩(### 📖) 패턴만 단순 추출
-  const headingRegex = /^###\s*📖\s*([^\n]+)/gm;
-  let match;
-  while ((match = headingRegex.exec(text)) !== null) {
-    const rawTitle = match[1] || '';
-    const cleanTitle = rawTitle
+  const addBook = (rawTitle, rawAuthor = '') => {
+    const cleanTitle = (rawTitle || '')
       .trim()
       .replace(/^[『《"“'‘`<>\s]+|[』》"”'’`<>\s]+$/g, '')
       .replace(/\s+/g, ' ')
@@ -129,15 +138,39 @@ export function extractBooksFromAnswer(text) {
 
     if (cleanTitle && cleanTitle.length >= 1 && cleanTitle.length <= 60 && !seenTitles.has(cleanTitle)) {
       seenTitles.add(cleanTitle);
+      const cleanAuthor = (rawAuthor || '')
+        .trim()
+        .replace(/^[(\s]+|[)\s]+$/g, '')
+        .trim();
+
       books.push({
         title: cleanTitle,
-        author: '', // 정규식 파싱 제거 -> 수동 입력 fallback
-        page_count: null, // 정규식 쪽수 파싱 제거 -> 수동 입력 fallback
+        author: cleanAuthor,
+        page_count: null,
         totalPage: null,
         currentPage: 0,
         colorIdx: getColorIndex(cleanTitle),
-        thickness: 0.22,
+        thickness: DEFAULT_THICKNESS,
       });
+    }
+  };
+
+  // 1. 표준 마크다운 추천 도서 헤딩(### 📖 {도서명}) 패턴 추출
+  const headingRegex = /^#{1,4}\s*📖\s*([^\n]+)/gm;
+  let match;
+  while ((match = headingRegex.exec(text)) !== null) {
+    addBook(match[1]);
+  }
+
+  // 2. 표준 헤딩이 없는 경우: 번호 매김 형식(1. 《도서명》 - 저자 또는 1. 『도서명』) 추출
+  if (books.length === 0) {
+    const numberedBookRegex = /^\s*\d+\.\s*(?:\*\*)?[『《]([^』》]+)[』》](?:\*\*)?(?:\s*[-–—:]\s*([^\n]+))?/gm;
+    while ((match = numberedBookRegex.exec(text)) !== null) {
+      const title = match[1];
+      const authorPart = match[2] || '';
+      // 저자 부분에서 '에세이', '소설' 등 장르 수식어가 붙어 있는 경우 첫 단어/쉼표 전 저자 추출
+      const cleanAuthor = authorPart.split(/[,\n]/)[0].trim();
+      addBook(title, cleanAuthor);
     }
   }
 
@@ -146,6 +179,7 @@ export function extractBooksFromAnswer(text) {
 
 /**
  * 텍스트에서 내 서재 도서 목록(### 📚)을 추출합니다. (ADR 0006 / CLIAR-211)
+ * 단독 이모지(📚)나 2자 이하/30자 초과의 서두 문구는 도서로 오탐하지 않도록 필터링합니다.
  * @param {string} text - AI 사서의 답변 텍스트
  * @returns {Array<{title: string, author: string, status: string}>} 추출된 내 서재 도서 목록
  */
@@ -165,7 +199,8 @@ export function extractLibraryBooksFromAnswer(text) {
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (cleanTitle && !seenTitles.has(cleanTitle)) {
+    // 단독 이모지이거나 너무 긴 섹션 문구(예: "누디가 건네는 따뜻한 온기의 책")는 필터링
+    if (cleanTitle && cleanTitle.length >= 1 && cleanTitle.length <= 40 && !seenTitles.has(cleanTitle)) {
       seenTitles.add(cleanTitle);
       const authorMatch = body.match(/\*\*저자\*\*\s*[:：]\s*([^\n]+)/);
       const statusMatch = body.match(/\*\*독서\s*상태\*\*\s*[:：]\s*([^\n]+)/);
@@ -181,3 +216,4 @@ export function extractLibraryBooksFromAnswer(text) {
 
   return books;
 }
+

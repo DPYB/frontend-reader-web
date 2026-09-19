@@ -34,33 +34,10 @@ function getShortBubbleText(rawText, librarian, answer) {
   const text = rawText.replace(/<br\s*\/?>/gi, '\n').trim();
   const libId = librarian?.id;
 
-  // 1. 내 서재 도서 결과 (ADR 0006: ### 📚 또는 library_books)
-  const isLibrary = text.includes('### 📚') || (answer?.library_books && answer.library_books.length > 0);
-  if (isLibrary) {
-    if (libId === 'stork') {
-      return `✨ 두둥! 서재에서 도서를 확인했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
-    }
-    if (libId === 'nudi') {
-      return `✨ 서재에서 소중한 책을 찾았어요 누누... 🐌\n아래 채팅창에서 확인해 보세요`;
-    }
-    if (libId === 'gecko') {
-      return `✨ 서재에서 도서를 바로 찾아냈지 크크! 🦎\n아래 채팅창에서 확인해봐`;
-    }
-    return `✨ 서재에서 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
-  }
-
-  // 2. 짧은 문구(로딩 중, 사서 변경 알림, 단순 안내 등)는 마크다운 기호 정제 후 표시
-  if (text.length <= 80 && text.split('\n').length <= 2) {
-    return text
-      .replace(/^#{1,4}\s+/gm, '')
-      .replace(/\*\*/g, '')
-      .replace(/^[-*•]\s+/gm, '')
-      .trim();
-  }
-
-  // 3. 도서 추천 결과 (recommended_books 구조화 데이터 또는 ### 📖 마크다운)
+  // 1. 도서 추천 결과 (recommended_books 구조화 데이터 또는 ### 📖 또는 1. 《도서명》 마크다운)
   const backendRec = answer?.recommended_books || answer?.recommendedBooks || [];
-  const isRecommend = backendRec.length > 0 || text.includes('### 📖');
+  const hasRecPattern = text.includes('### 📖') || /^\s*\d+\.\s*(?:\*\*)?[『《]/m.test(text);
+  const isRecommend = backendRec.length > 0 || hasRecPattern;
   const recommendedBooks = backendRec.length > 0 ? backendRec : (isRecommend ? extractBooksFromAnswer(text) : []);
   if (recommendedBooks.length >= 2) {
     const count = recommendedBooks.length;
@@ -88,6 +65,32 @@ function getShortBubbleText(rawText, librarian, answer) {
     }
     return `✨ 『${bookTitle}』 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
   }
+
+  // 2. 내 서재 도서 결과 (ADR 0006: library_books 백엔드 배열 또는 ### 📚 단락 - 추천 도서가 아닐 때만)
+  const backendLib = answer?.library_books || answer?.libraryBooks || [];
+  const isLibrary = !isRecommend && (backendLib.length > 0 || (/^###\s*📚\s*[^\n]+/m.test(text) && !text.includes('### 📖')));
+  if (isLibrary) {
+    if (libId === 'stork') {
+      return `✨ 두둥! 서재에서 도서를 확인했습니다 🪶\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'nudi') {
+      return `✨ 서재에서 소중한 책을 찾았어요 누누... 🐌\n아래 채팅창에서 확인해 보세요`;
+    }
+    if (libId === 'gecko') {
+      return `✨ 서재에서 도서를 바로 찾아냈지 크크! 🦎\n아래 채팅창에서 확인해봐`;
+    }
+    return `✨ 서재에서 책을 찾았다 냥! 📚\n아래 채팅창에서 확인해보라 냥 🐾`;
+  }
+
+  // 3. 짧은 문구(로딩 중, 사서 변경 알림, 단순 안내 등)는 마크다운 기호 정제 후 표시
+  if (text.length <= 80 && text.split('\n').length <= 2) {
+    return text
+      .replace(/^#{1,4}\s+/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/^[-*•]\s+/gm, '')
+      .trim();
+  }
+
 
   if (libId === 'stork') {
     return `✨ 두둥! 사서의 답변이 도착했습니다 🪶\n아래 채팅창에서 확인해 보세요`;

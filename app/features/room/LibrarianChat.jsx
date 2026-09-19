@@ -292,6 +292,12 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     [currentAnswer?.library_books, currentAnswer?.libraryBooks]
   );
 
+  // 2. 외부 도서 추천: 백엔드 recommended_books 구조화 배열 직접 활용 (CLIAR-229)
+  const backendRecommendedBooks = useMemo(
+    () => currentAnswer?.recommended_books || currentAnswer?.recommendedBooks || [],
+    [currentAnswer?.recommended_books, currentAnswer?.recommendedBooks]
+  );
+
   const answerText = currentAnswer?.text;
 
   const libraryBooks = useMemo(() => {
@@ -304,10 +310,13 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     const fromMarkdown = extractLibraryBooksFromAnswer(answerText);
     if (fromMarkdown.length > 0) return fromMarkdown;
 
-    // 2) 백엔드가 자연어로 서재 도서를 설명한 경우:
-    //    내 서재(books)에서 본문에 언급된 도서를 자동 탐색하여 [책 열기]로 연결!
-    //    (단, 신규 도서 추천(### 📖)인 경우는 절대 서재 도서로 오인하지 않음)
-    if (!answerText.includes('### 📖')) {
+    // 2) 신규 도서 추천(### 📖, recommended_books 또는 1. 《도서명》 추천 목록)인 경우는 절대 서재 도서로 오인하지 않음
+    const isRecommendationResponse =
+      answerText.includes('### 📖') ||
+      backendRecommendedBooks.length > 0 ||
+      /^\s*\d+\.\s*(?:\*\*)?[『《]/m.test(answerText);
+
+    if (!isRecommendationResponse) {
       const bracketedTitles = Array.from(
         answerText.matchAll(/[『《]\s*([^』》]+?)\s*[』》]/g)
       ).map((m) => m[1].trim());
@@ -325,7 +334,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     }
 
     return [];
-  }, [chatMode, backendLibraryBooks, answerText, loading, books]);
+  }, [chatMode, backendLibraryBooks, answerText, loading, books, backendRecommendedBooks]);
 
   // 1-1. 내 서재 빠른 조회 모드 전용 필터링 목록 (Core API 데이터 기반 즉시 키워드 필터)
   const filteredLibraryBooks = useMemo(() => {
@@ -356,11 +365,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     });
   }, [books, libraryFilter, libraryQuery]);
 
-  // 2. 외부 도서 추천: 백엔드 recommended_books 구조화 배열 직접 활용 (CLIAR-229)
-  const backendRecommendedBooks = useMemo(
-    () => currentAnswer?.recommended_books || currentAnswer?.recommendedBooks || [],
-    [currentAnswer?.recommended_books, currentAnswer?.recommendedBooks]
-  );
   const switchTo = currentAnswer?.switchTo;
 
   // switchTo 사서/페르소나 명칭 결정 (이름 누락 방지 fallback 체인)
@@ -1180,6 +1184,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                     <MarkdownRenderer
                       text={msg.text}
                       recommendedBooks={msgRecommended}
+                      libraryBooks={books}
                       onRegister={handleRegisterBook}
                       onOpenDetail={handleOpenDetail}
                     />

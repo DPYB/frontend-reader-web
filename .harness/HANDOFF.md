@@ -636,8 +636,27 @@
   - `detectGenreCode(str)`: 3글자 이하 영문 단축어('it', 'ai', 'sf')에 대해 단어 경계(`\b`) 독립 단어 정규식 검사를 적용하여 일반 영단어 내 부분 문자열 오탐 원천 차단.
 - **등록 폼 장르 보존 (`app/pages/RegisterBook.jsx`)**:
   - `GENRE_CODES.includes(code)`를 최우선 적용하여 이미 검증된 추천 장르가 불필요한 별칭 탐색 없이 100% 온전히 보존되도록 개선.
-- **마크다운 렌더러 시인성 방어 (`app/features/room/MarkdownRenderer.jsx`)**:
-  - `---` 라인을 감지하여 지저분한 `<p>---</p>` 대신 부드러운 수평선(`<hr>`)으로 렌더링.
-  - 도서 카드 외부에서 발생하는 잉여 `저자:`, `사유:` 노이즈 텍스트 필터링.
-- **검증**: `detectGenreCode("LITERATURE")` -> `LITERATURE` 확인, `npm run build` Vite 번들 362ms 빌드 성공, ESLint 0 에러 통과.
+## 2026-09-20: 추천 도서 응답 시 서재 도서 오인 방지 3중 방어막 및 번호 매김 추천 카드 복원
+- **원인 분석**:
+  - AI 에이전트가 추천 도서 표준 마크다운(`### 📖 {제목}`) 대신 일반 텍스트 문맥에서 `📚\n누디가 건네는 따뜻한 온기의 책` 또는 `### 📚 ...` 형태로 응답을 시작함.
+  - 프론트엔드 `MarkdownRenderer`가 `### 📚`를 만나면 실제 서재 존재 여부를 묻지도 따지지도 않고 내 서재 도서 카드(`type: library`, `[책 열기 ➔]`)로 변환해버렸고, `LibrarianChat`의 자연어 제목 추출기 및 `LibrarianCursor`도 이를 내 서재 책으로 오탐하여 잘못된 액션 버튼과 커서 말풍선을 출력함.
+  - 또한 에이전트가 추천 도서를 `1. 《살고 싶다는 농담》 - 백영옥 에세이` 번호 매김 형식으로 내려보내면서 표준 도서 카드(`[등록 ➔]`)가 아닌 단순 텍스트로 밀려나는 현상 복합 발생.
+- **수정 내용**:
+  1. **`app/features/room/MarkdownRenderer.jsx`**:
+     - `libraryBooks` props를 받아 `type === 'library'` 도서 카드 생성 직전, 실제 사용자 서재(`libraryBooks`)에 해당 도서명이 존재하는지 엄격히 교차 검증 (`normalizeTitle` 비교).
+     - 서재에 없는 도서명이면 잘못 생성된 도서 카드로 만들지 않고, 일반 텍스트/헤딩으로 안전 강등(Graceful Fallback) 처리.
+     - `1. 《도서명》 - 저자` 또는 `1. 『도서명』` 번호 매김 목록 패턴을 감지하여 도서 추천 카드(`[등록 ➔]`)로 자동 승격 파싱. `어떤 이야기냐면요:`, `이런 마음일 때 추천해요:` 패턴을 추천 사유 필드로 스마트 정규화.
+  2. **`app/features/room/bookExtractor.js`**:
+     - `normalizeTitle(str)` 유틸 함수를 모듈 최상위로 export하여 공통 책 제목 정규화 기준으로 통합.
+     - `extractLibraryBooksFromAnswer`: 40자 초과 문구는 섹션 타이틀로 간주해 서재 도서 추출에서 제외.
+     - `extractBooksFromAnswer`: 번호 매김 낫표/화살괄호(`1. 《도서명》`, `1. 『도서명』`) 추천 목록도 fallback 추천 도서로 온전히 추출하도록 확장.
+  3. **`app/features/room/LibrarianChat.jsx`**:
+     - `MarkdownRenderer`에 `libraryBooks={books}`를 공급.
+     - `libraryBooks` useMemo에서 추천 응답(`### 📖`, `recommended_books`, 번호 매김 추천 목록 `1. 《...》`)이 감지된 경우, 서재 자연어 자동 탐색에서 추천 책을 서재 책으로 오인하지 않도록 억제. React 컴파일러 불변성 규칙을 준수하도록 useMemo 선언 순서 정돈.
+  4. **`app/features/room/LibrarianCursor.jsx`**:
+     - `getShortBubbleText`에서 도서 추천 감지 로직을 최우선으로 배치하고, 추천 응답이 아닐 때만 `isLibrary`를 평가하여 "서재에서 책을 찾았다" 오알림 원천 차단.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors).
+  - `npm run lint` 통과 (기존 경고 6건 외 신규 0건).
+  - `npm run build` 번들 정상 빌드(460ms) 확인.
 
