@@ -1,5 +1,22 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-19: 백엔드 최신화 재검토 및 스트리밍 채팅 library_books 필드 반영
+- 작업 브랜치: `fix/스트리밍-library-books`
+- **배경**: 프론트/백엔드 매칭 검토를 진행하던 중 팀원이 두 백엔드 레포(backend-core-api, backend-ai-agent)를 모두 최신화. 이전 검토 시점과 달라진 부분을 다시 대조.
+- **이전 검토 대비 변경 사항**:
+  - **스트리밍 방식 불일치는 이미 해결되어 있었음**: `app/api/chatApi.js`의 `streamChatMessage()`가 팀원에 의해 SSE 파서로 완전히 재작성됨(`event:`/`data:` 라인 파싱, `metadata`/`token`/`books`/`switch_suggestion`/`done`/`error` 이벤트 처리). 백엔드(`backend-ai-agent/app/api/router.py`의 `_format_sse`)와 정확히 일치. 예전 검토에서 지적했던 "헤더 방식 vs SSE 방식" 불일치는 더 이상 유효하지 않음.
+  - **`backend-core-api`에 공용 DB 보호 안전장치 추가됨**(PR #23): `main.py`의 lifespan이 `AUTO_CREATE_TABLES=true`이거나 SQLite 테스트 환경일 때만 `create_all`을 실행하도록 변경. 기존엔 `ENV in ("local","test")`이면 항상 실행돼 로컬 개발이 공용 Supabase 스키마를 건드릴 위험이 있었음. `.env`에 `AUTO_CREATE_TABLES` 미설정 시 기본값 `false`라 안전.
+  - **`ChatResponse`에 `library_books` 필드 신규 추가**: 백엔드가 AI 응답 텍스트에서 내 서재 보유 도서를 구조화 추출(`_extract_library_books_from_text`)해 `library_books: List[LibraryBook]`(title/author/status)로 함께 반환하도록 확장됨. 비스트리밍(`sendChatMessage`)은 이미 `data.library_books || data.libraryBooks`로 방어적으로 받고 있어 문제 없었지만, **스트리밍(`streamChatMessage`)의 `done` 이벤트 처리부는 이 필드를 읽지 않아 항상 빈 배열을 반환**하는 결함이 있었음.
+- **수정 내용**: `app/api/chatApi.js`
+  - `done` 이벤트에서 `eventData.library_books`를 `finalLibraryBooks` 변수에 반영
+  - 최종 반환값의 `libraryBooks`/`library_books`를 하드코딩된 `[]`에서 `finalLibraryBooks`로 교체
+  - 이제 스트리밍 모드로 채팅해도 `LibrarianChat.jsx`가 참조하는 `library_books`/`libraryBooks`가 정상적으로 채워져 내 서재 도서 카드가 표시됨
+- **검증**: `npx eslint app/api/chatApi.js` 통과(0 issue), `npm run build` 성공(dist 삭제 완료)
+- **남은 항목(변경 없음, 계속 유효)**:
+  - `POST /api/v1/librarians`(사서 획득/보유 API)에 대응하는 프론트 호출 코드가 아직 없음 — 서버 영구 저장이 필요한 시점에 연동 필요(정책 결정 우선)
+  - `backend-core-api`의 `records.py`만 `CamelModel`이 아닌 순수 `BaseModel`이라 snake_case로 응답(다른 라우터는 camelCase) — `recordApi.js`는 이미 알고 대응 중이라 실사용 문제는 없으나 표기법 혼재는 유지보수 리스크로 남음
+  - `recordApi.js` 주석의 "backend-record" 레포명은 오래된 정보(실제로는 backend-ai-agent가 OCR 제공, 라우팅 자체는 정확함)
+
 ## 2026-09-20: 월간 독서 리포트 서비스 런칭 기준 동적 월 선택 목록 적용
 - **배경**: 해커톤 제출 및 서비스 오픈(2026년 9월) 기준에 맞지 않는 7, 8월 하드코딩 옵션을 제거하고, 향후 10월 등 시간이 흐름에 따라 최신 월이 자동으로 드롭다운 목록 및 기본값으로 반영되도록 동적화 요청.
 - **수정 내용**:
