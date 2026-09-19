@@ -38,7 +38,7 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
  * 사서별 3D 서재 진입 시 강조 글로우 색상 (다크/라이트). LibraryScene.jsx의
  * GLOW_COLOR와 짝을 이루는 참고용 팔레트 — 실제 값은 그 파일에서 관리한다.
  * 여기 주석으로만 남겨 사서 추가 시 어디를 함께 챙겨야 하는지 표시한다.
- *   nudi: 핑크/마젠타 계열, gecko: 초록 계열
+ *   nudi: 청록/그린(teal) 계열 (적용 완료, 2026-09), gecko: 초록 계열 (미적용)
  */
 
 // 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY 및 app.models.enums.LibrarianType과 대응)
