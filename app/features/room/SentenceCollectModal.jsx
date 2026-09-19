@@ -5,7 +5,8 @@ import { createOcrSentence, createReadingRecord } from '../../api/recordApi';
 import { getWeatherCondition } from '../../api/geolocation';
 import { ApiError } from '../../api/authApi';
 import WebcamCaptureModal from './WebcamCaptureModal';
-import ImageCropModal from '../../components/ImageCropModal';
+// [크롭 모달 임시 비활성화] 재활성화 시 하단 주석과 함께 이 import도 복원
+// import ImageCropModal from '../../components/ImageCropModal';
 import LoadingSequence from '../../components/LoadingSequence';
 
 
