@@ -11,7 +11,11 @@
   - `done` 이벤트에서 `eventData.library_books`를 `finalLibraryBooks` 변수에 반영
   - 최종 반환값의 `libraryBooks`/`library_books`를 하드코딩된 `[]`에서 `finalLibraryBooks`로 교체
   - 이제 스트리밍 모드로 채팅해도 `LibrarianChat.jsx`가 참조하는 `library_books`/`libraryBooks`가 정상적으로 채워져 내 서재 도서 카드가 표시됨
-- **검증**: `npx eslint app/api/chatApi.js` 통과(0 issue), `npm run build` 성공(dist 삭제 완료)
+- **덤으로 develop CI 복구**: 이 브랜치를 올렸을 때 CI가 실패했는데, 원인은 내 변경이 아니라 develop에 이미 있던 lint 에러 3건이었다(팀원이 최신화한 PR #39 `문장 수집 크롭 모달 임시 비활성화`, 신규 컴포넌트 `ImageCropModal.jsx` 유입 시점).
+  - `SentenceCollectModal.jsx`: 크롭 모달 사용부는 주석 처리했지만 `import ImageCropModal`을 남겨둬 `no-unused-vars` 에러 → import도 함께 주석 처리(재활성화 시 사용부와 짝 맞춰 복원하도록 안내 주석 추가)
+  - `ImageCropModal.jsx`: 미사용 `useMemo` import 제거 + `react-hooks/refs` 오탐 1건에 `eslint-disable-next-line` 적용. 이 규칙은 "렌더 본문에서 ref를 참조하는 함수를 JSX prop으로 전달"하는 패턴을 정적으로 플래그하는데, `handlePointerDown`은 `onPointerDown` 이벤트 시점에만 `ref.current`를 읽어 실제 결함이 아니다(같은 패턴의 코너 핸들은 통과하는데 `.map()` 호출부만 걸림). 크롭 기능 자체가 비활성화 상태라 **동작 로직은 건드리지 않고 lint만 통과**시켰다 — 처음엔 `useCallback` 래핑을 시도했지만 이 규칙엔 효과가 없어 되돌렸다.
+  - ⚠️ 삽질 기록: `eslint-disable-next-line`을 여러 줄 설명 주석 위에 두면 "다음 줄"이 설명 주석이 되어 억제가 안 된다. 설명을 먼저 쓰고 disable 주석을 대상 줄 바로 위에 붙여야 한다.
+- **검증**: `npx eslint app/api/chatApi.js` 통과(0 issue), 저장소 전체 `npx eslint .` 결과 **에러 0건**(경고 7건은 모두 기존 항목), `npm run build` 성공(dist 삭제 완료), PR #40 CI(build-and-test, Lint PR) 전부 통과 확인
 - **남은 항목(변경 없음, 계속 유효)**:
   - `POST /api/v1/librarians`(사서 획득/보유 API)에 대응하는 프론트 호출 코드가 아직 없음 — 서버 영구 저장이 필요한 시점에 연동 필요(정책 결정 우선)
   - `backend-core-api`의 `records.py`만 `CamelModel`이 아닌 순수 `BaseModel`이라 snake_case로 응답(다른 라우터는 camelCase) — `recordApi.js`는 이미 알고 대응 중이라 실사용 문제는 없으나 표기법 혼재는 유지보수 리스크로 남음
