@@ -11,6 +11,7 @@ import { ApiError } from '../api/authApi';
 import { getBookThickness } from '../features/room/bookExtractor';
 import { coverImageSrc, onFallbackCover } from '../lib/coverImage';
 import LoadingSequence from '../components/LoadingSequence';
+import WebcamCaptureModal from '../features/room/WebcamCaptureModal';
 
 /**
  * 표지 OCR(ISBN 인식) 실패 원인을 사용자에게 구체적으로 안내한다.
@@ -79,12 +80,18 @@ export default function RegisterBook() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const captureInputRef = useRef(null);
   const uploadInputRef = useRef(null);
   // 연속 업로드 시 늦게 끝난 이전 요청이 최신 결과를 덮어쓰지 않도록 하는 실행 번호
   const runIdRef = useRef(0);
   // 마지막으로 만든 미리보기 object URL (언마운트 시 해제용)
   const previewUrlRef = useRef(null);
+
+  // "📷 사진 촬영" 버튼 클릭 시 노트북/PC 웹캠을 띄우는 모달 표시 여부 (사용자 요청, 2026-09).
+  // 예전엔 <input type="file" capture="environment">를 썼는데, 이건 모바일 OS 카메라 앱을
+  // 열어줄 뿐 데스크톱 브라우저에서는 무시되고 파일 탐색기만 뜬다(웹 서비스라 데스크톱이
+  // 주 사용 환경). getUserMedia로 실제 웹캠 스트림을 여는 방식으로 교체했다 — 크롬은 위치
+  // 정보 요청과 동일하게 카메라 접근 시 주소창 옆에서 자동으로 권한 팝업을 띄운다.
+  const [webcamOpen, setWebcamOpen] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -312,6 +319,12 @@ export default function RegisterBook() {
     handleFile(file);
   }
 
+  // 웹캠 모달에서 캡처된 프레임(File)을 받아 모달을 닫고 바로 OCR 요청으로 넘긴다.
+  function handleWebcamCapture(file) {
+    setWebcamOpen(false);
+    handleFile(file);
+  }
+
   // 미리보기로 만든 object URL은 화면을 떠날 때 정리한다.
   // (StrictMode의 이펙트 두 번 실행에 사용 중인 URL이 해제되지 않도록 ref로 들고 있는다)
   useEffect(() => {
@@ -459,14 +472,6 @@ export default function RegisterBook() {
           </span>
 
           <input
-            ref={captureInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={handleInputChange}
-          />
-          <input
             ref={uploadInputRef}
             type="file"
             accept="image/*"
@@ -476,7 +481,7 @@ export default function RegisterBook() {
 
           <button
             type="button"
-            onClick={() => captureInputRef.current?.click()}
+            onClick={() => setWebcamOpen(true)}
             style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer' }}
           >
             📷 사진 촬영
@@ -768,6 +773,10 @@ export default function RegisterBook() {
           </button>
         </div>
       </form>
+
+      {webcamOpen && (
+        <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
+      )}
     </div>
   );
 }

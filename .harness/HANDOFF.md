@@ -1,5 +1,17 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 책 등록 페이지 "사진 촬영" 버튼을 웹캠 캡처로 전환
+- 작업 브랜치: `feat/책등록-웹캠촬영`
+- **배경**: `RegisterBook.jsx`(책 등록, ISBN 촬영)의 "📷 사진 촬영" 버튼이 `<input type="file" capture="environment">`를 트리거했는데, 이 속성은 모바일에서만 OS 카메라 앱을 열고 데스크톱 브라우저에서는 무시되어 파일 탐색기만 뜬다. 이 서비스는 웹(데스크톱) 기준이라 실제로는 파일 선택창처럼 동작해 사용자가 원하는 "노트북 카메라 실행"이 안 됐음. 참고로 `SentenceCollectModal.jsx`(문장 수집)는 이미 이 문제를 해결한 `WebcamCaptureModal`(getUserMedia 기반)을 별도 버튼으로 갖고 있었음.
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - `capture="environment"` `<input type="file">`과 그 ref(`captureInputRef`) 제거
+  - "📷 사진 촬영" 버튼 클릭 시 기존 `app/features/room/WebcamCaptureModal`(재사용, 신규 컴포넌트 아님)을 여는 `webcamOpen` 상태로 교체 — 이 모달이 `navigator.mediaDevices.getUserMedia()`로 실제 웹캠 스트림을 열고 셔터 버튼으로 정지 프레임을 캡처해 File로 반환
+  - `handleWebcamCapture(file)` 핸들러 추가: 모달을 닫고 캡처된 파일을 기존 `handleFile()`(OCR 인식 파이프라인)로 그대로 전달 — 파일 업로드 경로와 동일한 처리
+  - "🖼️ 이미지 업로드" 버튼(일반 파일 선택)은 그대로 유지
+- **권한 팝업 관련**: 별도 UI 구현 없음 — Chrome 등 주요 브라우저는 `getUserMedia()` 호출 시 위치 정보 요청과 동일한 방식으로 주소창 옆에 자동으로 카메라 접근 허용 팝업을 띄운다(브라우저 표준 동작). 거부 시 `WebcamCaptureModal`이 이미 `NotAllowedError`/`NotFoundError`를 구분해 안내 문구를 보여주는 로직을 갖고 있어 추가 처리 불필요.
+- **검증**: `npx eslint app/pages/RegisterBook.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공
+- ⚠️ 실제 브라우저에서 카메라 권한 허용/거부 시나리오 및 캡처된 이미지의 OCR 인식 흐름 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
 ## 2026-09-20: 토론 모드 UI 간소화, 채팅창 확장, 날씨 뱃지 정리
 - 작업 브랜치: `fix/채팅-로딩위치` (로딩 위치 수정에 이어서 진행)
 - **사용자 요청 요약**: (1) 탭 "사서 토론" → "토론" (2) 토론 대화 시작 전 화면엔 카드 4개만, 배너/대형 버튼 제거 (3) 토론자 카드 클릭 즉시 카드가 사라지고 상단 고정 배너(끝내기+설정)만 노출, 스크롤해도 고정 (4) "마무리" → "끝내기" 용어 통일 (5) 채팅창 세로 길이 확장 (6) "토론 대상 도서 선택" 드롭다운 제거, 토론자 선택은 카드 유지 (7) 날씨 뱃지 온도 반올림 및 중복 제거, description 간결화(괄호/"기온" 단어 제거)해 분위기 태그와 한 줄에 들어가도록.
