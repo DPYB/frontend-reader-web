@@ -264,6 +264,7 @@ export async function streamChatMessage({
     let finalSwitchTo = null;
     let finalSignals = null;
     let finalBooks = [];
+    let finalLibraryBooks = [];
     let finalIsConcluded = false;
     let finalDebateSummary = null;
 
@@ -334,6 +335,9 @@ export async function streamChatMessage({
           if (eventData?.recommended_books) {
             finalBooks = eventData.recommended_books;
           }
+          if (eventData?.library_books) {
+            finalLibraryBooks = eventData.library_books;
+          }
           if (eventData?.signals) {
             finalSignals = eventData.signals;
           }
@@ -354,8 +358,8 @@ export async function streamChatMessage({
       sessionId: currentSessionId,
       switchTo: finalSwitchTo,
       signals: finalSignals,
-      libraryBooks: [],
-      library_books: [],
+      libraryBooks: finalLibraryBooks,
+      library_books: finalLibraryBooks,
       recommendedBooks: finalBooks,
       recommended_books: finalBooks,
       isConcluded: finalIsConcluded,
