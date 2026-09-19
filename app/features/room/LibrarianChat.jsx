@@ -183,8 +183,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const [libraryQuery, setLibraryQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState('ALL'); // 'ALL' | 'READING' | 'COMPLETED' | 'PLANNED'
 
-  // 토론 모드 대상 도서 및 선택된 토론자 (4인 오마주: DEBATE_CRITIC, DEBATE_STORYTELLER, DEBATE_COUNSELOR, DEBATE_OBSERVER)
-  const [debateBookId, setDebateBookId] = useState('');
+  // 선택된 토론자 (4인 오마주: DEBATE_CRITIC, DEBATE_STORYTELLER, DEBATE_COUNSELOR, DEBATE_OBSERVER).
+  // 도서 선택 드롭다운은 제거되어(사용자 요청, 2026-09) 항상 일반 주제 토론으로 시작한다.
   const [debaterPersona, setDebaterPersona] = useState('DEBATE_CRITIC');
   // 토론 대화 진행 중 상단 설정(도서/4인 카드)을 접어 스크롤 영역을 넓히는 토글 상태
   const [debateCollapsed, setDebateCollapsed] = useState(() => Boolean(modeAnswers?.debate?.text || modeMessages?.debate?.length));
@@ -385,14 +385,11 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const isConcluded = Boolean(currentAnswer?.is_concluded || currentAnswer?.isConcluded);
   const debateSummary = currentAnswer?.debate_summary || currentAnswer?.debateSummary || null;
 
-  // 선택된 토론자 및 토론 대상 도서 객체 (배너 요약 및 프롬프트 조합용)
+  // 선택된 토론자 객체 (배너 요약 및 프롬프트 조합용). 도서 선택 드롭다운은 제거되어
+  // (사용자 요청, 2026-09) 항상 일반 주제 토론으로 시작한다.
   const selectedDebatePersona = useMemo(
     () => DEBATE_PERSONAS.find((p) => p.id === debaterPersona) || DEBATE_PERSONAS[0],
     [debaterPersona]
-  );
-  const selectedDebateBook = useMemo(
-    () => books.find((b) => String(b.bookId || b.id) === String(debateBookId)) || null,
-    [books, debateBookId]
   );
 
   const recommendedBooks = useMemo(() => {
@@ -532,7 +529,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       longitude: location?.longitude,
       mode: isDebate ? 'debate' : 'chat',
       persona: isDebate ? debaterPersona : null,
-      bookId: isDebate ? debateBookId || null : null,
+      bookId: null,
       action,
       onMetadata: (meta) => {
         if (meta?.session_id) {
@@ -720,8 +717,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     if (loading) return;
     const personaObj = DEBATE_PERSONAS.find((p) => p.id === debaterPersona);
     const personaName = personaObj?.name || '토론 파트너';
-    const selectedBook = books.find((b) => String(b.bookId || b.id) === String(debateBookId));
-    const bookTitleStr = selectedBook ? `『${selectedBook.title}』` : '오늘 도서';
+    const bookTitleStr = '오늘 도서';
 
     const concludePrompt = `${personaName}님, ${bookTitleStr}에 대한 토론을 여기서 마무리하고 총평과 함께 이어 읽으면 좋을 책을 추천해 주세요.`;
     await sendQuery(concludePrompt, librarian.id, 'conclude');
@@ -784,7 +780,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
         color: 'var(--text-h)',
         height: 'auto',
-        maxHeight: 'min(420px, calc(100vh - 180px))', // 상단 사서 프로필/GNB를 절대 침범하지 않도록 컴팩트 높이 유지
+        // 채팅창 세로 길이 확장 (사용자 요청, 2026-09): 상단 한계를 GNB(로그아웃 버튼) 높이
+        // (~60px) + 여유 약 3cm(~113px)만큼만 남기고 그 아래로는 최대한 길게 늘어나도록 함.
+        // 기존 180px 여백보다 낮춰 채팅창이 더 커진다. 여전히 GNB를 침범하지는 않는다.
+        maxHeight: 'min(700px, calc(100vh - 173px))',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -894,7 +893,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
             if (onAnswer) onAnswer(modeAnswers.debate || null);
           }}
         >
-          💡 사서 토론
+          💡 토론
         </button>
       </div>
 
@@ -902,6 +901,50 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       {chatMode === 'chat' && currentAnswer?.signals && !loading && (
         <div style={{ flexShrink: 0, marginBottom: 4 }}>
           <WeatherMoodBadge signals={currentAnswer.signals} />
+        </div>
+      )}
+
+      {/*
+       * 3-1. 토론 대화 시작 후 상단 고정 배너 (사용자 요청, 2026-09).
+       * 토론자/도서 선택 화면(debateCollapsed=false)에서는 카드만 보이고 이 배너는
+       * 아예 렌더링하지 않는다. 첫 메시지를 보내면(handleSendMessage에서
+       * setDebateCollapsed(true)) 이 배너가 나타나고, 스크롤 영역(lc-content-body)
+       * 바깥에 있어 대화를 스크롤해도 항상 화면에 고정된다.
+       */}
+      {chatMode === 'debate' && debateCollapsed && (
+        <div
+          className="lc-debate-banner lc-debate-banner-clickable"
+          style={{ flexShrink: 0, marginBottom: 8 }}
+          onClick={() => setDebateCollapsed(false)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setDebateCollapsed(false);
+            }
+          }}
+          title="토론 설정 펼치기"
+        >
+          <span className="lc-debate-badge">DEBATE</span>
+          <span className="lc-debate-banner-title">
+            {selectedDebatePersona.icon} <strong>{selectedDebatePersona.name}</strong> · 일반 주제와 토론 중
+          </span>
+          <div className="lc-debate-banner-actions">
+            <button
+              type="button"
+              className="lc-debate-mini-conclude-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleConcludeDebate();
+              }}
+              disabled={loading}
+              title="토론 끝내기 및 맞춤 책 추천받기"
+            >
+              🏁 끝내기
+            </button>
+            <span className="lc-debate-banner-toggle">설정 ▾</span>
+          </div>
         </div>
       )}
 
@@ -989,102 +1032,49 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
           </div>
         )}
 
-        {/* 💡 모드 2: 사서 토론 모드 상단 배너 & 대상 도서 선택기 */}
-        {chatMode === 'debate' && (
+        {/*
+         * 💡 모드 2: 사서 토론 모드.
+         * - 대화 시작 전(debateCollapsed=false): 도서/토론자 4인 카드만 노출 (사용자 요청,
+         *   2026-09 — 예전엔 이 화면에도 배너와 대형 '끝내기' 버튼이 있었는데 제거했다.
+         *   끝내기는 대화가 시작된 뒤 상단 고정 배너의 미니 버튼으로만 제공한다)
+         * - 대화 시작 후(debateCollapsed=true): 설정을 다시 펼치면(상단 고정 배너 클릭)
+         *   여기 카드가 다시 보이고, 접힌 상태에서는 이 블록 전체가 숨는다(위 고정 배너만 노출)
+         */}
+        {chatMode === 'debate' && !debateCollapsed && (
           <div className="lc-debate-view">
-            <div
-              className="lc-debate-banner lc-debate-banner-clickable"
-              onClick={() => setDebateCollapsed((prev) => !prev)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setDebateCollapsed((prev) => !prev);
-                }
-              }}
-              title={debateCollapsed ? '토론 설정 펼치기' : '토론 설정 접기'}
-            >
-              <span className="lc-debate-badge">DEBATE</span>
-              <span className="lc-debate-banner-title">
-                {selectedDebatePersona.icon} <strong>{selectedDebatePersona.name}</strong>
-                {selectedDebateBook ? ` · 『${selectedDebateBook.title}』` : ' · 일반 주제'}과 토론 중
-              </span>
-              <div className="lc-debate-banner-actions">
-                {debateCollapsed && (
-                  <button
-                    type="button"
-                    className="lc-debate-mini-conclude-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConcludeDebate();
-                    }}
-                    disabled={loading}
-                    title="토론 마무리 및 맞춤 책 추천받기"
-                  >
-                    🏁 마무리
-                  </button>
-                )}
-                <span className="lc-debate-banner-toggle">
-                  {debateCollapsed ? '설정 ▾' : '접기 ▴'}
-                </span>
+            <div className="lc-debate-book-selector">
+              <label className="lc-debate-label">
+                토론 상대 선택 (AI 토론 파트너 4인)
+              </label>
+              <div className="lc-debater-grid">
+                {DEBATE_PERSONAS.map((dp) => {
+                  const isSelected = debaterPersona === dp.id;
+                  return (
+                    <button
+                      key={dp.id}
+                      type="button"
+                      className={`lc-debater-card ${isSelected ? 'active' : ''}`}
+                      onClick={() => {
+                        // 카드를 누르면 즉시 선택 확정 + 상단 고정 배너(끝내기)만 보이는
+                        // 화면으로 전환 (사용자 요청, 2026-09). 도서 선택 드롭다운은 제거해
+                        // 항상 일반 주제 토론으로 시작한다.
+                        setDebaterPersona(dp.id);
+                        setDebateCollapsed(true);
+                      }}
+                      disabled={loading}
+                    >
+                      <div className="lc-debater-header">
+                        <span className="lc-debater-icon">{dp.icon}</span>
+                        <span className="lc-debater-name">{dp.name}</span>
+                        <span className="lc-debater-tag">{dp.tag}</span>
+                      </div>
+                      <span className="lc-debater-title">{dp.title}</span>
+                      <span className="lc-debater-desc">{dp.oneLiner}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            {!debateCollapsed && (
-              <div className="lc-debate-book-selector">
-                <label className="lc-debate-label">토론 대상 도서 선택</label>
-                <select
-                  className="lc-debate-select"
-                  value={debateBookId}
-                  onChange={(e) => setDebateBookId(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">(선택 안 함 - 일반 주제 토론)</option>
-                  {books.map((b) => (
-                    <option key={b.bookId || b.id} value={b.bookId || b.id}>
-                      {b.title} ({b.status})
-                    </option>
-                  ))}
-                </select>
-
-                <label className="lc-debate-label" style={{ marginTop: 8 }}>
-                  토론 상대 선택 (AI 토론 파트너 4인)
-                </label>
-                <div className="lc-debater-grid">
-                  {DEBATE_PERSONAS.map((dp) => {
-                    const isSelected = debaterPersona === dp.id;
-                    return (
-                      <button
-                        key={dp.id}
-                        type="button"
-                        className={`lc-debater-card ${isSelected ? 'active' : ''}`}
-                        onClick={() => setDebaterPersona(dp.id)}
-                        disabled={loading}
-                      >
-                        <div className="lc-debater-header">
-                          <span className="lc-debater-icon">{dp.icon}</span>
-                          <span className="lc-debater-name">{dp.name}</span>
-                          <span className="lc-debater-tag">{dp.tag}</span>
-                        </div>
-                        <span className="lc-debater-title">{dp.title}</span>
-                        <span className="lc-debater-desc">{dp.oneLiner}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* 토론 마무리 및 맞춤 책 추천받기 액션 버튼 */}
-                <button
-                  type="button"
-                  className="lc-debate-conclude-btn"
-                  onClick={handleConcludeDebate}
-                  disabled={loading}
-                >
-                  <span>🏁 토론 마무리 및 맞춤 책 추천받기</span>
-                </button>
-              </div>
-            )}
           </div>
         )}
 
