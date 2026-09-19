@@ -55,8 +55,8 @@ export default function SentenceCollectModal({ book, onClose }) {
   const [saving, setSaving] = useState(false);
   const [ocrError, setOcrError] = useState('');
   const [webcamOpen, setWebcamOpen] = useState(false);
-  // 크롭 모달에 넘길 원본 File 객체
-  const [cropTargetFile, setCropTargetFile] = useState(null);
+  // [크롭 모달 임시 비활성화] 크롭 모달에 넘길 원본 File 객체 — 추후 재활성화 예정
+  // const [cropTargetFile, setCropTargetFile] = useState(null);
   // OCR로 스캔한(또는 수정 중인 기존 스크랩의) 원본 이미지 URL.
   // backend-book이 scrapImageUrl을 필수로 요구하므로, 저장 시 이 값을 함께 보낸다.
   // 새 문장은 스캔을 해야 이 값이 생기고, 값이 없으면 저장할 수 없다.
@@ -80,37 +80,27 @@ export default function SentenceCollectModal({ book, onClose }) {
   }, [reloadQuotes]);
 
   /**
-   * 파일 선택 또는 카메라 촬영 시 즉시 OCR을 부르지 않고 크롭 모달을 먼저 오픈
+   * [크롭 모달 임시 비활성화] 파일 선택/촬영 시 크롭 없이 바로 OCR 요청
+   * 크롭 모달 재활성화 시: setCropTargetFile(file)로 교체
    */
-  function handleFile(file) {
+  async function handleFile(file) {
     if (!file) return;
-    setCropTargetFile(file);
-  }
-
-  /**
-   * 크롭 모달에서 사각 영역 지정 후 [추출]을 눌렀을 때 실행되는 실제 OCR 요청
-   */
-  async function handleCroppedComplete(croppedBlob, croppedDataUrl) {
-    setCropTargetFile(null);
-    setPreviewUrl(croppedDataUrl);
+    const previewDataUrl = URL.createObjectURL(file);
+    setPreviewUrl(previewDataUrl);
     setOcrLoading(true);
     setOcrError('');
     setEditingQuoteId(null);
 
-    // File 객체로 포장 (파일명 유지)
-    const croppedFile = new File([croppedBlob], 'cropped_sentence.jpg', { type: 'image/jpeg' });
-
     try {
       const result = await createOcrSentence({
-        imageFile: croppedFile,
+        imageFile: file,
         bookId: book.bookId,
         saveScrap: false,
       });
       setText(result.text || '');
-      // 서버에서 준 Data URL 또는 크롭된 캔버스 Data URL을 스크랩 이미지로 등록
-      setPendingImageUrl(result.scrapImageUrl || croppedDataUrl);
+      setPendingImageUrl(result.scrapImageUrl || previewDataUrl);
       if (!result.text?.trim()) {
-        setOcrError('선택한 영역에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 영역을 지정해 주세요.');
+        setOcrError('이미지에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 찍어 주세요.');
       }
     } catch (err) {
       setOcrError(describeOcrError(err));
@@ -119,7 +109,32 @@ export default function SentenceCollectModal({ book, onClose }) {
     }
   }
 
-  // 웹캠 모달에서 캡처된 프레임(File)을 받아 크롭 모달로 전달
+  /*
+   * [크롭 모달 임시 비활성화] 크롭 완료 후 OCR 요청 — 크롭 모달 재활성화 시 복원
+   *
+   * async function handleCroppedComplete(croppedBlob, croppedDataUrl) {
+   *   setCropTargetFile(null);
+   *   setPreviewUrl(croppedDataUrl);
+   *   setOcrLoading(true);
+   *   setOcrError('');
+   *   setEditingQuoteId(null);
+   *   const croppedFile = new File([croppedBlob], 'cropped_sentence.jpg', { type: 'image/jpeg' });
+   *   try {
+   *     const result = await createOcrSentence({ imageFile: croppedFile, bookId: book.bookId, saveScrap: false });
+   *     setText(result.text || '');
+   *     setPendingImageUrl(result.scrapImageUrl || croppedDataUrl);
+   *     if (!result.text?.trim()) {
+   *       setOcrError('선택한 영역에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 영역을 지정해 주세요.');
+   *     }
+   *   } catch (err) {
+   *     setOcrError(describeOcrError(err));
+   *   } finally {
+   *     setOcrLoading(false);
+   *   }
+   * }
+   */
+
+  // 웹캠 모달에서 캡처된 프레임(File)을 받아 바로 OCR 요청
   function handleWebcamCapture(file) {
     setWebcamOpen(false);
     handleFile(file);
@@ -234,6 +249,7 @@ export default function SentenceCollectModal({ book, onClose }) {
                   accept="image/*"
                   capture="environment"
                   style={{ display: 'none' }}
+                  onClick={(e) => { e.target.value = ''; }}
                   onChange={(e) => handleFile(e.target.files?.[0])}
                 />
                 <input
@@ -241,6 +257,7 @@ export default function SentenceCollectModal({ book, onClose }) {
                   type="file"
                   accept="image/*"
                   style={{ display: 'none' }}
+                  onClick={(e) => { e.target.value = ''; }}
                   onChange={(e) => handleFile(e.target.files?.[0])}
                 />
 
@@ -487,6 +504,7 @@ export default function SentenceCollectModal({ book, onClose }) {
       {webcamOpen && (
         <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
+      {/* [크롭 모달 임시 비활성화] 크롭 모달 재활성화 시 아래 주석 해제 및 cropTargetFile state 복원
       {cropTargetFile && (
         <ImageCropModal
           imageSource={cropTargetFile}
@@ -496,6 +514,7 @@ export default function SentenceCollectModal({ book, onClose }) {
           onClose={() => setCropTargetFile(null)}
         />
       )}
+      */}
     </>
   );
 }
