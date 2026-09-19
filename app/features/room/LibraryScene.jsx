@@ -12,9 +12,8 @@ import ReadingTimerModal from './ReadingTimerModal';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import {
-  BG_SRC_CAT,
-  BG_SRC_STORK,
   BG_ASPECT,
+  getBgSrc,
   getDefaultCamera,
   getDefaultShelves,
   placeBooks,
@@ -340,7 +339,7 @@ export default function LibraryScene() {
           transform: 'translateX(-50%)',
           width: `max(100vw, calc(100svh * ${BG_ASPECT}))`,
           aspectRatio: String(BG_ASPECT),
-          backgroundImage: `url(${librarianId === 'stork' ? BG_SRC_STORK : BG_SRC_CAT})`,
+          backgroundImage: `url(${getBgSrc(librarianId)})`,
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
