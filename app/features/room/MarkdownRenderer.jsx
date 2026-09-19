@@ -349,6 +349,29 @@ export default function MarkdownRenderer({ text, recommendedBooks = [], onRegist
       }
     }
 
+    // 3-A. 수평 구분선 (---, ***, ___ )
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      flushList(idx);
+      flushBook(idx);
+      elements.push(
+        <hr
+          key={`hr-${idx}`}
+          style={{
+            border: 'none',
+            borderTop: '1px solid var(--border-subtle, rgba(0, 0, 0, 0.08))',
+            margin: '12px 0',
+          }}
+        />
+      );
+      return;
+    }
+
+    // 3-B. 도서 카드 외부에서 발생한 고아 메타데이터 라인 (저자: ..., 사유: ...) 필터링
+    // 도서 카드가 저자/사유를 직접 렌더링하므로, 본문 텍스트에 중복 노출되는 노이즈를 방어한다.
+    if (!currentBook && /^(?:[-*•]\s*)?(?:저자|작가|출판사|사유|추천\s*사유|추천\s*이유)\s*[:：]/i.test(trimmed)) {
+      return;
+    }
+
     // 3. 일반 헤딩 (###, ##, #)
     if (/^#{1,4}\s+/.test(trimmed)) {
       flushList(idx);

@@ -106,23 +106,44 @@ export function genreLabel(codeOrText) {
 }
 
 /**
- * 한글 label → enum code. 없으면 null.
- * @param {string} label
+ * 한글 label 또는 enum code → enum code. 없으면 null.
+ * 영문 Enum(LITERATURE 등)이 직접 전달되어도 즉시 올바른 코드를 반환합니다.
+ * @param {string} labelOrCode
  * @returns {string|null}
  */
-export function genreCode(label) {
-  return BY_LABEL.get(label)?.code ?? null;
+export function genreCode(labelOrCode) {
+  if (!labelOrCode || typeof labelOrCode !== 'string') return null;
+  const trimmed = labelOrCode.trim();
+  if (BY_CODE.has(trimmed.toUpperCase())) {
+    return BY_CODE.get(trimmed.toUpperCase()).code;
+  }
+  return BY_LABEL.get(trimmed)?.code ?? null;
 }
 
 /**
  * 자유 텍스트에서 장르를 감지해 code를 반환 (별칭 기반). 없으면 null.
+ * 단축 영문('it', 'ai', 'sf' 등 3자 이하)은 독립 단어 경계로 검사하여
+ * 'literature'(l-it-erature)나 'daily'(d-ai-ly) 등 일반 영단어 내 오탐을 원천 방어합니다.
  * @param {string} text
  * @returns {string|null} genre code
  */
 export function detectGenreCode(text) {
   const t = (text || '').toLowerCase();
   for (const g of GENRE_DEFS) {
-    if (g.aliases.some((a) => t.includes(a.toLowerCase()))) return g.code;
+    if (
+      g.aliases.some((a) => {
+        const lowerAlias = a.toLowerCase();
+        // 영문 3글자 이하 단축어는 단어 경계(\b)로 독립 단어 매칭
+        if (/^[a-z]{1,3}$/i.test(lowerAlias)) {
+          const regex = new RegExp(`(^|[^a-z0-9])${lowerAlias}([^a-z0-9]|$)`, 'i');
+          return regex.test(t);
+        }
+        return t.includes(lowerAlias);
+      })
+    ) {
+      return g.code;
+    }
   }
   return null;
 }
+

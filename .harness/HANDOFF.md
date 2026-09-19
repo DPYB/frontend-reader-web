@@ -628,3 +628,16 @@
 - `LibrarianCursor.jsx`는 이미 `clickMotionMs` 유무로 분기하는 범용 로직이라
   코드 수정 없이 데이터만 추가
 - `npx eslint .`(신규 이슈 0), `npx tsc --noEmit`, `npm run build` 통과 확인
+
+## 2026-09-20: 도서 추천 장르 '기술과학' 오분류(L-IT-erature) 수정 및 추천 말풍선 시인성 개선
+- **원인 분석**: 챗봇 카드에서 `문학`(`LITERATURE`)으로 표시된 도서가 `[등록 ➔]`을 눌러 `RegisterBook.jsx`로 이동할 때 무조건 `기술과학 (컴퓨터/IT)`으로 변경되던 문제 해결. `genres.js`의 `detectGenreCode`가 `t.includes(alias)`를 수행할 때 `TECHNOLOGY`의 별칭 `'it'`이 `"literature"`의 부분 문자열(`l-IT-erature`)로 매칭되어 9번째인 문학보다 앞선 6번째 기술과학으로 오탐되던 치명적 결함 발견.
+- **장르 유틸 보강 (`app/data/genres.js`)**:
+  - `genreCode(str)`: 영문 Enum(`LITERATURE` 등)이 전달되어도 `BY_CODE`를 1순위로 조회하여 표준 코드 즉시 반환.
+  - `detectGenreCode(str)`: 3글자 이하 영문 단축어('it', 'ai', 'sf')에 대해 단어 경계(`\b`) 독립 단어 정규식 검사를 적용하여 일반 영단어 내 부분 문자열 오탐 원천 차단.
+- **등록 폼 장르 보존 (`app/pages/RegisterBook.jsx`)**:
+  - `GENRE_CODES.includes(code)`를 최우선 적용하여 이미 검증된 추천 장르가 불필요한 별칭 탐색 없이 100% 온전히 보존되도록 개선.
+- **마크다운 렌더러 시인성 방어 (`app/features/room/MarkdownRenderer.jsx`)**:
+  - `---` 라인을 감지하여 지저분한 `<p>---</p>` 대신 부드러운 수평선(`<hr>`)으로 렌더링.
+  - 도서 카드 외부에서 발생하는 잉여 `저자:`, `사유:` 노이즈 텍스트 필터링.
+- **검증**: `detectGenreCode("LITERATURE")` -> `LITERATURE` 확인, `npm run build` Vite 번들 362ms 빌드 성공, ESLint 0 에러 통과.
+

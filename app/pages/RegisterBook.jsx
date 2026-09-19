@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
 import { colorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
-import { GENRE_DEFS, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
+import { GENRE_DEFS, GENRE_CODES, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
 import { searchBookByIsbn, normalizeBookInfo, toReadingStatus } from '../api/bookApi';
@@ -164,10 +164,12 @@ export default function RegisterBook() {
       setOcrDone(true);
       setEditing(true);
       setFromRecommendation(true);
-      // 추천 응답에 장르가 있으면 그대로 쓰고, 없으면 제목·저자로 분류한다.
+      // 추천 응답에 장르가 있으면 검증된 장르를 최우선으로 보존하고, 없으면 제목·저자로 분류한다.
       if (book.genre) {
-        // 한글 또는 코드 무엇이든 표준 코드로 변환 매칭
-        const normalizedGenre = genreCode(book.genre) || detectGenreCode(book.genre) || book.genre;
+        const upper = typeof book.genre === 'string' ? book.genre.trim().toUpperCase() : '';
+        const normalizedGenre = GENRE_CODES.includes(upper)
+          ? upper
+          : genreCode(book.genre) || detectGenreCode(book.genre) || book.genre;
         setGenre(normalizedGenre);
       } else {
         autoClassifyGenre({ title: book.title, author: book.author, isbn: book.isbn || '' });
