@@ -35,14 +35,14 @@ const BUTTONS = [
     src: '/button/paw_gray.webp',
     srcActive: '/button/paw_pink.webp',
     tooltip: '비밀번호 보기',
-    left: 59.5, top: 53.9, width: 1.6, height: 2.7,
+    left: 59.2, top: 53.3, width: 2.2, height: 3.8,
   },
 ];
 
 // 입력 필드 위치 (bbox 비율)
 const INPUT_FIELDS = {
-  id: { left: 44.0, top: 45.6, width: 15.2, height: 3.8 },
-  pw: { left: 44.0, top: 53.3, width: 15.2, height: 3.8 },
+  id: { left: 43.8, top: 45.6, width: 17.5, height: 3.8 },
+  pw: { left: 43.8, top: 53.3, width: 15.0, height: 3.8 },
 };
 
 function LoginButton({ btn, onClick, disabled, active }) {
@@ -113,9 +113,21 @@ export default function LoginPage() {
   const isLoginEnabled =
     !loading && (AUTH_BYPASS || (email.trim().length > 0 && userPw.trim().length > 0));
 
+  const eyeTimerRef = useRef(null);
+
   const handleEyeClick = useCallback(() => {
+    if (eyeTimerRef.current) clearTimeout(eyeTimerRef.current);
     setEyeActive(true);
-    setTimeout(() => setEyeActive(false), 3000);
+    eyeTimerRef.current = setTimeout(() => {
+      setEyeActive(false);
+      eyeTimerRef.current = null;
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (eyeTimerRef.current) clearTimeout(eyeTimerRef.current);
+    };
   }, []);
 
   const handleLogin = async () => {
