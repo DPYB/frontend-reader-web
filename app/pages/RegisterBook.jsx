@@ -96,6 +96,12 @@ export default function RegisterBook() {
   // "가이드" 버튼 클릭 시 ISBN 촬영 방법을 보여주는 예시 이미지 팝업 (사용자 요청, 2026-09)
   const [guideOpen, setGuideOpen] = useState(false);
 
+  // 업로드/촬영 이미지 최대 크기 (사용자 요청, 2026-09: 여러 사용자가 동시에 쓰는
+  // 서비스라 서버 부담을 고려해 50MB보다 훨씨 작은 5MB로 제한. 서버는 최대 50MB까지
+  // 허용하지만, 클라이언트에서 먼저 걸러 불필요한 대용량 업로드를 막는다)
+  const MAX_IMAGE_SIZE_MB = 5;
+  const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
   const [previewUrl, setPreviewUrl] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrDone, setOcrDone] = useState(false);
@@ -200,6 +206,12 @@ export default function RegisterBook() {
    */
   async function handleFile(file) {
     if (!file) return;
+
+    // 서버에 보내기 전에 클라이언트에서 먼저 크기를 확인한다 (5MB 제한, 사용자 요청 2026-09).
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setOcrError(`이미지가 너무 커요. ${MAX_IMAGE_SIZE_MB}MB 이하의 사진으로 다시 시도해 주세요.`);
+      return;
+    }
 
     // 같은 파일을 다시 올릴 때도 처음부터 다시 인식되도록 이전 결과를 모두 비운다.
     const runId = ++runIdRef.current;
@@ -559,9 +571,23 @@ export default function RegisterBook() {
           )}
           {ocrError && <span style={{ fontSize: 17, color: '#e05a4e' }}>{ocrError}</span>}
           {ocrNotice && <span style={{ fontSize: 17, color: 'var(--text-h)' }}>{ocrNotice}</span>}
-          {isbn && !ocrLoading && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>인식된 ISBN: {isbn}</span>
-          )}
+
+          {/*
+           * ISBN 수동 입력란 (사용자 요청, 2026-09) — 바코드 인식이 잘 안 되는 경우를
+           * 대비해 항상 노출한다. 인식된 값이 있으면 채워서 보여주고, 사용자가 직접
+           * 고치거나 처음부터 입력할 수 있다. 등록 시 이 값이 그대로 전송된다(state
+           * `isbn`을 그대로 재사용).
+           */}
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 15, color: 'var(--text)' }}>ISBN 직접 입력 (인식이 잘 안 될 때)</span>
+            <input
+              type="text"
+              value={isbn}
+              onChange={(e) => setIsbn(e.target.value)}
+              placeholder="예: 9791164794348"
+              style={{ padding: '7px 8px', fontSize: 16, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
+            />
+          </label>
         </div>
 
         {/* 중앙: 인식 결과 + 수정 */}
@@ -830,9 +856,13 @@ export default function RegisterBook() {
                 alt="책 뒷면 바코드 아래 ISBN 숫자를 촬영하는 예시"
                 style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid var(--border)' }}
               />
-              {/* 업로드 제약 안내 (사용자 요청, 2026-09) — recordApi.js의 실제 서버 제약과 동일 */}
+              {/*
+               * 업로드 제약 안내 (사용자 요청, 2026-09). 서버(recordApi.js)는 최대 50MB까지
+               * 허용하지만, 여러 사용자가 동시에 쓰는 서비스라 서버 부담을 줄이기 위해
+               * 클라이언트 기준을 5MB로 더 낮게 잡았다(handleFile에서 실제로 검증).
+               */}
               <span style={{ display: 'block', marginTop: 10, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, textAlign: 'center' }}>
-                업로드 가능한 이미지 최대 크기: 50MB / 지원 파일 형식: JPG, PNG
+                업로드 가능한 이미지 최대 크기: {MAX_IMAGE_SIZE_MB}MB / 지원 파일 형식: JPG, PNG
               </span>
             </div>
           </div>,
