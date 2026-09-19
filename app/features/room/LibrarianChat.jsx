@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../store/booksStore';
 import { answerQuestion } from './chatEngine';
-import { sendChatMessage } from '../../api/chatApi';
+import { streamChatMessage } from '../../api/chatApi';
 import { getUserLocation } from '../../api/geolocation';
 import { formatRecommendedBooks, extractLibraryBooksFromAnswer, getColorIndex, getBookThickness } from './bookExtractor';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -508,9 +508,19 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     // 날씨 연동을 위한 사용자 위치 (권한 거부/실패 시 null → 백엔드가 서울 기본값 사용)
     const location = await getUserLocation();
 
-    // 도서 등록 자동 입력 연동 플로우: 동기 요청(stream: false) 사용 (CLIAR-229)
+    // 실시간 SSE 스트리밍 연동: 첫 토큰 도착 전까지는 LoadingSequence(발바닥 로딩)를 유지하고,
+    // 첫 토큰 도착 즉시 loading을 해제하고 말풍선 타이핑 스트리밍으로 자연스럽게 전환 (CLIAR-285)
     const activeSessionId = isDebate ? debateSessionId : chatSessionId;
-    const result = await sendChatMessage({
+    const currentSenderIcon = isDebate
+      ? selectedDebatePersona?.icon || '💡'
+      : librarian?.icon || '🐾';
+    const currentSenderName = isDebate
+      ? selectedDebatePersona?.name || '토론 파트너'
+      : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
+
+    let hasReceivedFirstToken = false;
+
+    const streamResult = await streamChatMessage({
       message,
       sessionId: activeSessionId,
       librarianId: targetLibrarianId,
@@ -520,53 +530,156 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       persona: isDebate ? debaterPersona : null,
       bookId: isDebate ? debateBookId || null : null,
       action,
+      onMetadata: (meta) => {
+        if (meta?.session_id) {
+          if (isDebate) {
+            setDebateSessionId(meta.session_id);
+          } else {
+            setChatSessionId(meta.session_id);
+          }
+        }
+        if (meta?.signals) {
+          setModeAnswers((prev) => ({
+            ...prev,
+            [activeMode]: { ...(prev[activeMode] || {}), signals: meta.signals },
+          }));
+        }
+      },
+      onToken: (delta, accumulated) => {
+        if (!hasReceivedFirstToken) {
+          hasReceivedFirstToken = true;
+          // 첫 토큰 도착 즉시 발바닥 로딩 해제 -> 말풍선 전환
+          setLoading(false);
+          const initialAssistantMsg = {
+            role: 'assistant',
+            text: accumulated,
+            senderIcon: currentSenderIcon,
+            senderName: currentSenderName,
+            recommendedBooks: [],
+            libraryBooks: [],
+            isConcluded: false,
+            debateSummary: null,
+            signals: null,
+            switchTo: null,
+          };
+          setModeMessages((prev) => ({
+            ...prev,
+            [activeMode]: [...(prev[activeMode] || []), initialAssistantMsg],
+          }));
+        } else {
+          // 실시간 누적 텍스트 업데이트
+          setModeMessages((prev) => {
+            const list = prev[activeMode] || [];
+            if (list.length === 0) return prev;
+            const updated = [...list];
+            const last = { ...updated[updated.length - 1], text: accumulated };
+            updated[updated.length - 1] = last;
+            return { ...prev, [activeMode]: updated };
+          });
+        }
+        setModeAnswers((prev) => ({
+          ...prev,
+          [activeMode]: { ...(prev[activeMode] || {}), text: accumulated },
+        }));
+      },
+      onBooks: (curatedBooks) => {
+        setModeAnswers((prev) => ({
+          ...prev,
+          [activeMode]: {
+            ...(prev[activeMode] || {}),
+            recommendedBooks: curatedBooks,
+            recommended_books: curatedBooks,
+          },
+        }));
+        setModeMessages((prev) => {
+          const list = prev[activeMode] || [];
+          if (list.length === 0) return prev;
+          const updated = [...list];
+          const last = { ...updated[updated.length - 1], recommendedBooks: curatedBooks };
+          updated[updated.length - 1] = last;
+          return { ...prev, [activeMode]: updated };
+        });
+      },
+      onSwitchSuggestion: (suggestion) => {
+        setModeAnswers((prev) => ({
+          ...prev,
+          [activeMode]: {
+            ...(prev[activeMode] || {}),
+            switchTo: suggestion,
+          },
+        }));
+        setModeMessages((prev) => {
+          const list = prev[activeMode] || [];
+          if (list.length === 0) return prev;
+          const updated = [...list];
+          const last = { ...updated[updated.length - 1], switchTo: suggestion };
+          updated[updated.length - 1] = last;
+          return { ...prev, [activeMode]: updated };
+        });
+      },
     });
 
-    if (result) {
-      if (result.sessionId) {
+    if (streamResult) {
+      if (streamResult.sessionId) {
         if (isDebate) {
-          setDebateSessionId(result.sessionId);
+          setDebateSessionId(streamResult.sessionId);
         } else {
-          setChatSessionId(result.sessionId);
+          setChatSessionId(streamResult.sessionId);
         }
       }
       const newAnswer = {
-        text: result.text,
-        switchTo: result.switchTo,
-        signals: result.signals,
-        libraryBooks: isDebate ? [] : (result.libraryBooks || result.library_books || []),
-        library_books: isDebate ? [] : (result.library_books || result.libraryBooks || []),
-        recommendedBooks: result.recommendedBooks || result.recommended_books || [],
-        recommended_books: result.recommended_books || result.recommendedBooks || [],
-        isConcluded: Boolean(result.isConcluded || result.is_concluded),
-        is_concluded: Boolean(result.isConcluded || result.is_concluded),
-        debateSummary: result.debateSummary || result.debate_summary || null,
-        debate_summary: result.debateSummary || result.debate_summary || null,
+        text: streamResult.text,
+        switchTo: streamResult.switchTo,
+        signals: streamResult.signals,
+        libraryBooks: isDebate ? [] : (streamResult.libraryBooks || []),
+        library_books: isDebate ? [] : (streamResult.library_books || []),
+        recommendedBooks: streamResult.recommendedBooks || [],
+        recommended_books: streamResult.recommended_books || [],
+        isConcluded: Boolean(streamResult.isConcluded),
+        is_concluded: Boolean(streamResult.is_concluded),
+        debateSummary: streamResult.debateSummary || null,
+        debate_summary: streamResult.debate_summary || null,
       };
       setModeAnswers((prev) => ({ ...prev, [activeMode]: newAnswer }));
-      const currentSenderIcon = isDebate
-        ? selectedDebatePersona?.icon || '💡'
-        : librarian?.icon || '🐾';
-      const currentSenderName = isDebate
-        ? selectedDebatePersona?.name || '토론 파트너'
-        : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
 
-      const assistantMsg = {
-        role: 'assistant',
-        text: newAnswer.text,
-        senderIcon: currentSenderIcon,
-        senderName: currentSenderName,
-        recommendedBooks: newAnswer.recommendedBooks,
-        libraryBooks: newAnswer.libraryBooks,
-        isConcluded: newAnswer.isConcluded,
-        debateSummary: newAnswer.debateSummary,
-        signals: newAnswer.signals,
-        switchTo: newAnswer.switchTo,
-      };
-      setModeMessages((prev) => ({
-        ...prev,
-        [activeMode]: [...(prev[activeMode] || []), assistantMsg],
-      }));
+      // 만약 토큰 콜백이 실행되지 않은 채 done으로 바로 끝난 경우(예: 빈 텍스트 or 단일 응답)
+      if (!hasReceivedFirstToken) {
+        const assistantMsg = {
+          role: 'assistant',
+          text: newAnswer.text,
+          senderIcon: currentSenderIcon,
+          senderName: currentSenderName,
+          recommendedBooks: newAnswer.recommendedBooks,
+          libraryBooks: newAnswer.libraryBooks,
+          isConcluded: newAnswer.isConcluded,
+          debateSummary: newAnswer.debateSummary,
+          signals: newAnswer.signals,
+          switchTo: newAnswer.switchTo,
+        };
+        setModeMessages((prev) => ({
+          ...prev,
+          [activeMode]: [...(prev[activeMode] || []), assistantMsg],
+        }));
+      } else {
+        // 이미 생성된 마지막 assistant 메시지에 최종 메타데이터(isConcluded, debateSummary, signals 등) 동기화
+        setModeMessages((prev) => {
+          const list = prev[activeMode] || [];
+          if (list.length === 0) return prev;
+          const updated = [...list];
+          const last = {
+            ...updated[updated.length - 1],
+            text: newAnswer.text,
+            isConcluded: newAnswer.isConcluded,
+            debateSummary: newAnswer.debateSummary,
+            signals: newAnswer.signals,
+            switchTo: newAnswer.switchTo,
+            recommendedBooks: newAnswer.recommendedBooks,
+          };
+          updated[updated.length - 1] = last;
+          return { ...prev, [activeMode]: updated };
+        });
+      }
+
       if (onAnswer) {
         onAnswer(newAnswer);
       }
@@ -574,12 +687,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       // 백엔드 연결 실패 시에만 로컬 서재 검색으로 폴백
       const localResult = answerQuestion({ text: message, books, librarian, librarianNames });
       setModeAnswers((prev) => ({ ...prev, [activeMode]: localResult }));
-      const currentSenderIcon = isDebate
-        ? selectedDebatePersona?.icon || '💡'
-        : librarian?.icon || '🐾';
-      const currentSenderName = isDebate
-        ? selectedDebatePersona?.name || '토론 파트너'
-        : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
 
       const assistantMsg = {
         role: 'assistant',
