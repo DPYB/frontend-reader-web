@@ -33,9 +33,12 @@ export default function MyPage() {
   const { member, setMember, isGuest } = useAuth();
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
-  const profileImage = member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
+  // 백엔드 응답이 camelCase(birthDate) 또는 snake_case(birth_date) 양쪽 모두 지원되도록 처리
+  const profileImage = member?.profileImageUrl || member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
   const email = member?.email ?? '';
-  const birthDate = member?.birth_date ?? (isGuest ? '체험 계정' : '-');
+  const rawBirthDate = member?.birthDate || member?.birth_date;
+  const birthDate = rawBirthDate ?? (isGuest ? '체험 계정' : '-');
+  const nickname = member?.nickname ?? '';
   const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '선택 안 함');
 
   // 마이페이지 진입 시 기본으로 '내 정보'만 보이도록, 왼쪽 메뉴로 섹션 전환
@@ -43,6 +46,7 @@ export default function MyPage() {
 
   // ── 내 정보 수정 ──
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [editNickname, setEditNickname] = useState('');
   const [editBirthDate, setEditBirthDate] = useState('');
   const [editGender, setEditGender] = useState('선택 안 함');
   const [infoLoading, setInfoLoading] = useState(false);
@@ -114,7 +118,8 @@ export default function MyPage() {
 
   // 내 정보 수정 시작
   const handleStartEdit = () => {
-    setEditBirthDate(member?.birth_date ?? '');
+    setEditNickname(member?.nickname ?? '');
+    setEditBirthDate(member?.birthDate || member?.birth_date || '');
     const currentGender = member?.gender === 'MALE' ? '남성' : member?.gender === 'FEMALE' ? '여성' : '선택 안 함';
     setEditGender(currentGender);
     setInfoError('');
@@ -130,12 +135,17 @@ export default function MyPage() {
   const handleSaveInfo = async (e) => {
     e.preventDefault();
     if (infoLoading) return;
+    if (!editNickname.trim()) {
+      setInfoError('닉네임을 입력해 주세요.');
+      return;
+    }
     setInfoLoading(true);
     setInfoError('');
     setInfoSuccess(false);
 
     try {
       const payload = {
+        nickname: editNickname.trim(),
         birth_date: editBirthDate ? editBirthDate : null,
         gender: GENDER_MAP[editGender] ?? null,
       };
@@ -212,6 +222,19 @@ export default function MyPage() {
               {isEditingInfo ? (
                 <form className="mypage-info-edit-form" onSubmit={handleSaveInfo}>
                   <div className="mypage-info-edit-group">
+                    <label className="mypage-info-edit-label" htmlFor="mypage-nickname">닉네임</label>
+                    <input
+                      id="mypage-nickname"
+                      type="text"
+                      className="mypage-text-input"
+                      value={editNickname}
+                      maxLength={50}
+                      placeholder="닉네임 (2~50자)"
+                      onChange={(e) => setEditNickname(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="mypage-info-edit-group">
                     <label className="mypage-info-edit-label" htmlFor="mypage-birthdate">생년월일</label>
                     <input
                       id="mypage-birthdate"
@@ -256,6 +279,10 @@ export default function MyPage() {
                 <>
                   <dl className="mypage-info">
                     <div className="mypage-info-row">
+                      <dt>닉네임</dt>
+                      <dd>{nickname || '-'}</dd>
+                    </div>
+                    <div className="mypage-info-row">
                       <dt>생년월일</dt>
                       <dd>{birthDate}</dd>
                     </div>
@@ -285,6 +312,10 @@ export default function MyPage() {
           {activeTab === 'notify' && (
             <div className="mypage-card mypage-card--section">
               <h3 className="mypage-section-title">알림 설정</h3>
+
+              <p className="mypage-hint" style={{ color: 'var(--text-muted, #888)', marginBottom: 8 }}>
+                ℹ️ 현재 알림 서비스(푸시/이메일 발송)는 준비 중이며, 설정 값은 로컬 화면에만 임시 적용됩니다.
+              </p>
 
               <label className="mypage-toggle-row">
                 <span>추천 알림</span>
