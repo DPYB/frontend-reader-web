@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
 import { colorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
@@ -92,6 +93,8 @@ export default function RegisterBook() {
   // 주 사용 환경). getUserMedia로 실제 웹캠 스트림을 여는 방식으로 교체했다 — 크롬은 위치
   // 정보 요청과 동일하게 카메라 접근 시 주소창 옆에서 자동으로 권한 팝업을 띄운다.
   const [webcamOpen, setWebcamOpen] = useState(false);
+  // "가이드" 버튼 클릭 시 ISBN 촬영 방법을 보여주는 예시 이미지 팝업 (사용자 요청, 2026-09)
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -464,7 +467,25 @@ export default function RegisterBook() {
           backend-book이 알라딘에서 조회한 제목·저자·쪽수가 아래 인식 결과에 채워진다.
         */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 999,
+                border: '1px solid var(--accent-border)',
+                background: 'var(--accent-bg)',
+                color: 'var(--accent)',
+                cursor: 'pointer',
+              }}
+            >
+              🐾 가이드
+            </button>
+          </div>
           <span style={{ fontSize: 16, color: 'var(--text)' }}>
             책 뒷면이나 표지 안쪽 바코드 아래에 있는 13자리 ISBN 숫자를 촬영해주세요.
             <br />
@@ -777,6 +798,46 @@ export default function RegisterBook() {
       {webcamOpen && (
         <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
+
+      {/* ISBN 촬영 가이드 팝업 (사용자 요청, 2026-09) — 책 뒷면 바코드 위치를 보여주는 예시 이미지 */}
+      {guideOpen &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100,
+            }}
+            onClick={() => setGuideOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 'min(480px, 92vw)', background: 'var(--bg)', border: '1px solid var(--border)',
+                borderRadius: 16, padding: 20, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', color: 'var(--text-h)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 20 }}>📷 ISBN 촬영 가이드</h3>
+                <button
+                  onClick={() => setGuideOpen(false)}
+                  style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}
+                >
+                  ✕
+                </button>
+              </div>
+              <img
+                src="/ISBN_guide.jpg"
+                alt="책 뒷면 바코드 아래 ISBN 숫자를 촬영하는 예시"
+                style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid var(--border)' }}
+              />
+              {/* 업로드 제약 안내 (사용자 요청, 2026-09) — recordApi.js의 실제 서버 제약과 동일 */}
+              <span style={{ display: 'block', marginTop: 10, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, textAlign: 'center' }}>
+                업로드 가능한 이미지 최대 크기: 50MB / 지원 파일 형식: JPG, PNG
+              </span>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

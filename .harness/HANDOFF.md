@@ -1,5 +1,16 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 책 등록 페이지 "ISBN 촬영 가이드" 팝업 추가
+- 작업 브랜치: `feat/책등록-웹캠촬영` (웹캠 캡처 작업에 이어서 진행)
+- **배경**: 사용자가 책 뒷면 바코드에서 ISBN을 찍는 방법을 보여주는 예시 이미지(`public/ISBN_guide.jpg`, 587x496)를 준비. "ISBN 촬영" 제목 옆에 가이드 버튼을 만들어 클릭 시 이 이미지가 팝업으로 뜨도록 요청.
+- **시행착오**: 처음엔 사용자가 준비한 정사각형(1254x1254) PNG를 ImageMagick으로 상단 40px(약 1cm)를 잘라 webp로 변환해 적용했는데, 이후 사용자가 그 webp를 직접 삭제하고 이미 직사각형(587x496, 61KB)으로 편집된 새 파일(`ISBN_guide.jpg`)을 넣어 최종적으로 이 파일을 그대로 사용(추가 변환 불필요, 이미 충분히 작음).
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - "ISBN 촬영" 제목 옆에 "🐾 가이드" 버튼 추가 (처음엔 ❓ 이모지였으나 사용자 요청으로 발바닥 🐾으로 교체 — 서비스 전반의 발바닥 테마와 통일)
+  - 클릭 시 `guideOpen` 상태로 `WebcamCaptureModal`과 동일한 `createPortal` 기반 팝업을 띄우고 `/ISBN_guide.jpg`를 표시
+  - 팝업 이미지 아래에 업로드 제약 안내 문구 추가: "업로드 가능한 이미지 최대 크기: 50MB / 지원 파일 형식: JPG, PNG" — `recordApi.js`에 문서화된 실제 서버 제약(`image/jpeg` 또는 `image/png`, 최대 50MB)과 동일한 값
+- **검증**: `npx eslint app/pages/RegisterBook.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공
+- ⚠️ 실제 화면에서 가이드 팝업 이미지 표시 및 문구 배치 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
 ## 2026-09-20: 책 등록 페이지 "사진 촬영" 버튼을 웹캠 캡처로 전환
 - 작업 브랜치: `feat/책등록-웹캠촬영`
 - **배경**: `RegisterBook.jsx`(책 등록, ISBN 촬영)의 "📷 사진 촬영" 버튼이 `<input type="file" capture="environment">`를 트리거했는데, 이 속성은 모바일에서만 OS 카메라 앱을 열고 데스크톱 브라우저에서는 무시되어 파일 탐색기만 뜬다. 이 서비스는 웹(데스크톱) 기준이라 실제로는 파일 선택창처럼 동작해 사용자가 원하는 "노트북 카메라 실행"이 안 됐음. 참고로 `SentenceCollectModal.jsx`(문장 수집)는 이미 이 문제를 해결한 `WebcamCaptureModal`(getUserMedia 기반)을 별도 버튼으로 갖고 있었음.
