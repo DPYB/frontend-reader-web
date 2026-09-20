@@ -129,9 +129,12 @@ export default function Book3D({
     g.scale.y = THREE.MathUtils.damp(g.scale.y, targetScaleXY, lambda, delta);
     g.scale.z = THREE.MathUtils.damp(g.scale.z, targetScaleZ, lambda, delta);
 
-    // 테두리 glow — hover/selected일 때 은은하게 페이드인 (CLIAR-243)
+    // 테두리 glow — hover일 때만 은은하게 페이드인 (CLIAR-243).
+    // 예전엔 selected일 때도 계속 켜져 있어, 책을 클릭해 확대된(상세 팝업이 뜬)
+    // 상태에서도 정육면체 윤곽선이 그대로 보였다. 선택된 책은 이미 확대·회전으로
+    // 충분히 강조되므로, 확대 후에는 테두리를 끈다(사용자 요청, 2026-09).
     // Edges의 ref는 Line2 메시를 가리키므로 실제 투명도는 .material.opacity에 있다.
-    const glowOn = hovered || selected;
+    const glowOn = hovered && !selected;
     const targetCore = glowOn ? 0.9 : 0;
     const targetHalo = glowOn ? 0.35 : 0;
     const coreMat = edgeCoreRef.current?.material;

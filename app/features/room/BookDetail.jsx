@@ -54,28 +54,28 @@ export default function BookDetail({ book, onClose }) {
   // 목록 요약엔 페이지/장르 등이 없어, 상세를 조회해 현재/총 페이지·상태를 초기화한다.
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const d = await getLibraryBook(book.bookId)
-        if (cancelled) return
-        setDetail(d)
-        setCurrentPage(d.currentPage || 0)
-        setTotalPage(d.totalPages || 0)
-        if (d.genre) setGenre(d.genre)
-        if (d.coverUrl) setCoverUrl(d.coverUrl)
-        if (d.readingStatus) {
-          // 서버 상태를 우선 반영(한글 매핑은 provider와 동일 규칙)
-          const kr = {
-            PLANNED: '시작전',
-            READING: '읽는 중',
-            COMPLETED: '완독',
-          }[d.readingStatus]
-          if (kr) setStatus(kr)
+      ; (async () => {
+        try {
+          const d = await getLibraryBook(book.bookId)
+          if (cancelled) return
+          setDetail(d)
+          setCurrentPage(d.currentPage || 0)
+          setTotalPage(d.totalPages || 0)
+          if (d.genre) setGenre(d.genre)
+          if (d.coverUrl) setCoverUrl(d.coverUrl)
+          if (d.readingStatus) {
+            // 서버 상태를 우선 반영(한글 매핑은 provider와 동일 규칙)
+            const kr = {
+              PLANNED: '시작전',
+              READING: '읽는 중',
+              COMPLETED: '완독',
+            }[d.readingStatus]
+            if (kr) setStatus(kr)
+          }
+        } catch {
+          // 상세 조회 실패 시 요약 기반 값 유지
         }
-      } catch {
-        // 상세 조회 실패 시 요약 기반 값 유지
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -157,7 +157,7 @@ export default function BookDetail({ book, onClose }) {
             coverUrl: detail.coverUrl ?? null,
             readingStatus: 'READING',
             totalPages: detail.totalPages ?? null,
-          }).catch(() => {})
+          }).catch(() => { })
         }
       }
 
@@ -276,107 +276,13 @@ export default function BookDetail({ book, onClose }) {
 
   return (
     <div style={panelStyle}>
-      {/*
-       * 우측 상단 버튼.
-       * 평소엔 [수정][삭제], 수정 중엔 [완료][취소]로 바뀐다 — 같은 자리의 버튼이
-       * 글자와 색상만 바뀌고, "완료"를 누를 때 좌측 상세와 우측 문장 편집이
-       * 함께 저장된다.
-       */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          display: 'flex',
-          gap: 6,
-        }}
-      >
-        {editing ? (
-          <>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                padding: '4px 12px',
-                borderRadius: 6,
-                border: '1px solid var(--accent)',
-                background: 'var(--accent)',
-                color: '#fff',
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.6 : 1,
-              }}
-            >
-              {saving ? '저장 중...' : '완료'}
-            </button>
-            <button
-              onClick={() => {
-                setEditing(false)
-                setActionError(null)
-                // 저장하지 않은 문장·메모 편집값은 버린다
-                galleryRef.current?.discardEdits()
-              }}
-              disabled={saving}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text)',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: saving ? 'not-allowed' : 'pointer',
-              }}
-            >
-              취소
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => setEditing(true)}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: '1px solid var(--accent)',
-                background: 'transparent',
-                color: 'var(--accent)',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              수정
-            </button>
-            {!isGuest && (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: '1px solid #e74c3c',
-                  background: 'transparent',
-                  color: '#e74c3c',
-                  fontSize: 15,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                삭제
-              </button>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* 닫기 */}
+      {/* 닫기 — 최상단 오른쪽 (사용자 요청, 2026-09) */}
       <button
         onClick={onClose}
         style={{
           position: 'absolute',
           top: 12,
-          left: 12,
+          right: 12,
           background: 'transparent',
           border: 'none',
           color: 'var(--text)',
@@ -640,11 +546,16 @@ export default function BookDetail({ book, onClose }) {
             overflow: 'hidden',
           }}
         >
-          {/* 우측 상단 탭 헤더 */}
+          {/*
+           * 우측 상단 탭 헤더 + 수정/삭제(완료/취소) 버튼.
+           * 탭 버튼은 왼쪽, 수정/삭제 버튼은 같은 줄 오른쪽에 배치한다
+           * (사용자 요청, 2026-09 — 기존 절대위치에서 이 줄로 이동).
+           */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
               gap: 8,
               paddingBottom: 10,
               borderBottom: '1px solid var(--border)',
@@ -652,46 +563,128 @@ export default function BookDetail({ book, onClose }) {
               flexShrink: 0,
             }}
           >
-            <button
-              type="button"
-              onClick={() => setRightTab('scraps')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: rightTab === 'scraps' ? 'var(--accent)' : 'var(--code-bg)',
-                color: rightTab === 'scraps' ? '#fff' : 'var(--text)',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>📸</span> 수집한 문장
-            </button>
-            <button
-              type="button"
-              onClick={() => setRightTab('sessions')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: rightTab === 'sessions' ? 'var(--accent)' : 'var(--code-bg)',
-                color: rightTab === 'sessions' ? '#fff' : 'var(--text)',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>⏱️</span> 독서 타이머 기록
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setRightTab('scraps')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: rightTab === 'scraps' ? 'var(--accent)' : 'var(--code-bg)',
+                  color: rightTab === 'scraps' ? '#fff' : 'var(--text)',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>📸</span> 수집한 문장
+              </button>
+              <button
+                type="button"
+                onClick={() => setRightTab('sessions')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: rightTab === 'sessions' ? 'var(--accent)' : 'var(--code-bg)',
+                  color: rightTab === 'sessions' ? '#fff' : 'var(--text)',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>⏱️</span> 독서 타이머 기록
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              {editing ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: 6,
+                      border: '1px solid var(--accent)',
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving ? '저장 중...' : '완료'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditing(false)
+                      setActionError(null)
+                      // 저장하지 않은 문장·메모 편집값은 버린다
+                      galleryRef.current?.discardEdits()
+                    }}
+                    disabled={saving}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEditing(true)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: '1px solid var(--accent)',
+                      background: 'transparent',
+                      color: 'var(--accent)',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    수정
+                  </button>
+                  {!isGuest && (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #e74c3c',
+                        background: 'transparent',
+                        color: '#e74c3c',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      삭제
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* 탭 콘텐츠 본문 */}
