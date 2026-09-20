@@ -1,5 +1,12 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: Cloudflare 배포 실패 수정 — wrangler.jsonc(assets) 추가
+- 작업 브랜치: `chore/배포용-API-분리라우팅` (같은 배포 준비 작업이라 이어서 처리)
+- **배경**: Cloudflare에 Git 연동 빌드로 배포를 시도했는데, 빌드(`npm run build`)는 성공했지만 Deploy 단계(`npx wrangler deploy`)에서 `Error parsing file: vite.config.js`로 실패. 이 프로젝트는 최신 Cloudflare의 "통합 Workers + 정적 에셋(assets)" 흐름으로 생성되어 있어(별도 Pages 프로젝트가 아니라 Workers 설정 화면), 저장소에 `wrangler.jsonc`가 없으면 wrangler가 정적 SPA라는 걸 스스로 판단하지 못하고 아무 JS 파일이나 서버 스크립트로 착각해 파싱하려다 실패하는 게 원인이었음.
+- **수정 내용**: 저장소 루트에 `wrangler.jsonc` 신설 — `assets.directory: "./dist"`(Vite 빌드 출력 폴더를 정적 파일로 서빙), `assets.not_found_handling: "single-page-application"`(React Router 새로고침 시 404 대신 index.html로 라우팅). Cloudflare 공식 "Migrate from Netlify to Workers" 가이드의 SPA 케이스와 동일한 스키마.
+- **검증**: `npm run build` 성공(dist 생성 확인, 삭제 완료), `wrangler.jsonc`가 유효한 JSON인지 `node -e "JSON.parse(...)"`로 확인
+- ⚠️ 실제 Cloudflare 재배포는 사용자가 대시보드에서 트리거해야 함(로컬에서 배포 여부를 검증할 수 없음). Deploy command는 기존 `npx wrangler deploy` 그대로 두면 됨(공식 가이드 권장사항). 재배포 후에도 실패하면 로그를 다시 확인 필요.
+
 ## 2026-09-20: Cloudflare Pages 배포 준비 — core-api/ai-agent 베이스 URL 분리
 - 작업 브랜치: `chore/배포용-API-분리라우팅`
 - **배경**: 해커톤 제출을 위해 Cloudflare Pages로 프론트를 배포하려는데, 백엔드가 `backend-core-api`(Render, `https://backend-core-api.onrender.com`)와 `backend-ai-agent`(Render, `https://backend-ai-agent-77ik.onrender.com`) 두 곳으로 나뉘어 있음을 확인. 기존 프론트 코드는 `authApi.js`/`chatApi.js`/`genreApi.js`/`recordApi.js`/`reportApi.js` 전부 단일 `VITE_API_BASE_URL` 환경변수만 썼는데, dev 서버에서는 `vite.config.js`의 proxy가 경로별로 두 백엔드로 나눠 보내줘서 문제가 안 보였을 뿐, 정적 호스팅(Pages)에는 이 proxy가 없어 프로덕션 빌드에서 채팅/OCR/장르분류/리포트 요청이 전부 core-api로 가서 404가 나는 구조적 결함이었음.
