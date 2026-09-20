@@ -33,6 +33,10 @@ const CAT_CAMERA = {
  *  - width:   선반 폭(이 폭을 넘으면 다음 선반으로)
  *  - depth:   책 앞뒤 깊이
  *  - capacity: 이 선반의 최대 권수 (0=무제한, 초과 시 다음 선반으로)
+ *
+ * 5개 선반 모두 capacity: 10으로 맞춰 총 50권까지 수용한다(사용자 요청, 2026-09).
+ * placeBooks()가 마지막 선반도 capacity를 지키도록 수정되어 있어, 50권을 넘는
+ * 책은 어느 선반에도 배치되지 않아 화면에 보이지 않는다(등록 상한은 별도 처리 필요).
  */
 const CAT_SHELVES = [
   {
@@ -49,14 +53,51 @@ const CAT_SHELVES = [
   },
   {
     id: 'shelf2',
-    pos: [-2.8, -0.11, 4.61],
-    rotXdeg: -8.5,
-    rotYdeg: -2,
+    pos: [-2.8, -0.18, 4.61],
+    rotXdeg: -5,
+    rotYdeg: -10.5,
     rotZdeg: -4,
     width: 1.65,
     depth: 0.2,
     bookHeight: 0.54,
     heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf3',
+    pos: [-2.8, -0.9, 4.6],
+    rotXdeg: -11.5,
+    rotYdeg: -14,
+    rotZdeg: -4,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf4',
+    pos: [-2.8, -1.65, 4.6],
+    rotXdeg: -11.5,
+    rotYdeg: -14,
+    rotZdeg: -4,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf5',
+    pos: [-2.75, -2.25, 4.6],
+    rotXdeg: -7.5,
+    rotYdeg: -38,
+    rotZdeg: -5,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
   },
 ];
 
@@ -164,12 +205,18 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
   const placements = [];
   if (!shelves.length) return placements;
 
-  // 1) 책을 선반별로 분배 (capacity 기준, 없으면 마지막 선반이 나머지 전부)
+  /*
+   * 1) 책을 선반별로 분배 (capacity 기준).
+   * capacity가 없거나 0이면 무제한(그 선반이 남은 책을 전부 담음).
+   * 예전엔 "마지막 선반"은 capacity를 무시하고 항상 나머지 전부를 담았는데,
+   * 각 선반을 정확히 N권씩만 채우고 싶다는 요청(2026-09)에 따라 마지막 선반도
+   * 똑같이 capacity를 지키도록 변경했다. 모든 선반의 용량을 합친 것보다 책이
+   * 많으면 그 초과분은 어느 선반에도 배치되지 않아 화면에 보이지 않는다.
+   */
   let ptr = 0;
-  const groups = shelves.map((shelf, i) => {
-    const isLast = i === shelves.length - 1;
+  const groups = shelves.map((shelf) => {
     const cap = shelf.capacity && shelf.capacity > 0 ? shelf.capacity : Infinity;
-    const take = isLast ? books.length - ptr : Math.min(cap, books.length - ptr);
+    const take = Math.min(cap, books.length - ptr);
     const slice = books.slice(ptr, ptr + Math.max(0, take));
     ptr += slice.length;
     return slice;
