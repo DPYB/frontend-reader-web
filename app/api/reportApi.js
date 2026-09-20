@@ -7,6 +7,7 @@
 
 import { authFetch } from './authApi';
 import { genreLabel } from '../data/genres';
+import { AI_API_BASE } from './apiBase';
 
 /**
  * 백엔드 AI Agent 월간 독서 리포트 DTO(MonthlyReportResponse)를
@@ -33,33 +34,33 @@ export function normalizeMonthlyReport(raw) {
   const dayOfWeek = Array.isArray(raw.rhythm?.dayOfWeek)
     ? raw.rhythm.dayOfWeek
     : [
-        { day: '월', count: weekdayMap.MON ?? 0 },
-        { day: '화', count: weekdayMap.TUE ?? 0 },
-        { day: '수', count: weekdayMap.WED ?? 0 },
-        { day: '목', count: weekdayMap.THU ?? 0 },
-        { day: '금', count: weekdayMap.FRI ?? 0 },
-        { day: '토', count: weekdayMap.SAT ?? 0 },
-        { day: '일', count: weekdayMap.SUN ?? 0 },
-      ];
+      { day: '월', count: weekdayMap.MON ?? 0 },
+      { day: '화', count: weekdayMap.TUE ?? 0 },
+      { day: '수', count: weekdayMap.WED ?? 0 },
+      { day: '목', count: weekdayMap.THU ?? 0 },
+      { day: '금', count: weekdayMap.FRI ?? 0 },
+      { day: '토', count: weekdayMap.SAT ?? 0 },
+      { day: '일', count: weekdayMap.SUN ?? 0 },
+    ];
 
   const timeMap = raw.habits?.timeDistribution || {};
   const timeOfDay = Array.isArray(raw.rhythm?.timeOfDay)
     ? raw.rhythm.timeOfDay
     : [
-        { time: '새벽', count: timeMap.dawn ?? 0 },
-        { time: '낮', count: timeMap.day ?? 0 },
-        { time: '저녁', count: timeMap.evening ?? 0 },
-        { time: '심야', count: timeMap.night ?? 0 },
-      ];
+      { time: '새벽', count: timeMap.dawn ?? 0 },
+      { time: '낮', count: timeMap.day ?? 0 },
+      { time: '저녁', count: timeMap.evening ?? 0 },
+      { time: '심야', count: timeMap.night ?? 0 },
+    ];
 
   const weatherMap = raw.habits?.weatherDistribution || {};
   const weather = Array.isArray(raw.rhythm?.weather)
     ? raw.rhythm.weather
     : [
-        { condition: '맑음 (clear)', count: weatherMap.clear ?? 0 },
-        { condition: '흐림 (cloudy)', count: weatherMap.cloudy ?? 0 },
-        { condition: '비/눈 (rainy/snowy)', count: (weatherMap.rainy ?? 0) + (weatherMap.snowy ?? 0) },
-      ];
+      { condition: '맑음 (clear)', count: weatherMap.clear ?? 0 },
+      { condition: '흐림 (cloudy)', count: weatherMap.cloudy ?? 0 },
+      { condition: '비/눈 (rainy/snowy)', count: (weatherMap.rainy ?? 0) + (weatherMap.snowy ?? 0) },
+    ];
 
   // 06. 날씨별 독서 & 베스트 도서 매핑 (아이콘 + 표지 1:1 매칭용)
   const weatherBooks = Array.isArray(raw.rhythm?.weatherBooks)
@@ -212,8 +213,11 @@ export function normalizeMonthlyReport(raw) {
  * @returns {Promise<object>} 정규화된 월간 독서 리포트 데이터
  */
 export async function fetchMonthlyReport({ year, month }) {
+  // 월간 리포트(/reports/monthly)는 backend-ai-agent가 담당한다 (사용자 요청, 2026-09:
+  // Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
   const raw = await authFetch(
-    `/reports/monthly?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`
+    `/reports/monthly?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`,
+    { baseUrl: AI_API_BASE }
   );
   return normalizeMonthlyReport(raw);
 }

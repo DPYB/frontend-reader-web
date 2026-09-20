@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: Cloudflare Pages 배포 준비 — core-api/ai-agent 베이스 URL 분리
+- 작업 브랜치: `chore/배포용-API-분리라우팅`
+- **배경**: 해커톤 제출을 위해 Cloudflare Pages로 프론트를 배포하려는데, 백엔드가 `backend-core-api`(Render, `https://backend-core-api.onrender.com`)와 `backend-ai-agent`(Render, `https://backend-ai-agent-77ik.onrender.com`) 두 곳으로 나뉘어 있음을 확인. 기존 프론트 코드는 `authApi.js`/`chatApi.js`/`genreApi.js`/`recordApi.js`/`reportApi.js` 전부 단일 `VITE_API_BASE_URL` 환경변수만 썼는데, dev 서버에서는 `vite.config.js`의 proxy가 경로별로 두 백엔드로 나눠 보내줘서 문제가 안 보였을 뿐, 정적 호스팅(Pages)에는 이 proxy가 없어 프로덕션 빌드에서 채팅/OCR/장르분류/리포트 요청이 전부 core-api로 가서 404가 나는 구조적 결함이었음.
+- **수정 내용**: `app/api/apiBase.js` 신설 — `CORE_API_BASE`(`VITE_CORE_API_BASE_URL` 기반), `AI_API_BASE`(`VITE_AI_API_BASE_URL` 기반) export. 값이 없으면 기존처럼 `/api/v1`(같은 오리진, dev 프록시) 폴백.
+  - `authApi.js`: `API_BASE`를 `CORE_API_BASE`로 전환. `authFetch`에 `baseUrl` 옵션 추가(기본은 core-api, 다른 백엔드로 보내야 하는 호출만 오버라이드). HTML 감지 에러 메시지도 `effectiveBase` 기준으로 정정.
+  - `bookApi.js`: `authFetch` 그대로 재사용이라 수정 불필요(자동으로 core-api 적용).
+  - `chatApi.js`, `genreApi.js`: 자체 `API_BASE`를 `AI_API_BASE`로 전환(`/chat`, `/classify-genre`는 ai-agent 소관, vite proxy 규칙과 동일하게 유지).
+  - `recordApi.js`: OCR 두 함수(`createOcrSentence`→`/ocr/sentences`, `createOcrCover`→`/ocr/covers`)만 `authFetch(path, { baseUrl: AI_API_BASE })`로 오버라이드. `records`/`reading-sessions`는 core-api 기본값 그대로 유지(vite proxy 규칙상 core-api 소관).
+  - `reportApi.js`: `/reports/monthly` 호출에 `baseUrl: AI_API_BASE` 추가.
+  - `.env.example`: `VITE_API_BASE_URL` 자리를 `VITE_CORE_API_BASE_URL`/`VITE_AI_API_BASE_URL` 두 개로 교체, 실제 Render 배포 URL을 예시값으로 채움.
+  - `README.md`의 "백엔드 연동" 섹션을 4개 서비스+CloudFront 구조(낡은 설명)에서 core-api/ai-agent 2개 구조 + `authFetch baseUrl` 오버라이드 방식으로 갱신.
+- **검증**: `npx eslint`(대상 파일 전체) 0 errors, `npm run build` 성공. 추가로 `VITE_CORE_API_BASE_URL`/`VITE_AI_API_BASE_URL`을 실제 값으로 주입해 빌드한 뒤 번들(`dist/assets/*.js`)을 grep해 각 URL이 의도한 위치(core-api URL은 `authApi.js` 쪽, ai-agent URL은 `chatApi.js` 등)에 정확히 들어갔는지 실증 확인. dist 삭제 완료.
+- **Cloudflare Pages/Render 쪽에서 사람이 해야 할 일** (코드 변경 범위 밖):
+  1. Cloudflare Pages 프로젝트 생성 시 환경변수에 `VITE_CORE_API_BASE_URL=https://backend-core-api.onrender.com/api/v1`, `VITE_AI_API_BASE_URL=https://backend-ai-agent-77ik.onrender.com/api/v1` 등록
+  2. 두 Render 서비스의 `CORS_ORIGINS`(환경변수)에 Pages 배포 도메인(`https://ai0208.xyz`, `https://<project>.pages.dev`) 추가 — 지금 로컬 `.env`엔 `localhost`만 있어 그대로면 배포 후 CORS로 막힘
+  3. `ai0208.xyz`를 Cloudflare 네임서버로 이전 후 Pages 커스텀 도메인으로 연결(진행 중, 사용자가 직접 처리)
+  4. Refresh Token이 HttpOnly 쿠키인데 프론트(Pages)와 백엔드(Render)가 다른 도메인이라 서드파티 쿠키 취급될 수 있음 — 실배포 후 로그인 유지가 끊기면 이 지점부터 확인 필요(SameSite/도메인 설정 조정이 필요할 수 있음)
+- ⚠️ Cloudflare R2 프로필 사진 마이그레이션(별도 작업, 아직 미착수)과는 독립적인 변경. 커밋만 진행, push/PR은 사용자 다음 지시 대기.
+
 ## 2026-09-20: 누디(nudi) 서재 전용 카메라/선반 배치 캘리브레이션 반영
 - 작업 브랜치: `fix/누디서재-캘리브레이션`
 - **배경**: 누디 서재는 지금까지 전용 카메라/선반 배치가 없어 `CAMERA_BY_LIBRARIAN`/`SHELVES_BY_LIBRARIAN`에 `nudi` 키가 없었고, `getDefaultCamera`/`getDefaultShelves` 폴백으로 고양이(cat) 값을 그대로 대체 사용하고 있었음(배경 이미지만 누디 전용). 사용자가 캘리브레이션 도구(leva 슬라이더)로 직접 카메라 시점과 선반 3개의 위치/회전/폭/깊이/bookHeight를 맞추고 "설정 JSON 복사" 결과를 전달.

@@ -14,8 +14,11 @@
 
 import { fetchWithTimeout } from './fetchWithTimeout';
 import { showGlobalToast } from '../components/toastContext';
+import { CORE_API_BASE } from './apiBase';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// auth/users/terms는 모두 backend-core-api가 담당한다 (사용자 요청, 2026-09:
+// Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
+const API_BASE = CORE_API_BASE;
 
 // ── JWT Payload Decoder (base64url) ──
 export function parseJwtPayload(token) {
@@ -200,23 +203,27 @@ export async function refreshAccessToken() {
  * - 게스트 토큰 만료 시 에러 팝업 없이 백그라운드에서 guest_id 포함 갱신 후 재시도
  * - 쓰기 액션 등에서 403 발생 시 공통 안내 토스트 팝업 트리거
  *
- * @param {string} path - '/auth/login' 등 API_BASE 기준 경로
+ * @param {string} path - '/auth/login' 등 baseUrl 기준 경로
  * @param {object} [options]
  * @param {string} [options.method='GET']
  * @param {object} [options.body] - JSON 직렬화할 본문 (FormData면 그대로 전송, Content-Type 미지정)
  * @param {boolean} [options.auth=true] - Authorization 헤더 첨부 여부
  * @param {boolean} [options._retry] - 내부 재시도 플래그 (무한 루프 방어)
+ * @param {string} [options.baseUrl] - 이 호출에만 쓸 베이스 URL (미지정 시 backend-core-api 기본값).
+ *   recordApi.js의 OCR 요청처럼 다른 백엔드(backend-ai-agent)로 보내야 하는 경우에 쓴다
+ *   (사용자 요청, 2026-09: Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
  * @returns {Promise<any>} 파싱된 응답 본문
  * @throws {ApiError}
  */
-export async function authFetch(path, { method = 'GET', body, auth = true, _retry = false } = {}) {
+export async function authFetch(path, { method = 'GET', body, auth = true, _retry = false, baseUrl } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const headers = {};
   // FormData는 Content-Type을 지정하지 않아야 브라우저가 boundary를 포함해 자동 설정한다.
   if (body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
-  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
+  const effectiveBase = baseUrl || API_BASE;
+  const res = await fetchWithTimeout(`${effectiveBase}${path}`, {
     method,
     headers,
     credentials: 'include',
@@ -228,7 +235,7 @@ export async function authFetch(path, { method = 'GET', body, auth = true, _retr
     if (accessToken) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
-        return authFetch(path, { method, body, auth, _retry: true });
+        return authFetch(path, { method, body, auth, _retry: true, baseUrl });
       }
       clearAccessToken();
       if (onSessionExpired) onSessionExpired();
@@ -251,7 +258,7 @@ export async function authFetch(path, { method = 'GET', body, auth = true, _retr
   const data = await parseBody(res);
   if (looksLikeHtml(data)) {
     throw new ApiError(res.status, {
-      detail: `API가 JSON 대신 HTML을 반환했습니다 (${API_BASE}${path}). 요청이 백엔드로 라우팅되지 않고 있습니다 — 배포 환경이면 CloudFront의 /api 동작과 VITE_API_BASE_URL을, 로컬이면 vite.config.js의 프록시 설정을 확인하세요.`,
+      detail: `API가 JSON 대신 HTML을 반환했습니다 (${effectiveBase}${path}). 요청이 백엔드로 라우팅되지 않고 있습니다 — 배포 환경이면 VITE_CORE_API_BASE_URL/VITE_AI_API_BASE_URL을, 로컬이면 vite.config.js의 프록시 설정을 확인하세요.`,
     });
   }
   return data;

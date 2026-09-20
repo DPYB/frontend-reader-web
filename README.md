@@ -114,28 +114,30 @@ frontend-reader-web/
 
 ## 백엔드 연동
 
-MSA 구조로, 프론트는 경로별로 서로 다른 백엔드 서비스를 호출합니다.
-운영 환경에서는 CloudFront가 경로 기준으로 각 서비스 오리진에 라우팅합니다.
+백엔드는 두 서비스로 나뉘어 있고, 프론트는 경로별로 알맞은 서비스를 직접 호출합니다.
 
 | 경로 | 서비스 | 담당 |
 |---|---|---|
-| `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/terms` | **backend-auth** | 인증, 회원 정보, 약관 |
-| `/api/v1/library/*` | **backend-book** | 서재 도서 CRUD, 문장 수집(scrap) |
-| `/api/v1/chat` | **backend-discovery** | 오케스트레이터(사서 상담·도서 추천) |
-| `/api/v1/ocr/*` | **backend-record** | 이미지 OCR |
+| `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/terms`, `/api/v1/books/*`, `/api/v1/library/*`, `/api/v1/librarians*` | **backend-core-api** | 인증, 회원 정보, 약관, 서재 도서 CRUD, 문장 수집(scrap) |
+| `/api/v1/chat`, `/api/v1/classify-genre`, `/api/v1/reports/*`, `/api/v1/ocr/*`, `/api/v1/vision/*` | **backend-ai-agent** | 사서 채팅/추천, 장르 분류, 월간 리포트, 이미지 OCR |
 
 ### API base URL
 
 ```js
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// app/api/apiBase.js
+export const CORE_API_BASE = import.meta.env.VITE_CORE_API_BASE_URL || '/api/v1';
+export const AI_API_BASE = import.meta.env.VITE_AI_API_BASE_URL || '/api/v1';
 ```
 
-- **로컬**: 환경변수 없이 상대 경로 → Vite 프록시가 로컬 백엔드로 전달
-- **배포**: 프론트와 백엔드가 같은 도메인(CloudFront)을 쓰므로 상대 경로 그대로 사용
-  - `VITE_API_BASE_URL`은 별도 도메인을 쓸 때만 필요 (GitHub Environment 변수)
-
-같은 도메인 라우팅을 택한 이유는, 별도 도메인일 경우 Refresh Token의 HttpOnly 쿠키가
-서드파티 쿠키로 취급되어 브라우저가 차단할 위험이 있기 때문입니다.
+- **로컬**: 환경변수 없이 상대 경로 → Vite 프록시(`vite.config.js`)가 경로별로 알맞은 로컬 백엔드로 전달
+- **배포(Cloudflare Pages 등 정적 호스팅)**: 정적 파일만 서빙하므로 빌드 타임에 두 백엔드의
+  절대 URL을 각각 주입해야 합니다. `authFetch`(`app/api/authApi.js`)는 기본이
+  `CORE_API_BASE`이고, `backend-ai-agent`로 보내야 하는 호출(`chatApi.js`, `genreApi.js`,
+  `reportApi.js`, `recordApi.js`의 OCR 함수)은 `authFetch(path, { baseUrl: AI_API_BASE })`로
+  오버라이드합니다.
+- 두 백엔드가 다른 도메인이면 Refresh Token(HttpOnly 쿠키)이 서드파티 쿠키로 취급되어
+  브라우저가 차단할 수 있습니다. `credentials: 'include'`로 전송은 하지만, 브라우저의
+  서드파티 쿠키 정책에 따라 동작이 달라질 수 있으니 실제 배포 후 로그인 유지 여부를 확인하세요.
 
 ### 인증 방식
 
