@@ -3,8 +3,7 @@ import * as THREE from 'three';
 // 배경 이미지 (public/room/) — CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
 export const BG_SRC_CAT = '/room/readingroom_cat.webp';
 export const BG_SRC_STORK = '/room/readingroom2.webp';
-// 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09). 전용 카메라/선반
-// 배치는 아직 없어 카메라/선반은 고양이 기준을 그대로 대체 사용한다(BG_SRC만 전용 이미지).
+// 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09).
 export const BG_SRC_NUDI = '/room/readingroom_nudi.webp';
 export const BG_SRC = BG_SRC_CAT; // 기본값 (하위 호환)
 // 배경 원본 비율 (원본 픽셀에 맞게 조정)
@@ -136,16 +135,65 @@ const STORK_SHELVES = [
   },
 ];
 
-// 사서 id별 기본 카메라/선반 배치. 누디(nudi)는 전용 배치가 아직 없어 고양이 기준을
-// 그대로 대체 사용한다(배경 이미지만 BG_SRC_NUDI로 전용 지정, getBgSrc 참고).
+// 그림 투시에 맞춘 카메라 (누디 서재, 사용자 캘리브레이션 결과 반영, 2026-09)
+const NUDI_CAMERA = {
+  fov: 24,
+  position: [-8.98, 1.76, 24],
+  target: [7.52, -0.15, 0.67],
+};
+
+// 누디 서재 선반 배치 (사용자 캘리브레이션 결과 반영, 2026-09)
+const NUDI_SHELVES = [
+  {
+    id: 'top',
+    pos: [-1.5, 0.75, -0.12],
+    rotXdeg: -19.5,
+    rotYdeg: 9.9,
+    rotZdeg: -7.5,
+    width: 1.22,
+    depth: 0.2,
+    bookHeight: 0.96,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf3',
+    pos: [-0.08, 0.5, -0.12],
+    rotXdeg: -10.5,
+    rotYdeg: 2,
+    rotZdeg: -7.5,
+    width: 1.5,
+    depth: 0.28,
+    bookHeight: 0.82,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf2',
+    pos: [-1.5, -0.69, -0.3],
+    rotXdeg: -3,
+    rotYdeg: 11.5,
+    rotZdeg: -1,
+    width: 1.2,
+    depth: 0.2,
+    bookHeight: 0.9,
+    heightVar: 0.27,
+    capacity: 6,
+  },
+];
+
+// 사서 id별 기본 카메라/선반 배치. 게코 등 미등록 사서는 고양이 기준을 그대로 대체
+// 사용한다(getDefaultCamera/getDefaultShelves 폴백 참고).
 export const CAMERA_BY_LIBRARIAN = {
   cat: CAT_CAMERA,
   stork: STORK_CAMERA,
+  nudi: NUDI_CAMERA,
 };
 
 export const SHELVES_BY_LIBRARIAN = {
   cat: CAT_SHELVES,
   stork: STORK_SHELVES,
+  nudi: NUDI_SHELVES,
 };
 
 // 사서 id별 서재 배경 이미지. 등록되지 않은 사서(게코 등)는 고양이 배경으로 대체.

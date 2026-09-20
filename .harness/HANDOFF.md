@@ -1,5 +1,15 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 누디(nudi) 서재 전용 카메라/선반 배치 캘리브레이션 반영
+- 작업 브랜치: `fix/누디서재-캘리브레이션`
+- **배경**: 누디 서재는 지금까지 전용 카메라/선반 배치가 없어 `CAMERA_BY_LIBRARIAN`/`SHELVES_BY_LIBRARIAN`에 `nudi` 키가 없었고, `getDefaultCamera`/`getDefaultShelves` 폴백으로 고양이(cat) 값을 그대로 대체 사용하고 있었음(배경 이미지만 누디 전용). 사용자가 캘리브레이션 도구(leva 슬라이더)로 직접 카메라 시점과 선반 3개의 위치/회전/폭/깊이/bookHeight를 맞추고 "설정 JSON 복사" 결과를 전달.
+- **수정 내용**: `app/features/room/shelfLayout.js`
+  - `NUDI_CAMERA`(fov 24, position/target 지정), `NUDI_SHELVES`(선반 3개: `top`/`shelf3`/`shelf2`, 각 capacity 6) 신설 — 사용자가 캘리브레이션 도구에서 복사한 JSON 그대로 반영
+  - `CAMERA_BY_LIBRARIAN`, `SHELVES_BY_LIBRARIAN`에 `nudi: NUDI_CAMERA` / `nudi: NUDI_SHELVES` 등록 — 이제 누디는 고양이 폴백 없이 전용 배치 사용
+  - `BG_SRC_NUDI` 상단 주석에서 "전용 카메라/선반 배치가 아직 없다"는 낡은 설명 제거(더 이상 사실이 아님)
+- ⚠️ 실제 화면에서 누디 서재 진입 시 카메라 시점과 3개 선반에 책이 올바르게 배치되는지(특히 각 선반 6권 초과 시 다음 선반으로 넘어가는지) 육안 확인 권장.
+- **검증**: `npx eslint app/features/room/shelfLayout.js` 통과(0 issue), `npm run build` 성공(dist 삭제 완료)
+
 ## 2026-09-20: 고양이(cat) 서재 선반 5개 모두 10권씩(총 50권) 용량 통일 + 등록 상한 방어
 - 작업 브랜치: `fix/누디서재-캘리브레이션` (누디 캘리브레이션 준비 중 사용자가 고양이 서재 캘리브레이션을 먼저 다시 다듬으며 나온 요청이라 같은 브랜치에서 처리)
 - **사용자 요청**: (1) 캘리브레이션 도구로 고양이 서재 선반을 5개로 늘리는 중, 1번 선반(top)은 10권 채우면 다음 선반으로 잘 넘어가는데 나머지 선반들도 10권씩만 차도록 통일해달라 (2) 마지막 선반(5번)도 10권까지만 담고 그 이상은 "일단" 추가로 생성되지 않게 해달라 — 서비스에서 사용자당 총 50권까지만 등록할 것이므로 그 상한에 맞춰 방어해도 된다는 확인.
