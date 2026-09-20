@@ -427,23 +427,29 @@ export default function LibraryScene() {
         />
       )}
 
-      {/* 개발 모드 캘리브레이션 진입 버튼 */}
+      {/*
+       * 개발 모드 캘리브레이션 진입 버튼.
+       * GNB 오버레이(.gnb--overlay)가 z-index:30으로 항상 화면 위에 떠 있어,
+       * 이 버튼이 GNB 로고 뒤에 깔려 클릭이 안 되는 문제가 있었다(사용자 요청, 2026-09).
+       * GNB보다 높은 z-index를 줘서 항상 클릭 가능하게 한다.
+       */}
       {isDev && !calibrating && (
         <button
           onClick={() => setCalibrating(true)}
-          style={{ position: 'absolute', top: 10, left: 10, fontSize: 16, padding: '4px 8px', opacity: 0.7 }}
+          style={{ position: 'absolute', top: 10, left: 10, zIndex: 40, fontSize: 16, padding: '4px 8px', opacity: 0.7 }}
         >
           캘리브레이션
         </button>
       )}
 
-      {/* 캘리브레이션 구조 조작 바 (선반 선택/추가/순서/복사) */}
+      {/* 캘리브레이션 구조 조작 바 (선반 선택/추가/순서/복사) — 같은 이유로 GNB보다 위에 오도록 zIndex 지정 */}
       {isDev && calibrating && (
         <div
           style={{
             position: 'absolute',
             top: 10,
             left: 10,
+            zIndex: 40,
             background: 'rgba(20,20,24,0.92)',
             color: '#eee',
             padding: 10,
