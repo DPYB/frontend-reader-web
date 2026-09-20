@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
-import { colorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
+import { useLibrarian } from '../store/librarianStore';
+import { getColorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
 import { GENRE_DEFS, GENRE_CODES, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
@@ -80,6 +81,9 @@ export default function RegisterBook() {
   const { addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
+  // 책 색상 팔레트를 활성 사서 서재 테마에 맞춘다 (사용자 요청, 2026-09).
+  const { activeId: librarianId } = useLibrarian();
+  const presets = useMemo(() => getColorPresets(librarianId), [librarianId]);
 
   const uploadInputRef = useRef(null);
   // 연속 업로드 시 늦게 끝난 이전 요청이 최신 결과를 덮어쓰지 않도록 하는 실행 번호
@@ -235,8 +239,9 @@ export default function RegisterBook() {
     setFromRecommendation(false);
 
     // 색상 추출은 인식 성공 여부와 무관하게 진행 (실패 시 첫 번째 색으로 폴백)
+    // 활성 사서의 팔레트(presets) 안에서 가장 가까운 색을 고른다.
     const colorPromise = loadImage(file)
-      .then((img) => extractDominantColorIndex(img))
+      .then((img) => extractDominantColorIndex(img, presets))
       .catch(() => 0);
 
     try {
@@ -361,7 +366,7 @@ export default function RegisterBook() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!allFilled || submitting) return;
-    const color = colorPresets[colorIdx];
+    const color = presets[colorIdx];
     const initialPage = Number(currentPage) || 0;
     setSubmitting(true);
     setSubmitError(null);
@@ -434,7 +439,6 @@ export default function RegisterBook() {
   }
 
   const fieldStyle = { padding: 8, fontSize: 19, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' };
-  const labelStyle = { display: 'flex', flexDirection: 'column', gap: 6 };
   // 표지 아래 인식 정보(제목·저자·장르)용 축소 스타일
   const compactFieldStyle = { ...fieldStyle, padding: '5px 8px', fontSize: 18 };
   const compactViewStyle = { fontSize: 18, color: 'var(--text-h)', lineHeight: 1.4, wordBreak: 'break-word' };
@@ -471,7 +475,7 @@ export default function RegisterBook() {
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 200px', gap: 34, alignItems: 'start', width: '100%' }}
+        style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 34, alignItems: 'start', width: '100%' }}
       >
         {/*
           왼쪽: ISBN 바코드 촬영/업로드
@@ -590,7 +594,14 @@ export default function RegisterBook() {
           </label>
         </div>
 
-        {/* 중앙: 인식 결과 + 수정 */}
+        {/*
+          오른쪽: 인식 결과 + 수정 (사용자 요청, 2026-09: 기존 3단 레이아웃에서 표지
+          이미지가 커서 제목·저자·장르·책 색상이 아래로 밀리는 문제 해결).
+          표지를 작게 고정폭으로 왼쪽에 두고 정보를 옆에 나란히 배치해, 표지 크기와
+          무관하게 항목들이 항상 한눈에 보이게 했다. '읽기 기록' 컬럼은 없애고
+          그 안의 총 페이지 수·현재 읽은 페이지 입력을 이 섹션 안, 책 색상 다음
+          순서로 옮겼다.
+        */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600 }}>인식 결과</span>
@@ -620,13 +631,14 @@ export default function RegisterBook() {
               왼쪽에서 ISBN 바코드 번호를 촬영하거나 업로드하면 제목·저자를 자동으로 인식합니다.
             </p>
           ) : (
-            <>
-              {/* 책 표지 — 인식 결과 맨 위. 표지 URL이 없으면 기본 표지를 쓴다 */}
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+              {/* 책 표지 — 고정폭으로 작게 두어 옆의 정보 항목들이 밀리지 않게 한다 */}
               <img
                 src={coverImageSrc(extraMeta.coverUrl)}
                 alt={title ? `${title} 표지` : '책 표지'}
                 style={{
-                  width: '100%',
+                  width: 130,
+                  flexShrink: 0,
                   height: 'auto',
                   display: 'block',
                   background: '#fff',
@@ -637,10 +649,10 @@ export default function RegisterBook() {
               />
 
               {/*
-               * 표지 아래 인식 정보(제목·저자·장르)를 컴팩트하게 세로로 모은다.
-               * 라벨은 작게, 값 칸은 여백을 줄여 표지 옆 정보 카드처럼 보이게 한다.
+               * 표지 옆 인식 정보를 순서대로 나열: 제목 → 저자 → 장르 → 책 색상 →
+               * 총 페이지 수 → 현재 읽은 페이지 (사용자 요청, 2026-09).
                */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
                 {[
                   {
                     key: 'title',
@@ -709,75 +721,69 @@ export default function RegisterBook() {
                     {node}
                   </label>
                 ))}
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>책 색상</span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {presets.map((p, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        disabled={!editing}
+                        onClick={() => editing && setColorIdx(i)}
+                        title={`색상 ${i + 1}`}
+                        style={{
+                          width: 36,
+                          height: 50,
+                          borderRadius: 4,
+                          border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
+                          background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
+                          cursor: editing ? 'pointer' : 'default',
+                          opacity: editing ? 1 : 0.85,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>총 페이지 수</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={totalPage}
+                    onChange={(e) => setTotalPage(e.target.value)}
+                    placeholder="예: 320"
+                    style={compactFieldStyle}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>현재 읽은 페이지 📖</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={currentPage}
+                    onChange={(e) => setCurrentPage(e.target.value)}
+                    placeholder="예: 0"
+                    style={compactFieldStyle}
+                  />
+                </label>
+
+                {totalPage && currentPage !== '' && (
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
+                    진행 상태: {deriveStatus(currentPage, totalPage)}
+                  </span>
+                )}
+
+                {/* 두께는 총 페이지 수로 자동 계산되므로 별도 입력 없이 안내만 표시 (CLIAR-247) */}
+                {String(totalPage).trim() !== '' && (
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
+                    책 두께는 총 페이지 수에 맞춰 자동으로 정해져요.
+                  </span>
+                )}
               </div>
-
-              <div style={labelStyle}>
-                <span>책 색상</span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {colorPresets.map((p, i) => (
-                    <button
-                      type="button"
-                      key={i}
-                      disabled={!editing}
-                      onClick={() => editing && setColorIdx(i)}
-                      title={`색상 ${i + 1}`}
-                      style={{
-                        width: 36,
-                        height: 50,
-                        borderRadius: 4,
-                        border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
-                        background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
-                        cursor: editing ? 'pointer' : 'default',
-                        opacity: editing ? 1 : 0.85,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-            </>
-          )}
-        </div>
-
-        {/* 오른쪽: 페이지 기록 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <span style={{ fontWeight: 600 }}>읽기 기록</span>
-
-          <label style={labelStyle}>
-            <span>총 페이지 수</span>
-            <input
-              type="number"
-              min={1}
-              value={totalPage}
-              onChange={(e) => setTotalPage(e.target.value)}
-              placeholder="예: 320"
-              style={fieldStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span>현재 읽은 페이지 📖</span>
-            <input
-              type="number"
-              min={0}
-              value={currentPage}
-              onChange={(e) => setCurrentPage(e.target.value)}
-              placeholder="예: 0"
-              style={fieldStyle}
-            />
-          </label>
-
-          {totalPage && currentPage !== '' && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>
-              진행 상태: {deriveStatus(currentPage, totalPage)}
-            </span>
-          )}
-
-          {/* 두께는 총 페이지 수로 자동 계산되므로 별도 입력 없이 안내만 표시 (CLIAR-247) */}
-          {String(totalPage).trim() !== '' && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>
-              책 두께는 총 페이지 수에 맞춰 자동으로 정해져요.
-            </span>
+            </div>
           )}
         </div>
 

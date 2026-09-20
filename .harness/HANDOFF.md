@@ -1,5 +1,21 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 책 등록 레이아웃 2단 개편 및 사서별 책 색상 팔레트 적용
+- 작업 브랜치: `feat/책등록-웹캠촬영` (이어서 진행)
+- **사용자 요청**: (1) 3단 그리드(촬영/인식결과/읽기기록)에서 표지 이미지가 커서 제목·저자·장르·책 색상이 아래로 밀리는 문제 — "읽기 기록" 제목을 없애고 그 칸의 총 페이지 수·현재 읽은 페이지 입력을 인식 결과 안, 책 색상 다음 순서로 이동 (2) 수정 버튼은 계속 오른쪽 상단에 (3) 책 색상 프리셋을 사서별 서재 테마 컬러에 맞춰 다르게.
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - `form`의 `gridTemplateColumns`를 3단(`220px minmax(0,1fr) 200px`)에서 2단(`220px minmax(0,1fr)`)으로 축소, "읽기 기록" 컬럼 전체 제거
+  - 인식 결과 섹션 내부를 `flex` 가로 배치로 재구성: 표지 이미지를 고정폭 130px로 작게 만들어 왼쪽에 두고(기존엔 `width:100%`라 좁은 컬럼에서 이미지가 세로로 길게 늘어나 텍스트를 밀어냈음), 오른쪽에 제목→저자→장르→책 색상→총 페이지 수→현재 읽은 페이지를 순서대로 세로 배치
+  - "수정" 버튼은 기존과 동일하게 "인식 결과" 제목 옆 오른쪽 상단 유지(레이아웃 변경 후에도 그대로 유효)
+  - 미사용이 된 `labelStyle` 변수 제거(총 페이지 수/현재 읽은 페이지 입력이 `compactFieldStyle`을 쓰도록 통일되며 더 이상 참조되지 않음)
+- **사서별 책 색상 팔레트**: `app/features/register/ocrUtils.js`
+  - `COLOR_PRESETS_BY_LIBRARIAN` 맵 신설 — 각 사서의 `index.css --accent` 색상을 기준으로 명도가 다른 6가지 변형을 만듦: `cat`(오렌지, 기존 팔레트 그대로), `stork`(보라 계열, `--accent #9b7bf0` 기준), `nudi`(청록 계열, `--accent #4fc4ac` 기준). `gecko`는 전용 테마 색이 아직 없어(배경/글로우 미적용 상태) `cat` 팔레트를 그대로 재사용
+  - `getColorPresets(librarianId)` 헬퍼 추가, 없는 id는 `cat`으로 폴백
+  - `extractDominantColorIndex(img, presets)`에 두 번째 매개변수 추가해 임의 팔레트 안에서 최근접색을 찾을 수 있도록 확장(기본값은 하위 호환용 `colorPresets`)
+  - `RegisterBook.jsx`가 `useLibrarian()`의 `activeId`로 현재 서재의 사서를 읽어 `getColorPresets(librarianId)` 결과(`presets`)를 색상 선택 UI와 이미지 평균색 추출 양쪽에 사용
+- **검증**: `npx eslint app/pages/RegisterBook.jsx app/features/register/ocrUtils.js` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 실제 화면에서 사서별(고양이/황새/누디) 서재로 책 등록 시 색상 팔레트가 각 서재 테마와 어울리는지, 새 2단 레이아웃에서 표지 미리보기·긴 제목 등이 깨지지 않는지 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
 ## 2026-09-20: 책 등록 이미지 업로드 크기 제한 축소(5MB) 및 ISBN 수동 입력란 추가
 - 작업 브랜치: `feat/책등록-웹캠촬영` (이어서 진행)
 - **사용자 요청**: (1) 서버가 허용하는 50MB는 여러 사용자가 동시에 쓰는 서비스 입장에서 부담이 크니 클라이언트 기준을 5MB로 낮출 것 (2) 바코드 인식이 실패하는 경우를 대비해 ISBN을 직접 입력할 수 있는 칸 추가.
