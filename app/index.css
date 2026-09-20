@@ -229,6 +229,48 @@ canvas,
   --answer-bg: linear-gradient(160deg, #c2e8de 0%, #a8dccf 100%);
 }
 
+/*
+ * 게코 사서 다크 모드 (2026-09). 다른 사서들과 다르게 배경·테두리 등 "넓은 면적"은
+ * 무채색(그레이) 계열로 두고, 버튼·포인트(accent)만 핑크로 강조한다(사용자 요청).
+ * 배경류는 색조를 거의 0(중성 그레이)으로 통일하고 명도만 계단식으로 나눈다.
+ */
+:root[data-librarian='gecko'] {
+  --text: #c4bcc0;
+  --text-h: #f2eef0;
+  --bg: #1c1a1c;
+  --border: #3a363a;
+  --code-bg: #262326;
+  --accent: #ff6fa5;
+  --accent-bg: rgba(255, 111, 165, 0.14);
+  --accent-border: rgba(255, 111, 165, 0.5);
+  --nav-fg: #ff6fa5;
+  --accent-fg: #2a1420;
+  --social-bg: rgba(242, 238, 240, 0.5);
+  --answer-border: #574f54;
+  --bubble-bg: #322e31;
+  --answer-bg: linear-gradient(160deg, #423a3f 0%, #302b2e 100%);
+}
+
+/* 게코 사서 라이트 모드 — 배경은 밝은 그레이, 버튼/포인트는 핑크 유지 */
+:root[data-theme='light'][data-librarian='gecko'] {
+  --text: #555053;
+  --text-h: #2a2628;
+  --bg: #e4e0e2;
+  --border: #c5bfc2;
+  --code-bg: #d8d3d5;
+  /* accent 위에 흰 글자(accent-fg)를 얹을 때 WCAG AA(4.5:1)를 만족하도록
+     기본 핑크(#ff6fa5)보다 한 단계 진한 값을 쓴다(대비 검증 완료: 5.41:1) */
+  --accent: #c02f70;
+  --accent-bg: rgba(192, 47, 112, 0.14);
+  --accent-border: rgba(192, 47, 112, 0.5);
+  --nav-fg: #a82a60;
+  --accent-fg: #ffffff;
+  --social-bg: rgba(216, 211, 213, 0.6);
+  --answer-border: #cbc5c8;
+  --bubble-bg: #ece8ea;
+  --answer-bg: linear-gradient(160deg, #ded8db 0%, #c9c3c6 100%);
+}
+
 body {
   margin: 0;
 }

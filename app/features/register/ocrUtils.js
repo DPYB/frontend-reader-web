@@ -4,13 +4,13 @@ import { createWorker } from 'tesseract.js';
  * 사서별 서재 테마 컬러에 맞춘 책 색상 팔레트 (사용자 요청, 2026-09).
  * 각 사서의 index.css --accent 색상(다크 모드 기준)을 중심으로 명도가 다른
  * 6가지 변형을 만들어, 어느 서재에 등록하든 배경/글로우 색과 어울리는 책이
- * 꽂히도록 한다. 게코는 아직 전용 테마 색이 없어(전용 배경/글로우 미적용,
- * shelfLayout.js·LibraryScene.jsx 참고) 고양이 팔레트로 대체한다.
+ * 꽂히도록 한다.
  *
  *   cat(블루):   오렌지 계열 (--accent #ff9a3c)
  *   stork(슈빌): 보라 계열 (--accent #9b7bf0)
  *   nudi(누디):  청록 계열 (--accent #4fc4ac)
- *   gecko(게코): 전용 색 없음 → cat과 동일 팔레트로 대체
+ *   gecko(게코): 핑크 계열 (--accent #ff6fa5) — 배경은 그레이지만 책은 다른
+ *                사서들처럼 accent 색으로 눈에 띄게 한다
  */
 export const COLOR_PRESETS_BY_LIBRARIAN = {
   cat: [
@@ -37,8 +37,15 @@ export const COLOR_PRESETS_BY_LIBRARIAN = {
     { spine: '#175247', cover: '#2d8f78' }, // 딥 틸
     { spine: '#2a9683', cover: '#57c2ab' }, // 시게
   ],
+  gecko: [
+    { spine: '#b83566', cover: '#ff6fa5' }, // 핑크
+    { spine: '#8f2850', cover: '#d6437e' }, // 다크 핑크
+    { spine: '#a13060', cover: '#e8578f' }, // 로즈
+    { spine: '#c9528a', cover: '#ff8fb8' }, // 라이트 핑크
+    { spine: '#701f40', cover: '#93335c' }, // 딥 로즈
+    { spine: '#b23d72', cover: '#f26b9e' }, // 매그놀리아
+  ],
 };
-COLOR_PRESETS_BY_LIBRARIAN.gecko = COLOR_PRESETS_BY_LIBRARIAN.cat;
 
 /** 사서 id에 맞는 책 색상 팔레트를 반환 (없으면 cat 팔레트로 대체) */
 export function getColorPresets(librarianId) {

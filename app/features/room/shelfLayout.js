@@ -5,6 +5,8 @@ export const BG_SRC_CAT = '/room/readingroom_cat.webp';
 export const BG_SRC_STORK = '/room/readingroom2.webp';
 // 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09).
 export const BG_SRC_NUDI = '/room/readingroom_nudi.webp';
+// 게코 서재 배경 (사용자 제공 readingroom_gecko.png → webp 변환, 2560x1440 → 1920x1080, 2026-09).
+export const BG_SRC_GECKO = '/room/readingroom_gecko.webp';
 export const BG_SRC = BG_SRC_CAT; // 기본값 (하위 호환)
 // 배경 원본 비율 (원본 픽셀에 맞게 조정)
 export const BG_ASPECT = 768 / 432;
@@ -196,11 +198,12 @@ export const SHELVES_BY_LIBRARIAN = {
   nudi: NUDI_SHELVES,
 };
 
-// 사서 id별 서재 배경 이미지. 등록되지 않은 사서(게코 등)는 고양이 배경으로 대체.
+// 사서 id별 서재 배경 이미지.
 export const BG_SRC_BY_LIBRARIAN = {
   cat: BG_SRC_CAT,
   stork: BG_SRC_STORK,
   nudi: BG_SRC_NUDI,
+  gecko: BG_SRC_GECKO,
 };
 
 /** 사서 id에 맞는 서재 배경 이미지를 반환 (없으면 고양이 기준) */

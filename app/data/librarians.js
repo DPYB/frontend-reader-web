@@ -38,7 +38,9 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
  * 사서별 3D 서재 진입 시 강조 글로우 색상 (다크/라이트). LibraryScene.jsx의
  * GLOW_COLOR와 짝을 이루는 참고용 팔레트 — 실제 값은 그 파일에서 관리한다.
  * 여기 주석으로만 남겨 사서 추가 시 어디를 함께 챙겨야 하는지 표시한다.
- *   nudi: 청록/그린(teal) 계열 (적용 완료, 2026-09), gecko: 초록 계열 (미적용)
+ *   nudi:  청록/그린(teal) 계열 (적용 완료, 2026-09)
+ *   gecko: 핑크(accent) + 그레이(배경) 계열 (적용 완료, 2026-09) — 다른 사서와 달리
+ *          넓은 면적(배경/테두리/코드박스)은 무채색 그레이로 두고 버튼 등 포인트만 핑크
  */
 
 // 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY 및 app.models.enums.LibrarianType과 대응)
@@ -52,14 +54,13 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
 // speechInterjection: 답변 말미에 붙는 사서 고유 감탄사/어미(없으면 미부착)
 // formalTone:      true면 존댓말·격식체 UI 문구(예: LibrarianCursor 말풍선)를 사용
 //
-// ⚠️ 에셋 현황 안내 (누디/게코):
-//   - profileImage(프로필 사진)는 적용 완료됐다(/profile/nudi.jpg, /profile/gecko.jpg).
-//   - image/imageHover(3D 서재 커서 스프라이트)는 아직 없어 미지정 상태이며,
-//     LibrarianCursor가 자동으로 icon 이모지로 대체 표시한다.
-//   - 3D 서재 배경/카메라(shelfLayout.js)도 전용 배치가 없어 고양이 서재 배치로
-//     대체 표시된다. 전용 배경 그림과 커서 스프라이트가 준비되면 shelfLayout.js의
-//     CAMERA_BY_LIBRARIAN/SHELVES_BY_LIBRARIAN, LibraryScene.jsx의 BG_SRC 분기,
-//     GLOW_COLOR에 각각 항목을 추가해야 한다.
+// ⚠️ 에셋 현황 안내 (누디/게코, 2026-09 기준):
+//   - profileImage, image/imageHover(3D 서재 커서 스프라이트), 배경(BG_SRC),
+//     GLOW_COLOR, CSS 테마(index.css)까지 모두 적용 완료.
+//   - 3D 서재 카메라/선반 배치(shelfLayout.js의 CAMERA_BY_LIBRARIAN/SHELVES_BY_LIBRARIAN)는
+//     누디는 캘리브레이션 완료, 게코는 아직 전용 배치가 없어 고양이 배치로 대체 표시된다
+//     (배경 그림만 전용, 캘리브레이션 도구로 값을 맞추면 shelfLayout.js에 GECKO_CAMERA/
+//     GECKO_SHELVES를 추가해야 한다).
 export const LIBRARIANS = [
   {
     id: 'cat',
