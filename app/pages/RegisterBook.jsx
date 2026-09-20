@@ -77,8 +77,12 @@ function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
   return mainLabel;
 }
 
+// 서재 선반 배치(shelfLayout.js)가 사서당 선반 5개 x 10권 = 총 50권까지만 3D로 배치한다.
+// 그 이상 등록해도 화면에 안 보이는 책이 생기므로, 등록 자체를 여기서 막는다(사용자 요청, 2026-09).
+const MAX_LIBRARY_BOOKS = 50;
+
 export default function RegisterBook() {
-  const { addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
+  const { books, addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
   // 책 색상 팔레트를 활성 사서 서재 테마에 맞춘다 (사용자 요청, 2026-09).
@@ -137,6 +141,8 @@ export default function RegisterBook() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // 이미 등록된 책을 고치는 흐름(ocrBookId)은 신규 추가가 아니라 상한에서 제외한다.
+  const isLibraryFull = !ocrBookId && books.length >= MAX_LIBRARY_BOOKS;
 
   /**
    * 인식/전달된 도서 정보로 장르를 자동 분류해 채운다 (CLIAR-241).
@@ -365,7 +371,7 @@ export default function RegisterBook() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!allFilled || submitting) return;
+    if (!allFilled || submitting || isLibraryFull) return;
     const color = presets[colorIdx];
     const initialPage = Number(currentPage) || 0;
     setSubmitting(true);
@@ -789,21 +795,26 @@ export default function RegisterBook() {
 
         {/* 완료 버튼 */}
         <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          {isLibraryFull && (
+            <span style={{ color: '#e05a4e', fontSize: 17 }}>
+              서재 선반이 가득 찼어요. 최대 {MAX_LIBRARY_BOOKS}권까지 등록할 수 있어요.
+            </span>
+          )}
           {submitError && (
             <span style={{ color: '#e05a4e', fontSize: 17 }}>{submitError}</span>
           )}
           <button
             type="submit"
-            disabled={!allFilled || submitting}
+            disabled={!allFilled || submitting || isLibraryFull}
             style={{
               padding: '10px 32px',
               fontSize: 20,
               fontWeight: 700,
               borderRadius: 8,
               border: 'none',
-              background: allFilled && !submitting ? 'var(--accent)' : 'var(--border)',
-              color: allFilled && !submitting ? '#fff' : 'var(--text)',
-              cursor: allFilled && !submitting ? 'pointer' : 'not-allowed',
+              background: allFilled && !submitting && !isLibraryFull ? 'var(--accent)' : 'var(--border)',
+              color: allFilled && !submitting && !isLibraryFull ? '#fff' : 'var(--text)',
+              cursor: allFilled && !submitting && !isLibraryFull ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -3,8 +3,7 @@ import * as THREE from 'three';
 // 배경 이미지 (public/room/) — CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
 export const BG_SRC_CAT = '/room/readingroom_cat.webp';
 export const BG_SRC_STORK = '/room/readingroom2.webp';
-// 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09). 전용 카메라/선반
-// 배치는 아직 없어 카메라/선반은 고양이 기준을 그대로 대체 사용한다(BG_SRC만 전용 이미지).
+// 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09).
 export const BG_SRC_NUDI = '/room/readingroom_nudi.webp';
 export const BG_SRC = BG_SRC_CAT; // 기본값 (하위 호환)
 // 배경 원본 비율 (원본 픽셀에 맞게 조정)
@@ -33,6 +32,10 @@ const CAT_CAMERA = {
  *  - width:   선반 폭(이 폭을 넘으면 다음 선반으로)
  *  - depth:   책 앞뒤 깊이
  *  - capacity: 이 선반의 최대 권수 (0=무제한, 초과 시 다음 선반으로)
+ *
+ * 5개 선반 모두 capacity: 10으로 맞춰 총 50권까지 수용한다(사용자 요청, 2026-09).
+ * placeBooks()가 마지막 선반도 capacity를 지키도록 수정되어 있어, 50권을 넘는
+ * 책은 어느 선반에도 배치되지 않아 화면에 보이지 않는다(등록 상한은 별도 처리 필요).
  */
 const CAT_SHELVES = [
   {
@@ -49,14 +52,51 @@ const CAT_SHELVES = [
   },
   {
     id: 'shelf2',
-    pos: [-2.8, -0.11, 4.61],
-    rotXdeg: -8.5,
-    rotYdeg: -2,
+    pos: [-2.8, -0.18, 4.61],
+    rotXdeg: -5,
+    rotYdeg: -10.5,
     rotZdeg: -4,
     width: 1.65,
     depth: 0.2,
     bookHeight: 0.54,
     heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf3',
+    pos: [-2.8, -0.9, 4.6],
+    rotXdeg: -11.5,
+    rotYdeg: -14,
+    rotZdeg: -4,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf4',
+    pos: [-2.8, -1.65, 4.6],
+    rotXdeg: -11.5,
+    rotYdeg: -14,
+    rotZdeg: -4,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
+  },
+  {
+    id: 'shelf5',
+    pos: [-2.75, -2.25, 4.6],
+    rotXdeg: -7.5,
+    rotYdeg: -38,
+    rotZdeg: -5,
+    width: 1.65,
+    depth: 0.2,
+    bookHeight: 0.54,
+    heightVar: 0.27,
+    capacity: 10,
   },
 ];
 
@@ -95,16 +135,65 @@ const STORK_SHELVES = [
   },
 ];
 
-// 사서 id별 기본 카메라/선반 배치. 누디(nudi)는 전용 배치가 아직 없어 고양이 기준을
-// 그대로 대체 사용한다(배경 이미지만 BG_SRC_NUDI로 전용 지정, getBgSrc 참고).
+// 그림 투시에 맞춘 카메라 (누디 서재, 사용자 캘리브레이션 결과 반영, 2026-09)
+const NUDI_CAMERA = {
+  fov: 24,
+  position: [-8.98, 1.76, 24],
+  target: [7.52, -0.15, 0.67],
+};
+
+// 누디 서재 선반 배치 (사용자 캘리브레이션 결과 반영, 2026-09)
+const NUDI_SHELVES = [
+  {
+    id: 'top',
+    pos: [-1.5, 0.75, -0.12],
+    rotXdeg: -19.5,
+    rotYdeg: 9.9,
+    rotZdeg: -7.5,
+    width: 1.22,
+    depth: 0.2,
+    bookHeight: 0.96,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf3',
+    pos: [-0.08, 0.5, -0.12],
+    rotXdeg: -10.5,
+    rotYdeg: 2,
+    rotZdeg: -7.5,
+    width: 1.5,
+    depth: 0.28,
+    bookHeight: 0.82,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf2',
+    pos: [-1.5, -0.69, -0.3],
+    rotXdeg: -3,
+    rotYdeg: 11.5,
+    rotZdeg: -1,
+    width: 1.2,
+    depth: 0.2,
+    bookHeight: 0.9,
+    heightVar: 0.27,
+    capacity: 6,
+  },
+];
+
+// 사서 id별 기본 카메라/선반 배치. 게코 등 미등록 사서는 고양이 기준을 그대로 대체
+// 사용한다(getDefaultCamera/getDefaultShelves 폴백 참고).
 export const CAMERA_BY_LIBRARIAN = {
   cat: CAT_CAMERA,
   stork: STORK_CAMERA,
+  nudi: NUDI_CAMERA,
 };
 
 export const SHELVES_BY_LIBRARIAN = {
   cat: CAT_SHELVES,
   stork: STORK_SHELVES,
+  nudi: NUDI_SHELVES,
 };
 
 // 사서 id별 서재 배경 이미지. 등록되지 않은 사서(게코 등)는 고양이 배경으로 대체.
@@ -164,12 +253,18 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
   const placements = [];
   if (!shelves.length) return placements;
 
-  // 1) 책을 선반별로 분배 (capacity 기준, 없으면 마지막 선반이 나머지 전부)
+  /*
+   * 1) 책을 선반별로 분배 (capacity 기준).
+   * capacity가 없거나 0이면 무제한(그 선반이 남은 책을 전부 담음).
+   * 예전엔 "마지막 선반"은 capacity를 무시하고 항상 나머지 전부를 담았는데,
+   * 각 선반을 정확히 N권씩만 채우고 싶다는 요청(2026-09)에 따라 마지막 선반도
+   * 똑같이 capacity를 지키도록 변경했다. 모든 선반의 용량을 합친 것보다 책이
+   * 많으면 그 초과분은 어느 선반에도 배치되지 않아 화면에 보이지 않는다.
+   */
   let ptr = 0;
-  const groups = shelves.map((shelf, i) => {
-    const isLast = i === shelves.length - 1;
+  const groups = shelves.map((shelf) => {
     const cap = shelf.capacity && shelf.capacity > 0 ? shelf.capacity : Infinity;
-    const take = isLast ? books.length - ptr : Math.min(cap, books.length - ptr);
+    const take = Math.min(cap, books.length - ptr);
     const slice = books.slice(ptr, ptr + Math.max(0, take));
     ptr += slice.length;
     return slice;
