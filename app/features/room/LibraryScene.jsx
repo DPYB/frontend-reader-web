@@ -448,7 +448,7 @@ export default function LibraryScene() {
         <div
           style={{
             position: 'absolute',
-            top: 10,
+            bottom: 10,
             left: 10,
             zIndex: 40,
             background: 'rgba(20,20,24,0.92)',

@@ -46,3 +46,4 @@
 - 3D 서재 캘리브레이션 도구 클릭 오류(GNB z-index 가림) 수정, 고양이 서재 선반 5개 용량 10권 통일(총 50권), 누디 서재 전용 카메라/선반 배치(NUDI_CAMERA/NUDI_SHELVES) 캘리브레이션 반영 완료
 - Cloudflare Pages 배포 준비: 프론트 API 클라이언트를 core-api/ai-agent 베이스 URL로 분리(apiBase.js 신설, authFetch baseUrl 오버라이드), .env.example 및 README 갱신 완료
 - 게코 서재 전용 배경 이미지(webp) 및 사서별 테마 컬러(핑크 액센트 + 그레이 배경) 적용 완료 — GLOW_COLOR, index.css, 책 색상 팔레트(ocrUtils.js) 포함 (3D 서재 카메라/선반 캘리브레이션은 아직 고양이 대체 중)
+- 게코 서재 전용 3D 카메라/선반 배치 캘리브레이션 완료, 게코 사서 커서 크기 확대(imgScale 1.725), 캘리브레이션 편집 바 위치를 왼쪽 하단으로 조정
