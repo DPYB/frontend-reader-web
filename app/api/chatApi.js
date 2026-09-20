@@ -9,8 +9,11 @@
 
 import { getAccessToken } from './authApi';
 import { fetchWithTimeout } from './fetchWithTimeout';
+import { AI_API_BASE } from './apiBase';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// 사서 채팅은 backend-ai-agent가 담당한다 (사용자 요청, 2026-09:
+// Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
+const API_BASE = AI_API_BASE;
 
 /**
  * 로그인 상태면 Authorization 헤더를 포함한 헤더 객체를 반환합니다.

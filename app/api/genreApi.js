@@ -13,8 +13,11 @@
 import { getAccessToken } from './authApi';
 import { fetchWithTimeout } from './fetchWithTimeout';
 import { GENRE_CODES, GENRE_NONE } from '../data/genres';
+import { AI_API_BASE } from './apiBase';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// 장르 분류(backend-discovery)는 backend-ai-agent 안에 있다 (사용자 요청, 2026-09:
+// Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
+const API_BASE = AI_API_BASE;
 
 /**
  * 도서 메타데이터로 표준 장르(genre_type 16종)를 분류한다.

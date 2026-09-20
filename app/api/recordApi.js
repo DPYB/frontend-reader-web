@@ -17,6 +17,12 @@
 
 import { authFetch } from './authApi';
 import { formatDuration } from '../lib/timeFormat';
+import { AI_API_BASE } from './apiBase';
+
+// OCR(/ocr/sentences, /ocr/covers)은 backend-ai-agent가 담당한다. authFetch는
+// 기본이 backend-core-api라서, 이 두 호출만 baseUrl로 오버라이드한다 (사용자 요청,
+// 2026-09: Cloudflare Pages 배포를 위해 core-api/ai-agent 베이스 URL을 분리).
+// records/reading-sessions는 core-api 기본값을 그대로 쓴다(오버라이드 없음).
 
 /**
  * 문장 사진을 업로드해 OCR로 텍스트를 추출한다.
@@ -49,6 +55,7 @@ export async function createOcrSentence({
   const res = await authFetch(`/ocr/sentences?save_scrap=${saveScrap}`, {
     method: 'POST',
     body: form,
+    baseUrl: AI_API_BASE,
   });
 
   return {
@@ -109,7 +116,7 @@ export async function createOcrCover({ imageFile, modelId = null }) {
   form.append('image', imageFile);
 
   const query = modelId ? `?model_id=${encodeURIComponent(modelId)}` : '';
-  const res = await authFetch(`/ocr/covers${query}`, { method: 'POST', body: form });
+  const res = await authFetch(`/ocr/covers${query}`, { method: 'POST', body: form, baseUrl: AI_API_BASE });
 
   const lines = res.lines ?? [];
 
