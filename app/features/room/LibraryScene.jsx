@@ -115,6 +115,7 @@ const GLOW_COLOR = {
   cat: { dark: '#ff9a3c', light: '#e06a10' },
   stork: { dark: '#9b7bf0', light: '#7d50c0' },
   nudi: { dark: '#4fc4ac', light: '#23907c' },
+  gecko: { dark: '#ff6fa5', light: '#d63d7c' },
 };
 
 function getGlowColor(librarianId, isDark) {
@@ -447,7 +448,7 @@ export default function LibraryScene() {
         <div
           style={{
             position: 'absolute',
-            top: 10,
+            bottom: 10,
             left: 10,
             zIndex: 40,
             background: 'rgba(20,20,24,0.92)',

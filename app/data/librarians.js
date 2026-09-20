@@ -38,7 +38,9 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
  * 사서별 3D 서재 진입 시 강조 글로우 색상 (다크/라이트). LibraryScene.jsx의
  * GLOW_COLOR와 짝을 이루는 참고용 팔레트 — 실제 값은 그 파일에서 관리한다.
  * 여기 주석으로만 남겨 사서 추가 시 어디를 함께 챙겨야 하는지 표시한다.
- *   nudi: 청록/그린(teal) 계열 (적용 완료, 2026-09), gecko: 초록 계열 (미적용)
+ *   nudi:  청록/그린(teal) 계열 (적용 완료, 2026-09)
+ *   gecko: 핑크(accent) + 그레이(배경) 계열 (적용 완료, 2026-09) — 다른 사서와 달리
+ *          넓은 면적(배경/테두리/코드박스)은 무채색 그레이로 두고 버튼 등 포인트만 핑크
  */
 
 // 사서 캐릭터 4종 (백엔드 LIBRARIAN_REGISTRY 및 app.models.enums.LibrarianType과 대응)
@@ -52,14 +54,10 @@ export const MOODS = ['cozy', 'adventurous', 'reflective', 'dreamy', 'thrilling'
 // speechInterjection: 답변 말미에 붙는 사서 고유 감탄사/어미(없으면 미부착)
 // formalTone:      true면 존댓말·격식체 UI 문구(예: LibrarianCursor 말풍선)를 사용
 //
-// ⚠️ 에셋 현황 안내 (누디/게코):
-//   - profileImage(프로필 사진)는 적용 완료됐다(/profile/nudi.jpg, /profile/gecko.jpg).
-//   - image/imageHover(3D 서재 커서 스프라이트)는 아직 없어 미지정 상태이며,
-//     LibrarianCursor가 자동으로 icon 이모지로 대체 표시한다.
-//   - 3D 서재 배경/카메라(shelfLayout.js)도 전용 배치가 없어 고양이 서재 배치로
-//     대체 표시된다. 전용 배경 그림과 커서 스프라이트가 준비되면 shelfLayout.js의
-//     CAMERA_BY_LIBRARIAN/SHELVES_BY_LIBRARIAN, LibraryScene.jsx의 BG_SRC 분기,
-//     GLOW_COLOR에 각각 항목을 추가해야 한다.
+// ⚠️ 에셋 현황 안내 (누디/게코, 2026-09 기준):
+//   - profileImage, image/imageHover(3D 서재 커서 스프라이트), 배경(BG_SRC),
+//     GLOW_COLOR, CSS 테마(index.css), 3D 서재 카메라/선반 배치까지 두 사서 모두
+//     전용 캘리브레이션 적용 완료(shelfLayout.js의 CAMERA_BY_LIBRARIAN/SHELVES_BY_LIBRARIAN).
 export const LIBRARIANS = [
   {
     id: 'cat',
@@ -186,6 +184,17 @@ export const LIBRARIANS = [
     // 기본(대기) 커서 이미지. 원본 PNG(각 ~500KB)를 동일 해상도(800x1200) webp로 변환해
     // 용량을 1/5로 줄여 적용했다(gecko_01.png→webp 110KB, gecko_thinking.png→webp 104KB).
     image: '/cursors/gecko/gecko_01.webp',
+    /*
+     * 캐릭터 표시 배율 (사용자 요청, 2026-09).
+     * 1차: 블루 사서만큼 크게 보이도록 1.15로 조정 — 고양이(cat_03.webp)는 300x300
+     * 캔버스에 캐릭터가 거의 꽉 차 있어(트리밍 실측 높이 비율 79.3%) 배율 1(기본)로도
+     * 크게 보이는데, 게코(gecko_01.webp)는 800x1200 캔버스 안에 위아래 여백이 많아
+     * (트리밍 실측 높이 비율 69.1%) 같은 imgSize에서 렌더링해도 캐릭터 자체가 더
+     * 작게 보였다(79.3% / 69.1% ≈ 1.148).
+     * 2차: 실제 3D 서재 화면에서 봤을 때도 여전히 작아 보인다는 피드백에 따라
+     * 그 값에서 다시 1.5배(1.15 × 1.5 = 1.725)로 키움.
+     */
+    imgScale: 1.725,
     // 좌클릭 모션 이미지. 원래 gecko_02(포즈 전환)·gecko_03(손 인사) 2장이었는데,
     // 누디(nudi_01/02 단일 클릭 이미지)와 구조를 통일하기 위해 두 프레임을 stork와
     // 같은 방식(2프레임 애니메이션 webp) 한 장으로 합쳤다(사용자 요청, 2026-09).

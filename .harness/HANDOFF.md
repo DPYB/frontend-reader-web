@@ -1,5 +1,39 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 게코 서재 전용 캘리브레이션 + 커서 크기 확대 + 편집 바 위치 조정
+- 작업 브랜치: `feat/게코서재-이미지-테마` (이어서 처리)
+- **사용자 요청**: (1) 게코 서재 3D 카메라/선반 배치를 캘리브레이션 도구로 직접 맞춘 결과를 반영 (2) 3D 서재 안에서 게코 캐릭터(마우스 커서)가 다른 사서보다 작게 보여 키워달라 — 처음엔 블루만큼(1.15배)으로 맞췄는데, 실제 화면에서 보니 여전히 작아서 거기서 다시 1.5배 추가 확대 요청 (3) 캘리브레이션 편집 바를 왼쪽 상단에서 왼쪽 하단으로 이동(개발자 도구 UI, 이전 턴에서 이미 로컬 수정했던 것을 이번에 커밋 범위에 포함).
+- **수정 내용**: `app/features/room/shelfLayout.js`
+  - `GECKO_CAMERA`(fov 28, 고양이와 동일 시점), `GECKO_SHELVES`(선반 2개: `top` capacity 12, `shelf2` capacity 8) 신설 — 사용자가 캘리브레이션 도구에서 복사한 JSON 그대로 반영
+  - `CAMERA_BY_LIBRARIAN`/`SHELVES_BY_LIBRARIAN`에 `gecko` 등록 — 이제 게코도 고양이 폴백 없이 전용 배치 사용
+- **수정 내용**: `app/data/librarians.js`
+  - 게코 `imgScale`을 두 단계로 조정: 1차 1.15(고양이 커서 이미지 300x300 대비 캐릭터가 캔버스를 꽉 채우는 비율 79.3% vs 게코 800x1200 이미지의 캐릭터 비율 69.1% 차이를 트리밍 실측으로 계산해 보정) → 2차 그 값에서 다시 1.5배(1.15×1.5=1.725)로 최종 확대. 실측 방법: `magick <파일> -bordercolor white -border 2 -trim info:`로 흰 배경을 잘라내 캐릭터의 실제 바운딩 박스 크기를 구함.
+  - 낡은 에셋 현황 주석("게코는 아직 전용 배치 없음")을 최신 상태(누디/게코 모두 캘리브레이션 완료)로 정정
+- **수정 내용**: `app/features/room/LibraryScene.jsx`
+  - 캘리브레이션 "선반 편집" 조작 바 위치를 `top: 10` → `bottom: 10`(왼쪽 하단)으로 이동. `isDev`에서만 노출되는 개발자 도구 UI라 프로덕션 화면에는 영향 없음.
+- **검증**: `npx eslint`(대상 파일 전체) 0 errors(기존 무관 warning 1건만), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 실제 화면에서 게코 서재의 3D 카메라/선반 배치가 게코 배경 이미지와 잘 맞는지, 커서 크기가 다른 사서와 시각적으로 비슷한지 육안 확인 권장. push + PR 진행.
+
+## 2026-09-20: 게코 서재 배경 이미지 및 핑크+그레이 테마 컬러 적용
+- 작업 브랜치: `feat/게코서재-이미지-테마`
+- **사용자 요청**: 게코 서재 UI 이미지(`readingroom_gecko`)를 반영하고, 페이지 전반의 게코 테마 컬러 팔레트를 버튼 등 포인트는 핑크, 넓은 배경색은 그레이 계열로 구성해달라.
+- **이미지 처리**: 사용자가 `public/readingroom_gecko.png`(2560x1440, PNG, ~7MB)로 제공. 다른 사서 서재 배경과 동일한 기준(1920x1080, webp, quality 88)으로 ImageMagick(`magick`)을 이용해 변환 → `public/room/readingroom_gecko.webp`(약 720KB)로 저장. 원본 png는 정리(삭제).
+- **수정 내용**: `app/features/room/shelfLayout.js`
+  - `BG_SRC_GECKO` 신설, `BG_SRC_BY_LIBRARIAN`에 `gecko` 등록
+  - 카메라/선반 배치(`CAMERA_BY_LIBRARIAN`/`SHELVES_BY_LIBRARIAN`)는 이번 범위에 포함하지 않음 — 기존 폴백 로직(`getDefaultCamera`/`getDefaultShelves`)에 따라 게코는 여전히 고양이 배치로 대체 표시됨(배경 그림만 전용). 캘리브레이션은 추후 별도 작업 필요.
+- **수정 내용**: `app/features/room/LibraryScene.jsx`
+  - `GLOW_COLOR`에 `gecko: { dark: '#ff6fa5', light: '#d63d7c' }` 추가(3D 서재 책 선택/호버 시 테두리 강조색)
+- **수정 내용**: `app/index.css`
+  - `:root[data-librarian='gecko']`(다크), `:root[data-theme='light'][data-librarian='gecko']`(라이트) 블록 신설
+  - 다른 사서들과 다르게 배경·테두리·코드박스 등 "넓은 면적"은 무채색 그레이 계열로, `--accent`/`--nav-fg` 등 포인트만 핑크로 구성(사용자 요청 반영)
+  - 대비 검증: Node로 WCAG 상대 휘도 공식을 직접 계산해 확인. 다크 모드는 전부 여유 있게 통과. 라이트 모드에서 흰 글자(`--accent-fg`)를 얹는 `--accent`는 원래 후보(`#d63d7c`, 4.36:1)가 AA 기준(4.5:1)에 살짝 못 미쳐 `#c02f70`(5.41:1)로 조정
+- **수정 내용**: `app/features/register/ocrUtils.js`
+  - `COLOR_PRESETS_BY_LIBRARIAN`에 `gecko` 전용 핑크 계열 6색 팔레트 추가(기존엔 `cat` 팔레트를 그대로 대체해서 썼음)
+- **수정 내용**: `app/data/librarians.js`
+  - 낡은 주석(누디/게코 에셋 미적용 안내, "게코 초록 계열 미적용" 등) 정정 — 실제로는 게코 커서/프로필 이미지는 이전에 이미 적용되어 있었고, 이번에 배경/글로우/CSS 테마/책 색상까지 전부 적용 완료됨을 반영
+- **검증**: `npx eslint`(대상 파일 전체) 0 errors(기존 무관 warning 1건만), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 실제 화면에서 게코 서재 진입 시 배경 이미지, 버튼/액센트 색상(핑크), 배경(그레이) 렌더링 확인 권장. 3D 서재 카메라/선반은 아직 고양이 배치 그대로라 게코 서재 배경과 안 맞을 수 있음(추후 캘리브레이션 필요, 나머지 사서들과 동일 절차).
+
 ## 2026-09-20: Cloudflare 배포 실패 수정 — wrangler.jsonc(assets) 추가
 - 작업 브랜치: `chore/배포용-API-분리라우팅` (같은 배포 준비 작업이라 이어서 처리)
 - **배경**: Cloudflare에 Git 연동 빌드로 배포를 시도했는데, 빌드(`npm run build`)는 성공했지만 Deploy 단계(`npx wrangler deploy`)에서 `Error parsing file: vite.config.js`로 실패. 이 프로젝트는 최신 Cloudflare의 "통합 Workers + 정적 에셋(assets)" 흐름으로 생성되어 있어(별도 Pages 프로젝트가 아니라 Workers 설정 화면), 저장소에 `wrangler.jsonc`가 없으면 wrangler가 정적 SPA라는 걸 스스로 판단하지 못하고 아무 JS 파일이나 서버 스크립트로 착각해 파싱하려다 실패하는 게 원인이었음.
