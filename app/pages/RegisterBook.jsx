@@ -1,7 +1,9 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
-import { colorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
+import { useLibrarian } from '../store/librarianStore';
+import { getColorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
 import { GENRE_DEFS, GENRE_CODES, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
@@ -11,6 +13,7 @@ import { ApiError } from '../api/authApi';
 import { getBookThickness } from '../features/room/bookExtractor';
 import { coverImageSrc, onFallbackCover } from '../lib/coverImage';
 import LoadingSequence from '../components/LoadingSequence';
+import WebcamCaptureModal from '../features/room/WebcamCaptureModal';
 
 /**
  * 표지 OCR(ISBN 인식) 실패 원인을 사용자에게 구체적으로 안내한다.
@@ -78,13 +81,30 @@ export default function RegisterBook() {
   const { addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
+  // 책 색상 팔레트를 활성 사서 서재 테마에 맞춘다 (사용자 요청, 2026-09).
+  const { activeId: librarianId } = useLibrarian();
+  const presets = useMemo(() => getColorPresets(librarianId), [librarianId]);
 
-  const captureInputRef = useRef(null);
   const uploadInputRef = useRef(null);
   // 연속 업로드 시 늦게 끝난 이전 요청이 최신 결과를 덮어쓰지 않도록 하는 실행 번호
   const runIdRef = useRef(0);
   // 마지막으로 만든 미리보기 object URL (언마운트 시 해제용)
   const previewUrlRef = useRef(null);
+
+  // "📷 사진 촬영" 버튼 클릭 시 노트북/PC 웹캠을 띄우는 모달 표시 여부 (사용자 요청, 2026-09).
+  // 예전엔 <input type="file" capture="environment">를 썼는데, 이건 모바일 OS 카메라 앱을
+  // 열어줄 뿐 데스크톱 브라우저에서는 무시되고 파일 탐색기만 뜬다(웹 서비스라 데스크톱이
+  // 주 사용 환경). getUserMedia로 실제 웹캠 스트림을 여는 방식으로 교체했다 — 크롬은 위치
+  // 정보 요청과 동일하게 카메라 접근 시 주소창 옆에서 자동으로 권한 팝업을 띄운다.
+  const [webcamOpen, setWebcamOpen] = useState(false);
+  // "가이드" 버튼 클릭 시 ISBN 촬영 방법을 보여주는 예시 이미지 팝업 (사용자 요청, 2026-09)
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  // 업로드/촬영 이미지 최대 크기 (사용자 요청, 2026-09: 여러 사용자가 동시에 쓰는
+  // 서비스라 서버 부담을 고려해 50MB보다 훨씨 작은 5MB로 제한. 서버는 최대 50MB까지
+  // 허용하지만, 클라이언트에서 먼저 걸러 불필요한 대용량 업로드를 막는다)
+  const MAX_IMAGE_SIZE_MB = 5;
+  const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -191,6 +211,12 @@ export default function RegisterBook() {
   async function handleFile(file) {
     if (!file) return;
 
+    // 서버에 보내기 전에 클라이언트에서 먼저 크기를 확인한다 (5MB 제한, 사용자 요청 2026-09).
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setOcrError(`이미지가 너무 커요. ${MAX_IMAGE_SIZE_MB}MB 이하의 사진으로 다시 시도해 주세요.`);
+      return;
+    }
+
     // 같은 파일을 다시 올릴 때도 처음부터 다시 인식되도록 이전 결과를 모두 비운다.
     const runId = ++runIdRef.current;
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -213,8 +239,9 @@ export default function RegisterBook() {
     setFromRecommendation(false);
 
     // 색상 추출은 인식 성공 여부와 무관하게 진행 (실패 시 첫 번째 색으로 폴백)
+    // 활성 사서의 팔레트(presets) 안에서 가장 가까운 색을 고른다.
     const colorPromise = loadImage(file)
-      .then((img) => extractDominantColorIndex(img))
+      .then((img) => extractDominantColorIndex(img, presets))
       .catch(() => 0);
 
     try {
@@ -312,6 +339,12 @@ export default function RegisterBook() {
     handleFile(file);
   }
 
+  // 웹캠 모달에서 캡처된 프레임(File)을 받아 모달을 닫고 바로 OCR 요청으로 넘긴다.
+  function handleWebcamCapture(file) {
+    setWebcamOpen(false);
+    handleFile(file);
+  }
+
   // 미리보기로 만든 object URL은 화면을 떠날 때 정리한다.
   // (StrictMode의 이펙트 두 번 실행에 사용 중인 URL이 해제되지 않도록 ref로 들고 있는다)
   useEffect(() => {
@@ -333,7 +366,7 @@ export default function RegisterBook() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!allFilled || submitting) return;
-    const color = colorPresets[colorIdx];
+    const color = presets[colorIdx];
     const initialPage = Number(currentPage) || 0;
     setSubmitting(true);
     setSubmitError(null);
@@ -406,7 +439,6 @@ export default function RegisterBook() {
   }
 
   const fieldStyle = { padding: 8, fontSize: 19, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' };
-  const labelStyle = { display: 'flex', flexDirection: 'column', gap: 6 };
   // 표지 아래 인식 정보(제목·저자·장르)용 축소 스타일
   const compactFieldStyle = { ...fieldStyle, padding: '5px 8px', fontSize: 18 };
   const compactViewStyle = { fontSize: 18, color: 'var(--text-h)', lineHeight: 1.4, wordBreak: 'break-word' };
@@ -443,7 +475,7 @@ export default function RegisterBook() {
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 200px', gap: 34, alignItems: 'start', width: '100%' }}
+        style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 34, alignItems: 'start', width: '100%' }}
       >
         {/*
           왼쪽: ISBN 바코드 촬영/업로드
@@ -451,21 +483,31 @@ export default function RegisterBook() {
           backend-book이 알라딘에서 조회한 제목·저자·쪽수가 아래 인식 결과에 채워진다.
         */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 999,
+                border: '1px solid var(--accent-border)',
+                background: 'var(--accent-bg)',
+                color: 'var(--accent)',
+                cursor: 'pointer',
+              }}
+            >
+              🐾 가이드
+            </button>
+          </div>
           <span style={{ fontSize: 16, color: 'var(--text)' }}>
             책 뒷면이나 표지 안쪽 바코드 아래에 있는 13자리 ISBN 숫자를 촬영해주세요.
             <br />
             예: ISBN 979-11-6479-434-8
           </span>
 
-          <input
-            ref={captureInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={handleInputChange}
-          />
           <input
             ref={uploadInputRef}
             type="file"
@@ -476,7 +518,7 @@ export default function RegisterBook() {
 
           <button
             type="button"
-            onClick={() => captureInputRef.current?.click()}
+            onClick={() => setWebcamOpen(true)}
             style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer' }}
           >
             📷 사진 촬영
@@ -533,12 +575,33 @@ export default function RegisterBook() {
           )}
           {ocrError && <span style={{ fontSize: 17, color: '#e05a4e' }}>{ocrError}</span>}
           {ocrNotice && <span style={{ fontSize: 17, color: 'var(--text-h)' }}>{ocrNotice}</span>}
-          {isbn && !ocrLoading && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>인식된 ISBN: {isbn}</span>
-          )}
+
+          {/*
+           * ISBN 수동 입력란 (사용자 요청, 2026-09) — 바코드 인식이 잘 안 되는 경우를
+           * 대비해 항상 노출한다. 인식된 값이 있으면 채워서 보여주고, 사용자가 직접
+           * 고치거나 처음부터 입력할 수 있다. 등록 시 이 값이 그대로 전송된다(state
+           * `isbn`을 그대로 재사용).
+           */}
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 15, color: 'var(--text)' }}>ISBN 직접 입력 (인식이 잘 안 될 때)</span>
+            <input
+              type="text"
+              value={isbn}
+              onChange={(e) => setIsbn(e.target.value)}
+              placeholder="예: 9791164794348"
+              style={{ padding: '7px 8px', fontSize: 16, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
+            />
+          </label>
         </div>
 
-        {/* 중앙: 인식 결과 + 수정 */}
+        {/*
+          오른쪽: 인식 결과 + 수정 (사용자 요청, 2026-09: 기존 3단 레이아웃에서 표지
+          이미지가 커서 제목·저자·장르·책 색상이 아래로 밀리는 문제 해결).
+          표지를 작게 고정폭으로 왼쪽에 두고 정보를 옆에 나란히 배치해, 표지 크기와
+          무관하게 항목들이 항상 한눈에 보이게 했다. '읽기 기록' 컬럼은 없애고
+          그 안의 총 페이지 수·현재 읽은 페이지 입력을 이 섹션 안, 책 색상 다음
+          순서로 옮겼다.
+        */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600 }}>인식 결과</span>
@@ -568,13 +631,14 @@ export default function RegisterBook() {
               왼쪽에서 ISBN 바코드 번호를 촬영하거나 업로드하면 제목·저자를 자동으로 인식합니다.
             </p>
           ) : (
-            <>
-              {/* 책 표지 — 인식 결과 맨 위. 표지 URL이 없으면 기본 표지를 쓴다 */}
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+              {/* 책 표지 — 고정폭으로 작게 두어 옆의 정보 항목들이 밀리지 않게 한다 */}
               <img
                 src={coverImageSrc(extraMeta.coverUrl)}
                 alt={title ? `${title} 표지` : '책 표지'}
                 style={{
-                  width: '100%',
+                  width: 130,
+                  flexShrink: 0,
                   height: 'auto',
                   display: 'block',
                   background: '#fff',
@@ -585,10 +649,10 @@ export default function RegisterBook() {
               />
 
               {/*
-               * 표지 아래 인식 정보(제목·저자·장르)를 컴팩트하게 세로로 모은다.
-               * 라벨은 작게, 값 칸은 여백을 줄여 표지 옆 정보 카드처럼 보이게 한다.
+               * 표지 옆 인식 정보를 순서대로 나열: 제목 → 저자 → 장르 → 책 색상 →
+               * 총 페이지 수 → 현재 읽은 페이지 (사용자 요청, 2026-09).
                */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
                 {[
                   {
                     key: 'title',
@@ -657,75 +721,69 @@ export default function RegisterBook() {
                     {node}
                   </label>
                 ))}
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>책 색상</span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {presets.map((p, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        disabled={!editing}
+                        onClick={() => editing && setColorIdx(i)}
+                        title={`색상 ${i + 1}`}
+                        style={{
+                          width: 36,
+                          height: 50,
+                          borderRadius: 4,
+                          border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
+                          background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
+                          cursor: editing ? 'pointer' : 'default',
+                          opacity: editing ? 1 : 0.85,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>총 페이지 수</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={totalPage}
+                    onChange={(e) => setTotalPage(e.target.value)}
+                    placeholder="예: 320"
+                    style={compactFieldStyle}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>현재 읽은 페이지 📖</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={currentPage}
+                    onChange={(e) => setCurrentPage(e.target.value)}
+                    placeholder="예: 0"
+                    style={compactFieldStyle}
+                  />
+                </label>
+
+                {totalPage && currentPage !== '' && (
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
+                    진행 상태: {deriveStatus(currentPage, totalPage)}
+                  </span>
+                )}
+
+                {/* 두께는 총 페이지 수로 자동 계산되므로 별도 입력 없이 안내만 표시 (CLIAR-247) */}
+                {String(totalPage).trim() !== '' && (
+                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
+                    책 두께는 총 페이지 수에 맞춰 자동으로 정해져요.
+                  </span>
+                )}
               </div>
-
-              <div style={labelStyle}>
-                <span>책 색상</span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {colorPresets.map((p, i) => (
-                    <button
-                      type="button"
-                      key={i}
-                      disabled={!editing}
-                      onClick={() => editing && setColorIdx(i)}
-                      title={`색상 ${i + 1}`}
-                      style={{
-                        width: 36,
-                        height: 50,
-                        borderRadius: 4,
-                        border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
-                        background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
-                        cursor: editing ? 'pointer' : 'default',
-                        opacity: editing ? 1 : 0.85,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-            </>
-          )}
-        </div>
-
-        {/* 오른쪽: 페이지 기록 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <span style={{ fontWeight: 600 }}>읽기 기록</span>
-
-          <label style={labelStyle}>
-            <span>총 페이지 수</span>
-            <input
-              type="number"
-              min={1}
-              value={totalPage}
-              onChange={(e) => setTotalPage(e.target.value)}
-              placeholder="예: 320"
-              style={fieldStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span>현재 읽은 페이지 📖</span>
-            <input
-              type="number"
-              min={0}
-              value={currentPage}
-              onChange={(e) => setCurrentPage(e.target.value)}
-              placeholder="예: 0"
-              style={fieldStyle}
-            />
-          </label>
-
-          {totalPage && currentPage !== '' && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>
-              진행 상태: {deriveStatus(currentPage, totalPage)}
-            </span>
-          )}
-
-          {/* 두께는 총 페이지 수로 자동 계산되므로 별도 입력 없이 안내만 표시 (CLIAR-247) */}
-          {String(totalPage).trim() !== '' && (
-            <span style={{ fontSize: 16, color: 'var(--text)' }}>
-              책 두께는 총 페이지 수에 맞춰 자동으로 정해져요.
-            </span>
+            </div>
           )}
         </div>
 
@@ -768,6 +826,54 @@ export default function RegisterBook() {
           </button>
         </div>
       </form>
+
+      {webcamOpen && (
+        <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
+      )}
+
+      {/* ISBN 촬영 가이드 팝업 (사용자 요청, 2026-09) — 책 뒷면 바코드 위치를 보여주는 예시 이미지 */}
+      {guideOpen &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100,
+            }}
+            onClick={() => setGuideOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 'min(480px, 92vw)', background: 'var(--bg)', border: '1px solid var(--border)',
+                borderRadius: 16, padding: 20, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', color: 'var(--text-h)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 20 }}>📷 ISBN 촬영 가이드</h3>
+                <button
+                  onClick={() => setGuideOpen(false)}
+                  style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}
+                >
+                  ✕
+                </button>
+              </div>
+              <img
+                src="/ISBN_guide.jpg"
+                alt="책 뒷면 바코드 아래 ISBN 숫자를 촬영하는 예시"
+                style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid var(--border)' }}
+              />
+              {/*
+               * 업로드 제약 안내 (사용자 요청, 2026-09). 서버(recordApi.js)는 최대 50MB까지
+               * 허용하지만, 여러 사용자가 동시에 쓰는 서비스라 서버 부담을 줄이기 위해
+               * 클라이언트 기준을 5MB로 더 낮게 잡았다(handleFile에서 실제로 검증).
+               */}
+              <span style={{ display: 'block', marginTop: 10, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, textAlign: 'center' }}>
+                업로드 가능한 이미지 최대 크기: {MAX_IMAGE_SIZE_MB}MB / 지원 파일 형식: JPG, PNG
+              </span>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

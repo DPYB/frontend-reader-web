@@ -1,5 +1,55 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-20: 책 등록 레이아웃 2단 개편 및 사서별 책 색상 팔레트 적용
+- 작업 브랜치: `feat/책등록-웹캠촬영` (이어서 진행)
+- **사용자 요청**: (1) 3단 그리드(촬영/인식결과/읽기기록)에서 표지 이미지가 커서 제목·저자·장르·책 색상이 아래로 밀리는 문제 — "읽기 기록" 제목을 없애고 그 칸의 총 페이지 수·현재 읽은 페이지 입력을 인식 결과 안, 책 색상 다음 순서로 이동 (2) 수정 버튼은 계속 오른쪽 상단에 (3) 책 색상 프리셋을 사서별 서재 테마 컬러에 맞춰 다르게.
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - `form`의 `gridTemplateColumns`를 3단(`220px minmax(0,1fr) 200px`)에서 2단(`220px minmax(0,1fr)`)으로 축소, "읽기 기록" 컬럼 전체 제거
+  - 인식 결과 섹션 내부를 `flex` 가로 배치로 재구성: 표지 이미지를 고정폭 130px로 작게 만들어 왼쪽에 두고(기존엔 `width:100%`라 좁은 컬럼에서 이미지가 세로로 길게 늘어나 텍스트를 밀어냈음), 오른쪽에 제목→저자→장르→책 색상→총 페이지 수→현재 읽은 페이지를 순서대로 세로 배치
+  - "수정" 버튼은 기존과 동일하게 "인식 결과" 제목 옆 오른쪽 상단 유지(레이아웃 변경 후에도 그대로 유효)
+  - 미사용이 된 `labelStyle` 변수 제거(총 페이지 수/현재 읽은 페이지 입력이 `compactFieldStyle`을 쓰도록 통일되며 더 이상 참조되지 않음)
+- **사서별 책 색상 팔레트**: `app/features/register/ocrUtils.js`
+  - `COLOR_PRESETS_BY_LIBRARIAN` 맵 신설 — 각 사서의 `index.css --accent` 색상을 기준으로 명도가 다른 6가지 변형을 만듦: `cat`(오렌지, 기존 팔레트 그대로), `stork`(보라 계열, `--accent #9b7bf0` 기준), `nudi`(청록 계열, `--accent #4fc4ac` 기준). `gecko`는 전용 테마 색이 아직 없어(배경/글로우 미적용 상태) `cat` 팔레트를 그대로 재사용
+  - `getColorPresets(librarianId)` 헬퍼 추가, 없는 id는 `cat`으로 폴백
+  - `extractDominantColorIndex(img, presets)`에 두 번째 매개변수 추가해 임의 팔레트 안에서 최근접색을 찾을 수 있도록 확장(기본값은 하위 호환용 `colorPresets`)
+  - `RegisterBook.jsx`가 `useLibrarian()`의 `activeId`로 현재 서재의 사서를 읽어 `getColorPresets(librarianId)` 결과(`presets`)를 색상 선택 UI와 이미지 평균색 추출 양쪽에 사용
+- **검증**: `npx eslint app/pages/RegisterBook.jsx app/features/register/ocrUtils.js` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 실제 화면에서 사서별(고양이/황새/누디) 서재로 책 등록 시 색상 팔레트가 각 서재 테마와 어울리는지, 새 2단 레이아웃에서 표지 미리보기·긴 제목 등이 깨지지 않는지 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
+## 2026-09-20: 책 등록 이미지 업로드 크기 제한 축소(5MB) 및 ISBN 수동 입력란 추가
+- 작업 브랜치: `feat/책등록-웹캠촬영` (이어서 진행)
+- **사용자 요청**: (1) 서버가 허용하는 50MB는 여러 사용자가 동시에 쓰는 서비스 입장에서 부담이 크니 클라이언트 기준을 5MB로 낮출 것 (2) 바코드 인식이 실패하는 경우를 대비해 ISBN을 직접 입력할 수 있는 칸 추가.
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - `MAX_IMAGE_SIZE_MB = 5` 상수 도입. 서버(`recordApi.js` 문서화 기준 최대 50MB)보다 훨씬 낮게 잡아, 클라이언트에서 먼저 걸러 불필요한 대용량 업로드로 서버에 부담을 주지 않도록 함
+  - `handleFile()` 진입점에서 `file.size > MAX_IMAGE_SIZE_BYTES`면 즉시 `ocrError`로 안내하고 업로드/OCR 요청 자체를 보내지 않음(파일 선택·웹캠 캡처 모두 이 함수를 거치므로 두 경로 모두 자동 적용)
+  - 가이드 팝업의 안내 문구도 50MB → `{MAX_IMAGE_SIZE_MB}MB`로 갱신(상수 참조라 값이 바뀌면 문구도 자동으로 맞춰짐)
+  - "인식된 ISBN: {isbn}" 읽기 전용 텍스트를 **편집 가능한 입력란**으로 교체 — 라벨 "ISBN 직접 입력 (인식이 잘 안 될 때)"과 함께 항상 노출. 기존 `isbn` state를 그대로 재사용해 OCR 인식값이 있으면 채워서 보여주고, 사용자가 고치거나 처음부터 입력할 수 있음. 등록(`handleSubmit`)은 이미 `isbn` state를 그대로 전송하므로 별도 배선 없이 즉시 반영됨
+- **검증**: `npx eslint app/pages/RegisterBook.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공(dist 삭제 완료)
+- ⚠️ 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
+## 2026-09-20: 책 등록 페이지 "ISBN 촬영 가이드" 팝업 추가
+- 작업 브랜치: `feat/책등록-웹캠촬영` (웹캠 캡처 작업에 이어서 진행)
+- **배경**: 사용자가 책 뒷면 바코드에서 ISBN을 찍는 방법을 보여주는 예시 이미지(`public/ISBN_guide.jpg`, 587x496)를 준비. "ISBN 촬영" 제목 옆에 가이드 버튼을 만들어 클릭 시 이 이미지가 팝업으로 뜨도록 요청.
+- **시행착오**: 처음엔 사용자가 준비한 정사각형(1254x1254) PNG를 ImageMagick으로 상단 40px(약 1cm)를 잘라 webp로 변환해 적용했는데, 이후 사용자가 그 webp를 직접 삭제하고 이미 직사각형(587x496, 61KB)으로 편집된 새 파일(`ISBN_guide.jpg`)을 넣어 최종적으로 이 파일을 그대로 사용(추가 변환 불필요, 이미 충분히 작음).
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - "ISBN 촬영" 제목 옆에 "🐾 가이드" 버튼 추가 (처음엔 ❓ 이모지였으나 사용자 요청으로 발바닥 🐾으로 교체 — 서비스 전반의 발바닥 테마와 통일)
+  - 클릭 시 `guideOpen` 상태로 `WebcamCaptureModal`과 동일한 `createPortal` 기반 팝업을 띄우고 `/ISBN_guide.jpg`를 표시
+  - 팝업 이미지 아래에 업로드 제약 안내 문구 추가: "업로드 가능한 이미지 최대 크기: 50MB / 지원 파일 형식: JPG, PNG" — `recordApi.js`에 문서화된 실제 서버 제약(`image/jpeg` 또는 `image/png`, 최대 50MB)과 동일한 값
+- **검증**: `npx eslint app/pages/RegisterBook.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공
+- ⚠️ 실제 화면에서 가이드 팝업 이미지 표시 및 문구 배치 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
+## 2026-09-20: 책 등록 페이지 "사진 촬영" 버튼을 웹캠 캡처로 전환
+- 작업 브랜치: `feat/책등록-웹캠촬영`
+- **배경**: `RegisterBook.jsx`(책 등록, ISBN 촬영)의 "📷 사진 촬영" 버튼이 `<input type="file" capture="environment">`를 트리거했는데, 이 속성은 모바일에서만 OS 카메라 앱을 열고 데스크톱 브라우저에서는 무시되어 파일 탐색기만 뜬다. 이 서비스는 웹(데스크톱) 기준이라 실제로는 파일 선택창처럼 동작해 사용자가 원하는 "노트북 카메라 실행"이 안 됐음. 참고로 `SentenceCollectModal.jsx`(문장 수집)는 이미 이 문제를 해결한 `WebcamCaptureModal`(getUserMedia 기반)을 별도 버튼으로 갖고 있었음.
+- **수정 내용**: `app/pages/RegisterBook.jsx`
+  - `capture="environment"` `<input type="file">`과 그 ref(`captureInputRef`) 제거
+  - "📷 사진 촬영" 버튼 클릭 시 기존 `app/features/room/WebcamCaptureModal`(재사용, 신규 컴포넌트 아님)을 여는 `webcamOpen` 상태로 교체 — 이 모달이 `navigator.mediaDevices.getUserMedia()`로 실제 웹캠 스트림을 열고 셔터 버튼으로 정지 프레임을 캡처해 File로 반환
+  - `handleWebcamCapture(file)` 핸들러 추가: 모달을 닫고 캡처된 파일을 기존 `handleFile()`(OCR 인식 파이프라인)로 그대로 전달 — 파일 업로드 경로와 동일한 처리
+  - "🖼️ 이미지 업로드" 버튼(일반 파일 선택)은 그대로 유지
+- **권한 팝업 관련**: 별도 UI 구현 없음 — Chrome 등 주요 브라우저는 `getUserMedia()` 호출 시 위치 정보 요청과 동일한 방식으로 주소창 옆에 자동으로 카메라 접근 허용 팝업을 띄운다(브라우저 표준 동작). 거부 시 `WebcamCaptureModal`이 이미 `NotAllowedError`/`NotFoundError`를 구분해 안내 문구를 보여주는 로직을 갖고 있어 추가 처리 불필요.
+- **검증**: `npx eslint app/pages/RegisterBook.jsx` 통과(기존 warning 1건 외 신규 이슈 없음), `npm run build` 성공
+- ⚠️ 실제 브라우저에서 카메라 권한 허용/거부 시나리오 및 캡처된 이미지의 OCR 인식 흐름 육안 확인 권장. 커밋만 하고 push/PR은 사용자 다음 지시 대기.
+
 ## 2026-09-20: 토론 모드 UI 간소화, 채팅창 확장, 날씨 뱃지 정리
 - 작업 브랜치: `fix/채팅-로딩위치` (로딩 위치 수정에 이어서 진행)
 - **사용자 요청 요약**: (1) 탭 "사서 토론" → "토론" (2) 토론 대화 시작 전 화면엔 카드 4개만, 배너/대형 버튼 제거 (3) 토론자 카드 클릭 즉시 카드가 사라지고 상단 고정 배너(끝내기+설정)만 노출, 스크롤해도 고정 (4) "마무리" → "끝내기" 용어 통일 (5) 채팅창 세로 길이 확장 (6) "토론 대상 도서 선택" 드롭다운 제거, 토론자 선택은 카드 유지 (7) 날씨 뱃지 온도 반올림 및 중복 제거, description 간결화(괄호/"기온" 단어 제거)해 분위기 태그와 한 줄에 들어가도록.
