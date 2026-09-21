@@ -20,6 +20,7 @@
 - **검증**: `npm run typecheck` 0 errors, `npm run lint` 0 errors, `npm run build` 성공
 - **PR 생성**: `https://github.com/DPYB/frontend-reader-web/pull/48` (`feat/debate-steps-setup` ➔ `develop`)
 
+## 2026-09-20: 마이페이지 3개 섹션을 한 페이지 세로 나열로 통합
 - 작업 브랜치: `feat/마이페이지-한페이지통합`
 - **사용자 요청**: 마이페이지가 왼쪽 메뉴(내 정보/계정 관리/알림 설정)로 탭을 전환해 한 번에 한 섹션만 보이던 구조라, 내용을 잘게 나누지 말고 한 페이지에서 전부 다 보이게(스크롤로) 정리해달라.
 - **수정 내용**: `app/pages/MyPage.jsx`
