@@ -1,13 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
-## 2026-09-21: 독서 집중 타이머 도서 선택 목록에서 '완독' 도서 제외 처리
+## 2026-09-21: 독서 집중 타이머 도서 선택 목록 완독 제외 강화 및 기본 선택 해제
 - 작업 브랜치: `fix/timer-exclude-completed-books`
-- **사용자 요청**: 독서 집중 타이머 도서 선택 드롭다운에서 이미 다 읽은 '완독' 도서가 선택지에 포함되고 있어, '읽는 중' 및 '시작전' 도서만 노출되도록 필터링하고 모달 오픈 시 활성 도서의 첫 번째 책이 기본 선택되도록 설정해달라.
-- **수정 내용**: `app/features/room/ReadingTimerModal.jsx`
-  - `useMemo`를 통해 `books.filter(b => b.status !== '완독')` 필터링된 `activeBooks` 목록 생성
-  - `selectedBookId` 초기 선택값에 `initialBook?.bookId || activeBooks[0]?.bookId || ''` 적용하여 도서 상세 진입 시 `initialBook`을 유지하되, 일반 타이머 오픈 시 첫 번째 활성 도서가 자동 선택되도록 처리
-  - 드롭다운 렌더링 시 `activeBooks`를 사용하고, 활성 도서가 0권일 때 `<option value="">읽을 수 있는 도서가 없습니다 (모두 완독 또는 도서 없음)</option>` 안내 옵션 표시
-- **검증**: `npm run typecheck` 0 errors, `npm run lint` 0 errors, `npm run build` 성공 (Vite 번들링 정상 완료)
+- **사용자 요청**: 완독한 도서가 여전히 선택 가능하고, 도서 집중 타이머를 처음 열면 이미 책이 한 권 선택되어 있던데 미리 선택 안 되어 있게 해달라.
+- **원인 분석**:
+  1. 단순 `status !== '완독'` 문자열 비교만으로는 서버 도서 상태(`readingStatus === 'COMPLETED'`), 진행률(`progress >= 100`), 총 페이지 완독(`currentPage >= totalPages`) 등 다양한 완독 케이스를 포괄하지 못했음. 또한 `bookApi.toKoreanStatus` 및 `BooksProvider.jsx`에서 `progress >= 100` 시 '완독' 승격이 누락되어 있었음.
+  2. `ReadingTimerModal` 마운트 시 `selectedBookId` 기본값이 `initialBook?.bookId || activeBooks[0]?.bookId || ''`로 되어 있어 서재에서 진입 시 첫 번째 책이 강제 선택되었고, `<select>` 내에 플레이스홀더 옵션이 없었음.
+- **수정 내용**:
+  1. `app/features/room/ReadingTimerModal.jsx`:
+     - `isCompletedBook(b)` 판별 함수 도입: 한글 상태('완독'), 영문 enum('COMPLETED'), 진행률 100% 이상, 현재 페이지 >= 총 페이지 여부를 종합 검증하여 완독 도서를 확실하게 필터링.
+     - `selectedBookId` 초기값을 `''`로 기본화 (`initialBook`이 있고 완독 도서가 아닐 때만 유지).
+     - `<select>` 최상단에 `<option value="">읽을 도서를 선택해 주세요</option>` 플레이스홀더 옵션 추가.
+     - 도서를 선택하지 않은 채 타이머를 시작하거나 완료를 누르지 못하도록 유효성 검사 및 인라인 에러 메시지 안내 추가.
+  2. `app/api/bookApi.js`:
+     - `toKoreanStatus`에 `readingStatus === 'COMPLETED'` 및 `progress >= 100`일 때 `'완독'`을 반환하도록 보강.
+  3. `app/store/BooksProvider.jsx`:
+     - `toFrontBook`에 `readingStatus` 필드 보존.
+     - `saveReadingProgress`에서 진행률 100% 도달 시 `status: '완독'`, `readingStatus: 'COMPLETED'`로 자동 갱신.
+- **검증**:
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors, ESLint 검증 완료)
+  - `npm run build` 통과 (Vite 프로덕션 빌드 1.87s 완료)
 
 ## 2026-09-21: AI 독서 토론 모드 진입 플로우 3단계 분리 및 주제/서재 도서 선택 UX 구현
 - 작업 브랜치: `feat/debate-steps-setup`

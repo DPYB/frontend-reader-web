@@ -24,6 +24,7 @@ function toFrontBook(summary) {
     title: summary.title,
     author: summary.author,
     genre: summary.genre,
+    readingStatus: summary.readingStatus,
     status: bookApi.toKoreanStatus(summary.readingStatus, summary.progress ?? 0),
     coverUrl: summary.coverUrl ?? null,
     progress: summary.progress ?? 0,
@@ -110,8 +111,18 @@ export function BooksProvider({ children }) {
       setBooks((prev) =>
         prev.map((b) => {
           if (b.bookId !== bookId) return b;
-          const nextStatus = b.status === '시작전' && res.progress > 0 ? '읽는 중' : b.status;
-          return { ...b, progress: res.progress, status: nextStatus };
+          let nextStatus = b.status;
+          if (res.progress >= 100) {
+            nextStatus = '완독';
+          } else if (b.status === '시작전' && res.progress > 0) {
+            nextStatus = '읽는 중';
+          }
+          return {
+            ...b,
+            progress: res.progress,
+            status: nextStatus,
+            readingStatus: res.progress >= 100 ? 'COMPLETED' : b.readingStatus,
+          };
         })
       );
     }

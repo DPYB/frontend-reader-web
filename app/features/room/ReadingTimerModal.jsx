@@ -29,6 +29,29 @@ function formatTime(totalSeconds) {
 }
 
 /**
+ * 완독 도서 여부 판별 (CLIAR-303)
+ * - status에 '완독'이 포함되어 있거나
+ * - 백엔드 readingStatus / reading_status가 'COMPLETED'인 경우
+ * - 독서 진행률(progress)이 100% 이상인 경우
+ * - 총 페이지 수가 존재하고 현재 페이지가 총 페이지 이상인 경우
+ */
+function isCompletedBook(b) {
+  if (!b) return false;
+  const status = String(b.status || '').trim();
+  const readingStatus = String(b.readingStatus || b.reading_status || '').toUpperCase().trim();
+  const progress = Number(b.progress);
+  const totalPages = Number(b.totalPages || b.totalPage || 0);
+  const currentPage = Number(b.currentPage || 0);
+
+  if (status === '완독' || status.includes('완독')) return true;
+  if (readingStatus === 'COMPLETED') return true;
+  if (!Number.isNaN(progress) && progress >= 100) return true;
+  if (totalPages > 0 && currentPage >= totalPages) return true;
+
+  return false;
+}
+
+/**
  * ReadingTimerModal — 독서 집중 타이머 모달 (스톱워치 & 뽀모도로 모드 지원)
  *
  * @param {object} props
@@ -47,17 +70,26 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
 
   // 완독 도서 제외 필터링 (읽는 중, 시작전 도서만 타이머 도서 선택지에 노출)
   const activeBooks = useMemo(() => {
-    return books.filter((b) => b.status !== '완독');
+    return books.filter((b) => !isCompletedBook(b));
   }, [books]);
 
-  // 대상 도서 선택 (initialBook이 있으면 우선 유지, 없으면 활성 도서의 첫 번째 책 선택)
-  const [selectedBookId, setSelectedBookId] = useState(
-    () => initialBook?.bookId || activeBooks[0]?.bookId || ''
-  );
+  // 대상 도서 선택 (초기 진입 시 미리 선택되지 않고 '선택해 주세요' 상태로 시작. initialBook이 완독이 아닌 경우에만 우선 적용)
+  const [selectedBookId, setSelectedBookId] = useState(() => {
+    if (initialBook && !isCompletedBook(initialBook)) {
+      return initialBook.bookId || '';
+    }
+    return '';
+  });
 
   // 대상 도서 상세 정보
-  const currentBook = books.find((b) => b.bookId === selectedBookId) || initialBook;
-  const [totalPages, setTotalPages] = useState(currentBook?.totalPage || 0);
+  const currentBook =
+    books.find((b) => b.bookId === selectedBookId) ||
+    (initialBook && !isCompletedBook(initialBook) && initialBook.bookId === selectedBookId
+      ? initialBook
+      : null);
+  const [totalPages, setTotalPages] = useState(
+    currentBook?.totalPage || currentBook?.totalPages || 0
+  );
   const [currentPage, setCurrentPage] = useState(0);
 
   // 타이머 모드: 'stopwatch' | 'pomodoro'
@@ -146,6 +178,11 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
 
   // 시작 / 일시정지 토글
   const handleToggleTimer = () => {
+    if (!isRunning && !selectedBookId) {
+      setErrorMessage('먼저 읽을 도서를 선택해 주세요.');
+      return;
+    }
+    setErrorMessage(null);
     if (timerMode === 'pomodoro' && seconds === 0) {
       setSeconds(pomodoroMinutes * 60);
     }
@@ -164,6 +201,11 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
 
   // 독서 완료 처리 진입
   const handleFinishReading = () => {
+    if (!selectedBookId) {
+      setErrorMessage('독서한 도서를 선택해 주세요.');
+      return;
+    }
+    setErrorMessage(null);
     setIsRunning(false);
     const elapsed =
       timerMode === 'stopwatch'
@@ -279,7 +321,7 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
             {/* 도서 선택란 */}
             <div className="rt-book-select-area">
               <label htmlFor={bookSelectId} className="rt-label">읽을 책</label>
-              {initialBook ? (
+              {initialBook && !isCompletedBook(initialBook) ? (
                 <div className="rt-current-book-info">
                   <span className="rt-book-tag">선택됨</span>
                   <strong>{initialBook.title}</strong>
@@ -292,19 +334,36 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
                   id={bookSelectId}
                   className="rt-select"
                   value={selectedBookId}
-                  onChange={(e) => setSelectedBookId(e.target.value)}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setSelectedBookId(nextId);
+                    if (!nextId) {
+                      setTotalPages(0);
+                      setCurrentPage(0);
+                      setEndPage('');
+                    }
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   disabled={isRunning}
                 >
                   {activeBooks.length === 0 ? (
                     <option value="">읽을 수 있는 도서가 없습니다 (모두 완독 또는 도서 없음)</option>
                   ) : (
-                    activeBooks.map((b) => (
-                      <option key={b.bookId} value={b.bookId}>
-                        {b.title} ({b.status})
-                      </option>
-                    ))
+                    <>
+                      <option value="">읽을 도서를 선택해 주세요</option>
+                      {activeBooks.map((b) => (
+                        <option key={b.bookId} value={b.bookId}>
+                          {b.title} ({b.status || '시작전'})
+                        </option>
+                      ))}
+                    </>
                   )}
                 </select>
+              )}
+              {errorMessage && !isFinishing && (
+                <p className="rt-error-msg" style={{ marginTop: 6, marginBottom: 0 }}>
+                  {errorMessage}
+                </p>
               )}
             </div>
 
