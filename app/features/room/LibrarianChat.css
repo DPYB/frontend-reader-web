@@ -165,20 +165,297 @@
   margin-bottom: 8px;
 }
 
-.lc-debate-book-selector {
+.lc-debate-step-box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   background: var(--code-bg);
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
 }
 
+.lc-debate-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lc-debate-step-tag {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .lc-debate-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
+}
+
+/* 2단계 상단 파트너 표시 바 */
+.lc-debate-partner-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.lc-debate-partner-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.lc-debate-partner-bar-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.lc-debate-partner-bar-title {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lc-debate-change-partner-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.lc-debate-change-partner-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-h);
+}
+
+/* 나만의 주제로 토론하기 최상단 카드 */
+.lc-debate-custom-topic-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--accent);
+  background: linear-gradient(135deg, var(--accent-bg), var(--bg));
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.lc-debate-custom-topic-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.lc-debate-custom-topic-card.selected {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.lc-debate-custom-topic-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lc-debate-custom-topic-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.lc-debate-custom-topic-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lc-debate-custom-topic-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.lc-debate-custom-topic-desc {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.lc-debate-start-arrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 내 서재 도서 선택 섹션 */
+.lc-debate-book-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.lc-debate-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lc-debate-book-count {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: normal;
+}
+
+.lc-debate-book-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 12px;
+  outline: none;
+}
+
+.lc-debate-book-search-input:focus {
+  border-color: var(--accent);
+}
+
+.lc-debate-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.lc-debate-book-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.lc-debate-book-item:hover {
+  border-color: var(--accent);
+  background: var(--code-bg);
+}
+
+.lc-debate-book-item.selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.lc-debate-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+}
+
+.lc-debate-book-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-debate-book-meta {
+  font-size: 11px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lc-debate-book-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.lc-debate-book-select-action {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lc-debate-empty-books {
+  text-align: center;
+  padding: 16px 8px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.lc-debate-return-btn {
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  margin-top: 4px;
+  transition: all 0.15s ease;
+}
+
+.lc-debate-return-btn:hover {
+  color: var(--text-h);
+  border-color: var(--accent);
 }
 
 .lc-debate-banner {
