@@ -440,10 +440,10 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
                 onClick={handleFinishReading}
                 disabled={
                   timerMode === 'stopwatch'
-                    ? seconds < 10
-                    : pomodoroMinutes * 60 - seconds < 10
+                    ? seconds === 0
+                    : seconds === pomodoroMinutes * 60
                 }
-                title="10초 이상 독서 후 완료할 수 있습니다"
+                title={seconds === 0 ? '독서를 시작한 후 완료할 수 있습니다' : '독서 완료 및 기록하기'}
               >
                 ✅ 독서 완료
               </button>
