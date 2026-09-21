@@ -46,7 +46,7 @@ function deriveStatus(currentPage, totalPage) {
 
 /**
  * 장르 메인 라벨 및 세부 분류/보조 라벨을 조합하여 반환.
- * 특히 TECHNOLOGY(기술과학)와 GENERAL(교양)의 경우 보조 라벨을 명시적으로 붙여줌.
+ * 서버에서 내려준 세부 주제(displayGenre 또는 subject)가 있을 때만 괄호로 명시.
  */
 function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
   const mainLabel = genreLabel(genreCode);
@@ -64,14 +64,6 @@ function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
   // 2. 세부 subject가 제공된 경우 (단, 메인 라벨과 중복되지 않을 때)
   if (subject && subject.trim() && subject.trim() !== mainLabel) {
     return `${mainLabel} (${subject.trim()})`;
-  }
-
-  // 3. TECHNOLOGY 또는 GENERAL 장르 선택/인식 시 보조 라벨 기본 매핑
-  if (genreCode === 'TECHNOLOGY') {
-    return `${mainLabel} (컴퓨터/IT)`;
-  }
-  if (genreCode === 'GENERAL') {
-    return `${mainLabel} (인문교양/상식)`;
   }
 
   return mainLabel;
@@ -700,16 +692,11 @@ export default function RegisterBook() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <select value={genre} onChange={(e) => setGenre(e.target.value)} style={compactFieldStyle}>
                           <option value={GENRE_NONE}>미지정</option>
-                          {GENRE_DEFS.map((g) => {
-                            let optLabel = g.label;
-                            if (g.code === 'TECHNOLOGY') optLabel = '기술과학 (컴퓨터/IT)';
-                            else if (g.code === 'GENERAL') optLabel = '교양 (인문교양/상식)';
-                            return (
-                              <option key={g.code} value={g.code}>
-                                {optLabel}
-                              </option>
-                            );
-                          })}
+                          {GENRE_DEFS.map((g) => (
+                            <option key={g.code} value={g.code}>
+                              {g.label}
+                            </option>
+                          ))}
                         </select>
                         {(subject || displayGenre) && (
                           <span style={{ fontSize: 14, color: 'var(--accent)', paddingLeft: 2 }}>
