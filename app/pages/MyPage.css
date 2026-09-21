@@ -6,52 +6,30 @@
   gap: 24px;
 }
 
-/* 왼쪽 메뉴바 + 오른쪽 콘텐츠 2단 레이아웃 */
+/*
+ * 내 정보 / 계정 관리 / 알림 설정 세 섹션을 세로로 나열해 한 페이지에서
+ * 스크롤만으로 전부 보이게 한다(예전엔 왼쪽 메뉴로 탭을 전환해 한 번에 한
+ * 섹션만 보였음, 사용자 요청 2026-09).
+ */
 .mypage-layout {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 20px;
   width: 100%;
   max-width: 640px;
-  align-items: flex-start;
 }
 
-.mypage-sidebar {
-  flex-shrink: 0;
-  width: 140px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--code-bg);
-}
-
-.mypage-sidebar-item {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mypage-sidebar-item:hover {
+/* 각 섹션(내 정보/계정 관리/알림 설정) 위에 붙는 제목 */
+.mypage-section-heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-h);
 }
 
-.mypage-sidebar-item--active {
-  background: var(--accent);
-  color: #fff;
-}
-
-.mypage-content {
-  flex: 1;
-  min-width: 0;
+/* 두 번째 섹션부터는 위 카드와의 간격을 살짝 더 준다 */
+.mypage-section-heading:not(:first-child) {
+  margin-top: 8px;
 }
 
 .mypage-card {
@@ -260,13 +238,6 @@
 .mypage-card--section {
   align-items: stretch;
   gap: 18px;
-}
-
-.mypage-section-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--text-h);
-  margin: 0;
 }
 
 .mypage-field {
