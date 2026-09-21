@@ -1,6 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
-## 2026-09-20: 마이페이지 3개 섹션을 한 페이지 세로 나열로 통합
+## 2026-09-21: AI 독서 토론 모드 진입 플로우 3단계 분리 및 주제/서재 도서 선택 UX 구현
+- 작업 브랜치: `feat/debate-steps-setup`
+- **사용자 요청**: 챗봇 토론 모드에서 토론자를 선택하면 바로 채팅창으로 넘어가는 흐름을 단계를 나누도록 개편해달라. 원하는 토론자 카드 선택 ➔ 토론 주제로 내 서재에 있는 책을 선택할 수 있도록 내 서재 책 리스트를 보여주고 ➔ 선택 후에 채팅을 시작하도록 하고, 내 서재 책 리스트 제일 위에 '나만의 주제로 토론하기' 버튼을 만들어달라.
+- **수정 내용**: `app/features/room/LibrarianChat.jsx`
+  - 토론 모드 단계 관리 상태 `debateStep`('debater' | 'topic') 및 선택 도서 상태 `selectedDebateBook`(null이면 나만의/자유 주제) 추가
+  - **[1단계]**: 4인 토론 파트너 카드 렌더링. 클릭 시 `setDebaterPersona(dp.id); setDebateStep('topic');`로 2단계 진입
+  - **[2단계]**:
+    - 상단 선택 토론자 요약 뱃지 + `[파트너 변경 ↺]` 버튼 (언제든 1단계로 복귀)
+    - 최상단 `✨ 나만의 주제로 토론하기` 카드 (`setSelectedDebateBook(null); setDebateCollapsed(true);`)
+    - 내 서재 도서 섹션 (`books` 리스트 및 3권 이상 시 실시간 검색 `debateBookQuery` 제공). 책 클릭 시 해당 도서 지정 후 `setDebateCollapsed(true)`
+    - 서재가 비어있는 경우 "등록된 도서가 없습니다. '나만의 주제로 토론하기'로 바로 시작해 보세요!" 친절한 안내 표기
+  - **[3단계]**:
+    - 상단 고정 배너: 선택 도서(`《도서명》 토론 중`) 또는 `나만의 주제로 토론 중` 동적 라벨 표기 및 `[설정 ▾]` 클릭 시 2단계 화면 아코디언 재펼치기 제공
+    - 질문 입력창 플레이스홀더: 선택된 도서/자유주제에 맞춤형 라벨 반영
+    - `streamChatMessage` 호출 시 `book_id` 및 `topic` 파라미터 전달 및 토론 마무리(`handleConcludeDebate`) 프롬프트 연동
+- **수정 내용**: `app/features/room/LibrarianChat.css`
+  - `.lc-debate-step-box`, `.lc-debate-partner-bar`, `.lc-debate-custom-topic-card`, `.lc-debate-book-item` 등 2단계 선택 화면 및 카드 호버/선택 스타일 추가
+- **검증**: `npm run typecheck` 0 errors, `npm run lint` 0 errors, `npm run build` 성공
+- **PR 생성**: `https://github.com/DPYB/frontend-reader-web/pull/48` (`feat/debate-steps-setup` ➔ `develop`)
+
 - 작업 브랜치: `feat/마이페이지-한페이지통합`
 - **사용자 요청**: 마이페이지가 왼쪽 메뉴(내 정보/계정 관리/알림 설정)로 탭을 전환해 한 번에 한 섹션만 보이던 구조라, 내용을 잘게 나누지 말고 한 페이지에서 전부 다 보이게(스크롤로) 정리해달라.
 - **수정 내용**: `app/pages/MyPage.jsx`
