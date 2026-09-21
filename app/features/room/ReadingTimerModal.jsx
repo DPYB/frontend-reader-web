@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useId } from 'react';
+import { useState, useEffect, useRef, useId, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
 import { getLibraryBook } from '../../api/bookApi';
@@ -45,9 +45,14 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
   const readPageInputId = useId();
   const memoInputId = useId();
 
-  // 대상 도서 선택
+  // 완독 도서 제외 필터링 (읽는 중, 시작전 도서만 타이머 도서 선택지에 노출)
+  const activeBooks = useMemo(() => {
+    return books.filter((b) => b.status !== '완독');
+  }, [books]);
+
+  // 대상 도서 선택 (initialBook이 있으면 우선 유지, 없으면 활성 도서의 첫 번째 책 선택)
   const [selectedBookId, setSelectedBookId] = useState(
-    () => initialBook?.bookId || books[0]?.bookId || ''
+    () => initialBook?.bookId || activeBooks[0]?.bookId || ''
   );
 
   // 대상 도서 상세 정보
@@ -290,10 +295,10 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
                   onChange={(e) => setSelectedBookId(e.target.value)}
                   disabled={isRunning}
                 >
-                  {books.length === 0 ? (
-                    <option value="">서재에 등록된 도서가 없습니다</option>
+                  {activeBooks.length === 0 ? (
+                    <option value="">읽을 수 있는 도서가 없습니다 (모두 완독 또는 도서 없음)</option>
                   ) : (
-                    books.map((b) => (
+                    activeBooks.map((b) => (
                       <option key={b.bookId} value={b.bookId}>
                         {b.title} ({b.status})
                       </option>

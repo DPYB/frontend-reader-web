@@ -1,5 +1,14 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-21: 독서 집중 타이머 도서 선택 목록에서 '완독' 도서 제외 처리
+- 작업 브랜치: `fix/timer-exclude-completed-books`
+- **사용자 요청**: 독서 집중 타이머 도서 선택 드롭다운에서 이미 다 읽은 '완독' 도서가 선택지에 포함되고 있어, '읽는 중' 및 '시작전' 도서만 노출되도록 필터링하고 모달 오픈 시 활성 도서의 첫 번째 책이 기본 선택되도록 설정해달라.
+- **수정 내용**: `app/features/room/ReadingTimerModal.jsx`
+  - `useMemo`를 통해 `books.filter(b => b.status !== '완독')` 필터링된 `activeBooks` 목록 생성
+  - `selectedBookId` 초기 선택값에 `initialBook?.bookId || activeBooks[0]?.bookId || ''` 적용하여 도서 상세 진입 시 `initialBook`을 유지하되, 일반 타이머 오픈 시 첫 번째 활성 도서가 자동 선택되도록 처리
+  - 드롭다운 렌더링 시 `activeBooks`를 사용하고, 활성 도서가 0권일 때 `<option value="">읽을 수 있는 도서가 없습니다 (모두 완독 또는 도서 없음)</option>` 안내 옵션 표시
+- **검증**: `npm run typecheck` 0 errors, `npm run lint` 0 errors, `npm run build` 성공 (Vite 번들링 정상 완료)
+
 ## 2026-09-21: AI 독서 토론 모드 진입 플로우 3단계 분리 및 주제/서재 도서 선택 UX 구현
 - 작업 브랜치: `feat/debate-steps-setup`
 - **사용자 요청**: 챗봇 토론 모드에서 토론자를 선택하면 바로 채팅창으로 넘어가는 흐름을 단계를 나누도록 개편해달라. 원하는 토론자 카드 선택 ➔ 토론 주제로 내 서재에 있는 책을 선택할 수 있도록 내 서재 책 리스트를 보여주고 ➔ 선택 후에 채팅을 시작하도록 하고, 내 서재 책 리스트 제일 위에 '나만의 주제로 토론하기' 버튼을 만들어달라.
