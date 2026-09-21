@@ -804,11 +804,28 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   /**
    * [✨ 새 대화] 세션 및 화면 초기화
-   * - 진행 중인 스트리밍 즉시 취소
+   * - 사서(추천) 모드: 턴 수 무관 즉시 새 대화 리셋
+   * - 토론 모드: 미마무리(!isConcluded) 및 유저 발화 2회 이상 시 confirm 확인 후 리셋
+   * - 진행 중인 스트리밍 즉시 취소 (유령 답변 방지)
    * - crypto.randomUUID()로 새 sessionId 발급 및 sessionStorage 동기화
    * - 메시지 배열 및 도서 카드/턴 상태 초기화
    */
   const handleNewChat = () => {
+    // 토론 모드 미마무리 확인창 (유저 발화 2턴 이상 조건)
+    if (chatMode === 'debate') {
+      const debateUserCount = (modeMessages.debate || []).filter((m) => m.role === 'user').length;
+      const isConcluded = Boolean(modeAnswers.debate?.isConcluded || modeAnswers.debate?.is_concluded);
+
+      if (!isConcluded && debateUserCount >= 2) {
+        const confirmed = window.confirm(
+          '진행 중인 토론을 마무리하지 않고 새 대화를 시작하시겠습니까?\n(현재 토론 내용은 저장되지 않습니다)'
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+    }
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
