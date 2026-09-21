@@ -1,5 +1,22 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-21: 대화창 '✨ 새 대화' 버튼 및 세션/스트리밍 초기화 구현
+- 작업 브랜치: `feat/chat-new-session-button`
+- **사용자 요청**: 대화창 상단에 `[✨ 새 대화]` 버튼을 배치하고, 클릭 시 새로운 `sessionId` 발급 및 `sessionStorage` 저장, 메시지 배열 및 턴/도서/토론 상태 초기화, 진행 중인 스트리밍 요청 취소(`abortController.abort()`)를 단일 책임으로 구현해달라.
+- **수정 내용**:
+  1. `app/api/chatApi.js`:
+     - `streamChatMessage`에 `signal` 파라미터 전달 및 취소 시 stream reader cancel 및 AbortError 안전 처리 추가.
+  2. `app/store/librarianStore.js`:
+     - `clearChatSessionByLibrarian` 헬퍼 함수 추가.
+  3. `app/features/room/LibrarianChat.jsx`:
+     - `generateSessionId` (crypto.randomUUID 기반 고유 세션 ID 생성) 헬퍼 추가.
+     - `abortControllerRef`를 도입하여 질문 전송 시 이전 스트리밍 및 `handleNewChat` 시 진행 중인 SSE 스트리밍을 즉시 중단(유령 답변 방지).
+     - `handleNewChat` 핸들러 구현: 새 `sessionId` 발급, `sessionStorage` 동기화, `modeAnswers`/`modeMessages`/`turnCount`/`lastUserMessage`/`input` 초기화 및 부모 `onAnswer(null)` 동기화.
+     - 상단 헤더에 `[✨ 새 대화]` 버튼 렌더링.
+  4. `app/features/room/LibrarianChat.css`:
+     - `.lc-new-chat-btn` 전용 호버/액티브 스타일 추가.
+- **검증**: `npm run typecheck` 통과 (0 errors), `npm run lint` 통과 (0 errors), `npm run build` 성공
+
 ## 2026-09-21: 독서 집중 타이머 도서 선택 목록 완독 제외 강화 및 기본 선택 해제
 - 작업 브랜치: `fix/timer-exclude-completed-books`
 - **사용자 요청**: 완독한 도서가 여전히 선택 가능하고, 도서 집중 타이머를 처음 열면 이미 책이 한 권 선택되어 있던데 미리 선택 안 되어 있게 해달라.

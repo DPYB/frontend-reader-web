@@ -204,6 +204,7 @@ export async function streamChatMessage({
   bookId = null,
   topic = null,
   action = 'chat',
+  signal = null,
   onToken,
   onBooks,
   onMetadata,
@@ -246,6 +247,7 @@ export async function streamChatMessage({
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(payload),
+      signal,
     });
 
     if (!response.ok) {
@@ -272,6 +274,14 @@ export async function streamChatMessage({
     let finalDebateSummary = null;
 
     while (true) {
+      if (signal?.aborted) {
+        try {
+          await reader.cancel();
+        } catch {
+          // 취소 무시
+        }
+        break;
+      }
       const { done, value } = await reader.read();
       if (done) break;
 
@@ -371,6 +381,10 @@ export async function streamChatMessage({
       debate_summary: finalDebateSummary,
     };
   } catch (err) {
+    if (err?.name === 'AbortError' || signal?.aborted) {
+      console.log('[chatApi] 스트리밍 요청이 중단되었습니다.');
+      return null;
+    }
     console.warn('[chatApi] 스트리밍 실패, fallback 처리:', err.message);
     return null;
   }
