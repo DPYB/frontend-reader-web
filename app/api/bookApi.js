@@ -43,6 +43,8 @@ export function toReadingStatus(krStatus) {
  * @returns {string} '시작전' | '읽는 중' | '완독'
  */
 export function toKoreanStatus(readingStatus, progress = 0) {
+  if (readingStatus === 'COMPLETED') return '완독';
+  if (progress != null && Number(progress) >= 100) return '완독';
   const baseStatus = READING_TO_STATUS[readingStatus] || (readingStatus ? String(readingStatus) : '시작전');
   if (baseStatus === '시작전' && progress != null && Number(progress) > 0) {
     return '읽는 중';
