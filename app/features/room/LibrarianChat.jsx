@@ -21,6 +21,20 @@ import './LibrarianChat.css';
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
 const MAX_MESSAGE_LENGTH = 2000;
 
+/**
+ * 고유 대화 세션 UUID 생성 (crypto.randomUUID 폴백 지원)
+ */
+function generateSessionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // 도서명 공백 및 특수기호 무시 정규화 (책 매칭용)
 function normalizeTitle(str) {
   return (str || '')
@@ -207,6 +221,17 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     const saved = loadSavedChatSessionByLibrarian(librarian?.id);
     return saved?.lastUserMessage ? 1 : 0;
   });
+
+  // 진행 중인 스트리밍 요청 취소 컨트롤러 (유령 답변 방지)
+  const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // 사서(librarian.id) 전환 시 화면 말풍선 도화지 및 세션 분리/복원
   const activeLibIdRef = useRef(librarian?.id);
@@ -507,6 +532,13 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   };
 
   const sendQuery = async (message, targetLibrarianId = librarian.id, action = 'chat') => {
+    // 이전 진행 중이던 스트리밍 요청이 있다면 abort
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setLastUserMessage(message);
     setTurnCount((c) => c + 1);
@@ -541,6 +573,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     // 날씨 연동을 위한 사용자 위치 (권한 거부/실패 시 null → 백엔드가 서울 기본값 사용)
     const location = await getUserLocation();
 
+    if (controller.signal.aborted) return;
+
     // 실시간 SSE 스트리밍 연동: 첫 토큰 도착 전까지는 LoadingSequence(발바닥 로딩)를 유지하고,
     // 첫 토큰 도착 즉시 loading을 해제하고 말풍선 타이핑 스트리밍으로 자연스럽게 전환 (CLIAR-285)
     const activeSessionId = isDebate ? debateSessionId : chatSessionId;
@@ -564,7 +598,9 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       bookId: isDebate && selectedDebateBook ? (selectedDebateBook.bookId ?? selectedDebateBook.id) : null,
       topic: isDebate ? (selectedDebateBook ? selectedDebateBook.title : '자유 주제') : null,
       action,
+      signal: controller.signal,
       onMetadata: (meta) => {
+        if (controller.signal.aborted) return;
         if (meta?.session_id) {
           if (isDebate) {
             setDebateSessionId(meta.session_id);
@@ -580,6 +616,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         }
       },
       onToken: (delta, accumulated) => {
+        if (controller.signal.aborted) return;
         if (!hasReceivedFirstToken) {
           hasReceivedFirstToken = true;
           // 첫 토큰 도착 즉시 발바닥 로딩 해제 -> 말풍선 전환
@@ -617,6 +654,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         }));
       },
       onBooks: (curatedBooks) => {
+        if (controller.signal.aborted) return;
         setModeAnswers((prev) => ({
           ...prev,
           [activeMode]: {
@@ -635,6 +673,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         });
       },
       onSwitchSuggestion: (suggestion) => {
+        if (controller.signal.aborted) return;
         setModeAnswers((prev) => ({
           ...prev,
           [activeMode]: {
@@ -652,6 +691,13 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         });
       },
     });
+
+    if (controller.signal.aborted) {
+      return;
+    }
+    if (abortControllerRef.current === controller) {
+      abortControllerRef.current = null;
+    }
 
     if (streamResult) {
       if (streamResult.sessionId) {
@@ -756,6 +802,61 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     await sendQuery(concludePrompt, librarian.id, 'conclude');
   };
 
+  /**
+   * [✨ 새 대화] 세션 및 화면 초기화
+   * - 진행 중인 스트리밍 즉시 취소
+   * - crypto.randomUUID()로 새 sessionId 발급 및 sessionStorage 동기화
+   * - 메시지 배열 및 도서 카드/턴 상태 초기화
+   */
+  const handleNewChat = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+
+    const newSessionId = generateSessionId();
+
+    if (chatMode === 'debate') {
+      setDebateSessionId(newSessionId);
+      setDebateStep('debater');
+      setSelectedDebateBook(null);
+      setDebateBookQuery('');
+      setDebateCollapsed(false);
+    } else {
+      setChatSessionId(newSessionId);
+    }
+
+    setModeAnswers({
+      chat: null,
+      debate: null,
+      library: null,
+    });
+    setModeMessages({
+      chat: [],
+      debate: [],
+      library: [],
+    });
+    setLastUserMessage('');
+    setTurnCount(0);
+    setInput('');
+
+    const targetId = activeLibIdRef.current || librarian?.id;
+    if (targetId) {
+      saveChatSessionByLibrarian(targetId, {
+        answer: null,
+        messages: [],
+        sessionId: newSessionId,
+        lastUserMessage: '',
+        open: true,
+      });
+    }
+
+    if (onAnswer) {
+      onAnswer(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
@@ -822,12 +923,21 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         flexDirection: 'column',
       }}
     >
-      {/* 1. 최상단 헤더: 사서 이름 + 모드별 도움말 (?) + 닫기 (✕) */}
+      {/* 1. 최상단 헤더: 사서 이름 + [✨ 새 대화] + 모드별 도움말 (?) + 닫기 (✕) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
           {librarian.icon} {librarian.displayName || librarian.name}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* ✨ 새 대화 버튼 */}
+          <button
+            type="button"
+            className="lc-new-chat-btn"
+            onClick={handleNewChat}
+            title="현재 대화를 비우고 새로운 세션으로 대화를 시작합니다"
+          >
+            ✨ 새 대화
+          </button>
           {/* 모드별 맞춤 도움말 (?) 툴팁 - 상단 고정 */}
           <div onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} style={{ position: 'relative' }}>
             <span

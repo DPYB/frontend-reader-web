@@ -54,6 +54,16 @@ export function clearChatSession() {
   }
 }
 
+export function clearChatSessionByLibrarian(librarianId) {
+  try {
+    if (librarianId) {
+      sessionStorage.removeItem(`${CHAT_SESSION_STORAGE_KEY}.${librarianId}`);
+    }
+  } catch {
+    // 무시
+  }
+}
+
 export const LibrarianContext = createContext(null);
 
 export function useLibrarian() {
