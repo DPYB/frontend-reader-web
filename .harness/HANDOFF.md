@@ -2,16 +2,20 @@
 
 ## 2026-09-21: 대화창 '✨ 새 대화' 버튼 및 세션/스트리밍 초기화 구현
 - 작업 브랜치: `feat/chat-new-session-button`
-- **사용자 요청**: 대화창 상단에 `[✨ 새 대화]` 버튼을 배치하고, 클릭 시 새로운 `sessionId` 발급 및 `sessionStorage` 저장, 메시지 배열 및 턴/도서/토론 상태 초기화, 진행 중인 스트리밍 요청 취소(`abortController.abort()`)를 단일 책임으로 구현해달라.
+- **사용자 요청**: 대화창 상단에 `[✨ 새 대화]` 버튼을 배치하고, 클릭 시 새로운 `sessionId` 발급 및 `sessionStorage` 저장, 메시지 배열 및 턴/도서/토론 상태 초기화, 진행 중인 스트리밍 요청 취소(`abortController.abort()`) 및 토론 모드 2턴 이상 미마무리 시 확인창 로직을 구현해달라.
 - **수정 내용**:
   1. `app/api/chatApi.js`:
      - `streamChatMessage`에 `signal` 파라미터 전달 및 취소 시 stream reader cancel 및 AbortError 안전 처리 추가.
+     - `session_id`로 발급된 UUID 전달.
   2. `app/store/librarianStore.js`:
      - `clearChatSessionByLibrarian` 헬퍼 함수 추가.
   3. `app/features/room/LibrarianChat.jsx`:
      - `generateSessionId` (crypto.randomUUID 기반 고유 세션 ID 생성) 헬퍼 추가.
      - `abortControllerRef`를 도입하여 질문 전송 시 이전 스트리밍 및 `handleNewChat` 시 진행 중인 SSE 스트리밍을 즉시 중단(유령 답변 방지).
-     - `handleNewChat` 핸들러 구현: 새 `sessionId` 발급, `sessionStorage` 동기화, `modeAnswers`/`modeMessages`/`turnCount`/`lastUserMessage`/`input` 초기화 및 부모 `onAnswer(null)` 동기화.
+     - `handleNewChat` 핸들러 구현:
+       - 토론 모드(`chatMode === 'debate'`)에서 아직 토론이 마무리되지 않고(`!isConcluded`), 사용자 발화가 2턴 이상(`debateUserCount >= 2`)인 경우 `window.confirm` 팝업을 띄워 확인 시에만 리셋(취소 시 현재 대화 화면 유지).
+       - 일반/사서 모드이거나 토론 완료(`isConcluded`) 또는 0~1턴인 경우 즉시 초기화.
+       - 새 `sessionId` 발급, `sessionStorage` 동기화, `modeAnswers`/`modeMessages`/`turnCount`/`lastUserMessage`/`input` 초기화 및 부모 `onAnswer(null)` 동기화.
      - 상단 헤더에 `[✨ 새 대화]` 버튼 렌더링.
   4. `app/features/room/LibrarianChat.css`:
      - `.lc-new-chat-btn` 전용 호버/액티브 스타일 추가.
