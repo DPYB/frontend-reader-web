@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-22: 산출물 정리 — DPYB 전사 저장소 README 및 실구현 아키텍처 다이어그램 최신화
+- **사용자 요청**: 산출물 정리 과정에서 과거 계획만 세우고 실행되지 않은 가상 요소(구버전 백엔드 6개 레포 구상, 미구현 스택 등)가 잔존하여 아키텍처 및 문서 불일치가 발생하지 않도록, 프론트엔드 및 모든 관련 레포의 README를 실제 100% 동작하는 사실(SSOT)에 맞게 최신화하고 일관된 아키텍처 다이어그램을 도출해달라.
+- **수정 및 최신화 내용**:
+  1. `frontend-reader-web/README.md`:
+     - 4종 동물 사서(블루/슈빌/누디/게코) 및 3D 선반/카메라 캘리브레이션, 50권 상한 방어 로직 반영
+     - 누락되었던 3단계 AI 독서 토론(4인 파트너/도서 선택/피날레 연계), 독서 집중 타이머(스톱워치/뽀모도로, 60초 미만 정밀 기록), 월간 독서 리포트(Recharts 곡선·도넛 차트/PDF 내보내기), 인터랙티브 문장 크롭 모달, 게스트/소셜 로그인 기능표 보강
+     - 가상의 구 6개 백엔드 레포 표기 완전 제거 ➔ 실존 2대 백엔드(`backend-core-api`, `backend-ai-agent`) 듀얼 호출 구조 및 `apiBase.js` 라우팅 명시
+     - 전체 시스템 Mermaid 아키텍처 다이어그램 초안 도출 및 정합성 검증 (`typecheck`, `lint`, `build` 100% 통과)
+  2. `backend-core-api/README.md`:
+     - 서비스 SSOT 명확화 (인증/소셜/게스트, 서재/도서/책장 LexoRank O(1) 순서 정렬, 독서 세션, 월간 정량 통계 집계)
+     - `core`, `member`, `record` 3개 스키마 격리 및 실존 13개 라우터 구조 반영
+     - 국립중앙도서관 정식 서지정보 연동 및 교보문고 458px 고화질 표지 자동 매핑 명시
+     - 111개 단위/통합 테스트 100% 통과 및 Render 무과금 배포 스펙 반영
+  3. `backend-ai-agent/README.md`:
+     - LangGraph 8개 페르소나(동물 사서 4 + 토론 파트너 4) 및 어조 오염 방지 `summarizer_node` 반영
+     - 도서 큐레이터 환각 방지 3단계(공감 ➔ 사유 ➔ 실서지 바인딩) 파이프라인 명시
+     - 유료 Clova 의존성 제거 ➔ Gemini Flash Vision 무과금 OCR (바코드/KDC 5자리/문장 스크랩) 반영
+     - Supabase pgvector 개인화 RAG(`scrap_vector`, `debate_insights`) 및 Redis 슬라이딩 윈도우/서킷 브레이커 구조 반영
+     - 212개 단위 테스트 100% 통과 스펙 정비
+- **문서 동기화**:
+  - `frontend-reader-web/.harness/STATE.md` 및 `PLAN.md`에 산출물 정리 마일스톤 반영 완료.
+
 ## 2026-09-21: 대화창 최초 오픈 시 토론 모드 기준 높이 고정 및 모드 전환 안정화
 - 작업 브랜치: `feat/chat-initial-height-fixed`
 - **사용자 요청**: 채팅창을 처음 열면 모드(대화/서재/토론)에 따라 길이가 짧아졌다 길어졌다 하는데, 처음 열 때는 토론 모드를 기준으로 길이를 고정하고, 나중에 대화를 시작하면 기존에 설정해둔 대로 상단 메뉴바와 3cm 거리를 유지하도록 해달라.
@@ -10,6 +32,7 @@
   2. `app/features/room/LibrarianChat.css`:
      - `.lc-library-view` 및 `.lc-library-list`의 `max-height`를 flex 레이아웃에 맞게 확장하여 서재 도서 목록이 460px 뷰포트 내에서 쾌적하게 렌더링되도록 개선.
 - **검증**: `npm run typecheck` 통과 (0 errors), `npm run lint` 통과 (0 errors), `npm run build` 성공
+
 
 ## 2026-09-21: 대화창 '✨ 새 대화' 버튼 및 세션/스트리밍 초기화 구현
 - 작업 브랜치: `feat/chat-new-session-button`
