@@ -1,5 +1,29 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-22: 월간 독서 리포트 날씨별 베스트 도서 실데이터(weatherPreferences) 매핑 정상화
+- 작업 브랜치: `fix/monthly-report-weather-mapping`
+- **사용자 요청**: 백엔드 실제 응답 필드(`preferences.weatherPreferences` / `taste.weatherPreferences`)와 프론트엔드 코드(`rhythm.weatherBooks` 기대) 사이의 불일치로 인해 실데이터가 있음에도 고정 목업 도서로 빠지는 문제를 해결해달라.
+- **원인 분석**:
+  1. 백엔드(`backend-core-api` 및 `backend-ai-agent`)는 월간 독서 리포트에서 날씨별 선호 도서를 `preferences.weatherPreferences: [{ weather, sessionCount, preferredBookTitle, topGenreName }]` 형태로 반환함.
+  2. 프론트엔드의 `app/pages/MonthlyReport.jsx`는 존재하지 않는 필드인 `data.rhythm?.weatherBooks`만 확인하여, 데이터가 있어도 무조건 `else if`의 추천 도서 및 고정 목업 도서(엘레나 로페즈 등)로 Fallback되고 있었음.
+- **수정 내용**:
+  1. `app/api/reportApi.js`:
+     - `normalizeMonthlyReport`에서 백엔드 `raw.preferences?.weatherPreferences` 및 `raw.taste?.weatherPreferences`를 안전하게 추출하여 `taste.weatherPreferences`로 보존.
+     - `rhythm.weatherBooks`가 원본 응답에 없을 때 빈 배열로 안정화.
+  2. `app/pages/MonthlyReport.jsx`:
+     - 날씨별 도서 매핑 우선순위 개편:
+       1) 백엔드 응답의 `rhythm.weatherBooks`
+       2) 백엔드 실데이터 `taste.weatherPreferences` 또는 `preferences.weatherPreferences`
+       3) `prescription.books` 연계
+       4) 기본 fallback 도서
+     - `weatherPreferences` 실데이터 기반 맑음(`clear`), 비/눈(`rainy`), 흐림(`cloudy`) 3개 조건과 1:1 결합 로직 구현:
+       - 독서 횟수는 백엔드 `data.rhythm.weather` 분포 및 세션 카운트와 연동.
+       - 책 표지 및 저자 정보는 처방 도서(`prescription.books`) 및 독서 흔적(`footprint`의 completed/reading/mostScrapped 도서) 메타데이터와 자동 매칭 및 보강.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint -- --fix` 통과 (0 errors, 신규 이슈 없음)
+  - `npm run build` 프로덕션 빌드 성공 (420ms)
+
 ## 2026-09-22: 산출물 정리 — DPYB 전사 저장소 README 및 실구현 아키텍처 다이어그램 최신화
 - **사용자 요청**: 산출물 정리 과정에서 과거 계획만 세우고 실행되지 않은 가상 요소(구버전 백엔드 6개 레포 구상, 미구현 스택 등)가 잔존하여 아키텍처 및 문서 불일치가 발생하지 않도록, 프론트엔드 및 모든 관련 레포의 README를 실제 100% 동작하는 사실(SSOT)에 맞게 최신화하고 일관된 아키텍처 다이어그램을 도출해달라.
 - **수정 및 최신화 내용**:

@@ -204,10 +204,70 @@ export default function MonthlyReport() {
             normalizedGenres = DEFAULT_FALLBACK_DATA.taste.genreStats;
           }
 
-          // 날씨별 베스트 도서 매핑 (응답에 없으면 추천도서 및 fallback 조인)
+          // 날씨별 베스트 도서 매핑
+          // 1순위: 백엔드/어댑터가 제공한 rhythm.weatherBooks
+          // 2순위: 백엔드 실데이터 preferences.weatherPreferences (또는 taste.weatherPreferences)
+          // 3순위: prescription.books 연계
+          // 4순위: 기본 DEFAULT_FALLBACK_DATA
           let finalWeatherBooks = DEFAULT_FALLBACK_DATA.rhythm.weatherBooks;
+
+          const weatherPrefs = Array.isArray(data.taste?.weatherPreferences) && data.taste.weatherPreferences.length > 0
+            ? data.taste.weatherPreferences
+            : Array.isArray(data.preferences?.weatherPreferences) && data.preferences.weatherPreferences.length > 0
+              ? data.preferences.weatherPreferences
+              : [];
+
           if (Array.isArray(data.rhythm?.weatherBooks) && data.rhythm.weatherBooks.length > 0) {
             finalWeatherBooks = data.rhythm.weatherBooks;
+          } else if (weatherPrefs.length > 0) {
+            // 백엔드 weatherPreferences: [{ weather: 'clear'|'rainy'|'cloudy', sessionCount, preferredBookTitle, topGenreName }]
+            const weatherCountMap = {
+              clear: data.rhythm?.weather?.find((w) => w.condition?.includes('clear') || w.condition?.includes('맑음'))?.count ?? 12,
+              rainy: data.rhythm?.weather?.find((w) => w.condition?.includes('rainy') || w.condition?.includes('비'))?.count ?? 9,
+              cloudy: data.rhythm?.weather?.find((w) => w.condition?.includes('cloudy') || w.condition?.includes('흐림'))?.count ?? 6,
+            };
+
+            const bookByWeather = {};
+            weatherPrefs.forEach((wp) => {
+              const cond = (wp.weather || '').toLowerCase();
+              if (cond.includes('clear') || cond.includes('맑')) bookByWeather.clear = wp;
+              else if (cond.includes('rain') || cond.includes('snow') || cond.includes('비') || cond.includes('눈')) bookByWeather.rainy = wp;
+              else if (cond.includes('cloud') || cond.includes('흐')) bookByWeather.cloudy = wp;
+            });
+
+            // 처방 도서 또는 흔적 도서에서 커버/저자 정보 보강
+            const candidateBooks = [
+              ...(Array.isArray(data.prescription?.books) ? data.prescription.books : []),
+              ...(Array.isArray(data.footprint?.completedBooks) ? data.footprint.completedBooks : []),
+              ...(Array.isArray(data.footprint?.readingBooks) ? data.footprint.readingBooks : []),
+              ...(Array.isArray(data.footprint?.mostScrappedBooks) ? data.footprint.mostScrappedBooks : []),
+            ];
+
+            const findBookMeta = (title) => {
+              if (!title) return null;
+              return candidateBooks.find((b) => b.title === title || title.includes(b.title) || b.title?.includes(title));
+            };
+
+            finalWeatherBooks = DEFAULT_FALLBACK_DATA.rhythm.weatherBooks.map((fb) => {
+              const matchedPref = bookByWeather[fb.condition];
+              if (!matchedPref || !matchedPref.preferredBookTitle) {
+                return {
+                  ...fb,
+                  count: weatherCountMap[fb.condition] ?? fb.count,
+                };
+              }
+              const meta = findBookMeta(matchedPref.preferredBookTitle);
+              return {
+                condition: fb.condition,
+                label: fb.label,
+                emoji: fb.emoji,
+                count: matchedPref.sessionCount ?? weatherCountMap[fb.condition] ?? fb.count,
+                bookTitle: matchedPref.preferredBookTitle,
+                author: meta?.author || matchedPref.topGenreName || fb.author,
+                coverUrl: meta?.coverUrl || fb.coverUrl,
+                quote: fb.quote,
+              };
+            });
           } else if (Array.isArray(data.prescription?.books) && data.prescription.books.length > 0) {
             const b1 = data.prescription.books[0];
             const b2 = data.prescription.books[1] || data.prescription.books[0];

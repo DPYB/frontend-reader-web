@@ -63,9 +63,16 @@ export function normalizeMonthlyReport(raw) {
     ];
 
   // 06. 날씨별 독서 & 베스트 도서 매핑 (아이콘 + 표지 1:1 매칭용)
-  const weatherBooks = Array.isArray(raw.rhythm?.weatherBooks)
+  // 백엔드 weatherPreferences, rhythm.weatherBooks, 또는 최상위 weatherBooks 순서로 탐색
+  const rawWeatherPrefs = Array.isArray(raw.preferences?.weatherPreferences)
+    ? raw.preferences.weatherPreferences
+    : Array.isArray(raw.taste?.weatherPreferences)
+      ? raw.taste.weatherPreferences
+      : [];
+
+  const weatherBooks = Array.isArray(raw.rhythm?.weatherBooks) && raw.rhythm.weatherBooks.length > 0
     ? raw.rhythm.weatherBooks
-    : Array.isArray(raw.weatherBooks)
+    : Array.isArray(raw.weatherBooks) && raw.weatherBooks.length > 0
       ? raw.weatherBooks
       : [];
 
@@ -117,7 +124,7 @@ export function normalizeMonthlyReport(raw) {
     tags: tasteTags,
     keywords: tasteKeywords,
     genreStats,
-    weatherPreferences: raw.preferences?.weatherPreferences || [],
+    weatherPreferences: rawWeatherPrefs,
   };
 
   // 04. 독서 밸런스
