@@ -966,3 +966,14 @@
   - `npm run lint` 통과 (기존 경고 6건 외 신규 0건).
   - `npm run build` 번들 정상 빌드(460ms) 확인.
 
+## 2026-09-21: 도서 등록 화면 장르 라벨 하드코딩 제거 및 KDC 표준 표기 정돈
+- 작업 브랜치: `feat/clean-technology-genre-label`
+- **수정 내용**:
+  - `app/pages/RegisterBook.jsx`:
+    - `getGenreSubLabel`: 세부 `subject`나 `displayGenre`가 없을 때 무조건 `(컴퓨터/IT)`를 붙이던 하드코딩을 제거. 서버가 내려준 세부 주제가 있을 때만 괄호로 명시하고, 없을 경우 KDC 10대 표준 대분류명(`기술과학`)으로 정돈하여 의학/요리/실용서의 오해 소지 원천 제거.
+    - 장르 선택 `<select>` 드롭다운 옵션에서도 `기술과학 (컴퓨터/IT)` 등 고정 수식어 제거하고 `g.label` 표준 라벨로 렌더링.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` Vite 번들 빌드 통과 (347ms)
+
+
