@@ -931,9 +931,9 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
         color: 'var(--text-h)',
         height: 'auto',
-        // 채팅창 세로 길이 확장 (사용자 요청, 2026-09): 상단 한계를 GNB(로그아웃 버튼) 높이
-        // (~60px) + 여유 약 3cm(~113px)만큼만 남기고 그 아래로는 최대한 길게 늘어나도록 함.
-        // 기존 180px 여백보다 낮춰 채팅창이 더 커진다. 여전히 GNB를 침범하지는 않는다.
+        // 처음 열 때는 토론 모드를 기준으로 높이를 고정(minHeight)하여 모드 전환 시 창 크기 널뛰기 방지
+        minHeight: 'min(460px, calc(100vh - 173px))',
+        // 채팅창 세로 길이 확장: 대화 시작 시 상단 한계를 GNB(로그아웃 버튼) 높이(~60px) + 여유 약 3cm(~113px) 유지
         maxHeight: 'min(700px, calc(100vh - 173px))',
         overflow: 'hidden',
         display: 'flex',

@@ -1,5 +1,16 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-21: 대화창 최초 오픈 시 토론 모드 기준 높이 고정 및 모드 전환 안정화
+- 작업 브랜치: `feat/chat-initial-height-fixed`
+- **사용자 요청**: 채팅창을 처음 열면 모드(대화/서재/토론)에 따라 길이가 짧아졌다 길어졌다 하는데, 처음 열 때는 토론 모드를 기준으로 길이를 고정하고, 나중에 대화를 시작하면 기존에 설정해둔 대로 상단 메뉴바와 3cm 거리를 유지하도록 해달라.
+- **수정 내용**:
+  1. `app/features/room/LibrarianChat.jsx`:
+     - 패널 컨테이너 스타일에 `minHeight: 'min(460px, calc(100vh - 173px))'`를 추가하여 최초 오픈 시 및 탭 전환 시 460px 고정 높이 유지(모드 전환 시 창 크기 널뛰기 방지).
+     - 대화가 진행되어 메시지가 늘어날 경우 `maxHeight: 'min(700px, calc(100vh - 173px))'`까지 자연스럽게 확장되며 상단 GNB와 3cm 여유 거리 유지 및 내부 스크롤 보장.
+  2. `app/features/room/LibrarianChat.css`:
+     - `.lc-library-view` 및 `.lc-library-list`의 `max-height`를 flex 레이아웃에 맞게 확장하여 서재 도서 목록이 460px 뷰포트 내에서 쾌적하게 렌더링되도록 개선.
+- **검증**: `npm run typecheck` 통과 (0 errors), `npm run lint` 통과 (0 errors), `npm run build` 성공
+
 ## 2026-09-21: 대화창 '✨ 새 대화' 버튼 및 세션/스트리밍 초기화 구현
 - 작업 브랜치: `feat/chat-new-session-button`
 - **사용자 요청**: 대화창 상단에 `[✨ 새 대화]` 버튼을 배치하고, 클릭 시 새로운 `sessionId` 발급 및 `sessionStorage` 저장, 메시지 배열 및 턴/도서/토론 상태 초기화, 진행 중인 스트리밍 요청 취소(`abortController.abort()`) 및 토론 모드 2턴 이상 미마무리 시 확인창 로직을 구현해달라.
