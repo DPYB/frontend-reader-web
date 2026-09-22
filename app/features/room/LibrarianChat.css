@@ -44,7 +44,7 @@
   flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
-  max-height: 220px;
+  flex: 1;
 }
 
 .lc-library-search-input {
@@ -90,7 +90,8 @@
   flex-direction: column;
   gap: 6px;
   overflow-y: auto;
-  max-height: 150px;
+  flex: 1;
+  max-height: 280px;
   padding-right: 2px;
 }
 
