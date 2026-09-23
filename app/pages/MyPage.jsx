@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { changePassword, deleteMe, logout, updateMe, ApiError } from '../api/authApi';
 import { useAuth } from '../store/authStore';
-import ImageCropModal from '../components/ImageCropModal';
 import './MyPage.css';
 
 // 회원이 프로필 사진을 올리지 않았을 때 쓰는 기본 아바타 (깔끔한 기본 실루엣)
@@ -37,10 +36,6 @@ export default function MyPage() {
   const nickname = member?.nickname ?? '';
   const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '선택 안 함');
 
-  // ── 프로필 사진 변경 ──
-  const profileFileInputRef = useRef(null);
-  const [cropImageFile, setCropImageFile] = useState(null);
-  const [avatarLoading, setAvatarLoading] = useState(false);
 
   // ── 내 정보 수정 ──
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -112,48 +107,6 @@ export default function MyPage() {
       }
     } finally {
       setPwLoading(false);
-    }
-  };
-
-  // 프로필 사진 파일 선택 시 크롭 모달 열기
-  const handleProfileFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCropImageFile(file);
-    }
-    // 재선택 가능하게 input 초기화
-    e.target.value = '';
-  };
-
-  // 1:1 크롭 완료 시 백엔드 PATCH /users/me 호출
-  const handleProfileCropComplete = async (croppedBlob, croppedDataUrl) => {
-    setCropImageFile(null);
-    if (isGuest) {
-      // 게스트 모드일 때는 세션 내 즉각 반영
-      setMember((prev) => ({ ...prev, profile_image_url: croppedDataUrl }));
-      setInfoSuccess(true);
-      return;
-    }
-
-    setAvatarLoading(true);
-    setInfoError('');
-    try {
-      // Data URL을 profile_image_url로 전송
-      const updated = await updateMe({ profile_image_url: croppedDataUrl });
-      if (updated) {
-        setMember(updated);
-      } else {
-        setMember((prev) => ({ ...prev, profile_image_url: croppedDataUrl }));
-      }
-      setInfoSuccess(true);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setInfoError(err.message || '프로필 사진 변경 실패');
-      } else {
-        setInfoError('프로필 사진 저장 중 오류가 발생했습니다.');
-      }
-    } finally {
-      setAvatarLoading(false);
     }
   };
 
@@ -246,23 +199,6 @@ export default function MyPage() {
               height={102}
               decoding="async"
             />
-            <input
-              ref={profileFileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleProfileFileChange}
-            />
-            <button
-              type="button"
-              className="mypage-avatar-edit-btn"
-              onClick={() => profileFileInputRef.current?.click()}
-              disabled={avatarLoading}
-              title="프로필 사진 변경"
-              aria-label="프로필 사진 변경"
-            >
-              📷
-            </button>
           </div>
 
 
@@ -480,16 +416,7 @@ export default function MyPage() {
         </div>
       )}
 
-      {/* 프로필 사진 1:1 크롭 모달 */}
-      {cropImageFile && (
-        <ImageCropModal
-          imageSource={cropImageFile}
-          title="프로필 사진 맞추기"
-          aspectMode="square"
-          onCropComplete={handleProfileCropComplete}
-          onClose={() => setCropImageFile(null)}
-        />
-      )}
+
     </section>
   );
 }
