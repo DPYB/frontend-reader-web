@@ -188,9 +188,15 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.mypage-nickname-edit-btn:hover {
+.mypage-nickname-edit-btn:hover:not(:disabled) {
   background: var(--accent);
   color: #fff;
+}
+
+.mypage-nickname-edit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .mypage-nickname-edit {
@@ -384,9 +390,15 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.mypage-withdraw-btn:hover {
+.mypage-withdraw-btn:hover:not(:disabled) {
   background: #e74c3c;
   color: #fff;
+}
+
+.mypage-withdraw-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* 탈퇴 확인 모달 */

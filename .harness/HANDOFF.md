@@ -1,5 +1,20 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-23: 마이페이지 정보 수정 버튼 제거 및 비밀번호/탈퇴 버튼 비활성화
+- 작업 브랜치: `feat/mypage-disable-edit-pw-withdraw`
+- **사용자 요청**: 계정(예: dpyb26 등) 로그인 상태에서 마이페이지의 정보 수정 버튼을 UI적으로 제거하고, 비밀번호 변경 버튼과 회원 탈퇴 버튼도 `disabled` 처리하여 클릭되지 않도록 비활성화해달라.
+- **수정 내용**:
+  1. `app/pages/MyPage.jsx`:
+     - '내 정보 수정' 버튼 및 폼 전환 로직 제거 (정보 조회 전용 유지).
+     - 미사용 수정 상태/핸들러/API import 정리.
+     - '비밀번호 변경' 및 '계정 탈퇴' 버튼에 `disabled` 속성 및 비활성화 안내 툴팁 적용.
+  2. `app/pages/MyPage.css`:
+     - `.mypage-nickname-edit-btn:disabled`, `.mypage-withdraw-btn:disabled`에 `opacity: 0.45`, `cursor: not-allowed`, `pointer-events: none` 비활성화 스타일 적용.
+- **검증**:
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~2.3s)
+
 ## 2026-09-23: 마이페이지 프로필 사진 변경 버튼(카메라 이모지) UI 제거
 - 작업 브랜치: `feat/mypage-hide-avatar-edit-btn`
 - **사용자 요청**: 마이페이지에 보이는 프로필 사진 변경 기능(카메라 이모지 📷)을 UI적으로 제거해달라.
