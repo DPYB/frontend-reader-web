@@ -303,99 +303,108 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <img
-        className="login-bg-img"
-        src="/login-bg.webp"
-        alt="Don't Paw-get Your Book"
-        width={1920}
-        height={1080}
-        decoding="async"
-      />
-
-      {/* 로고 (3D 젤리 스티커 효과) */}
-      <img
-        className="login-logo-3d"
-        src="/button/logo_bl.webp"
-        alt="Don't Paw-get Logo"
-        width={2560}
-        height={1440}
-        decoding="async"
-        draggable={false}
-      />
-
-      {/* 입력 필드 이미지 레이어 (투명) */}
-      <img
-        className="login-layer-img login-layer-img--input"
-        src="/Input_field/id.webp"
-        alt=""
-        width={2560}
-        height={1440}
-        decoding="async"
-        draggable={false}
-      />
-      <img
-        className="login-layer-img login-layer-img--input"
-        src="/Input_field/pw.webp"
-        alt=""
-        width={2560}
-        height={1440}
-        decoding="async"
-        draggable={false}
-      />
-
-      {/* 실제 입력 필드 (이미지 위에 투명하게 겹침) */}
-      <input
-        className="login-input-field"
-        style={{
-          left: `${INPUT_FIELDS.id.left}%`,
-          top: `${INPUT_FIELDS.id.top}%`,
-          width: `${INPUT_FIELDS.id.width}%`,
-          height: `${INPUT_FIELDS.id.height}%`,
-        }}
-        type="email"
-        placeholder="이메일"
-        value={email}
-        onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
-        autoComplete="email"
-      />
-      <input
-        className="login-input-field"
-        style={{
-          left: `${INPUT_FIELDS.pw.left}%`,
-          top: `${INPUT_FIELDS.pw.top}%`,
-          width: `${INPUT_FIELDS.pw.width}%`,
-          height: `${INPUT_FIELDS.pw.height}%`,
-        }}
-        type={eyeActive ? 'text' : 'password'}
-        placeholder="비밀번호"
-        value={userPw}
-        onChange={(e) => { setUserPw(e.target.value); if (error) setError(''); }}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
-        autoComplete="current-password"
-      />
-
-      {/* 버튼들 */}
-      {BUTTONS.map((btn) => {
-        // 눈 버튼은 비밀번호 표시 중(eyeActive)이면 분홍 이미지로 스왑
-        const isEye = btn.id === 'eye';
-        const resolvedBtn =
-          isEye && eyeActive ? { ...btn, src: btn.srcActive } : btn;
-        return (
-          <LoginButton
-            key={btn.id}
-            btn={resolvedBtn}
-            onClick={() => handleClick(btn.id)}
-            disabled={isButtonDisabled(btn.id)}
-          />
-        );
-      })}
-
       {/*
-        소셜 로그인(Google/Kakao)·DPYB 체험하기 버튼은 위 BUTTONS 배열의 이미지 레이어
-        방식으로 통합했다(2026-09 신규 UI). 예전에는 배경 시안에 이 버튼들이 없어 CSS로
-        만든 별도 버튼(.login-social-container)을 화면 하단에 띄웠는데, 새 시안에 세
-        버튼이 그려져 들어오면서 다른 버튼들과 같은 방식으로 맞췄다.
-      */}
+       * 16:9 cover 레이어 — 배경·버튼 이미지·클릭 영역·입력 필드를 모두 같은
+       * 좌표계에 배치한다. 뷰포트를 "cover"하도록 확대·중앙 정렬하므로,
+       * 창을 리사이즈해도 이미지와 버튼 좌표가 어긋나지 않는다.
+       * (기존에는 object-fit: cover로 이미지만 확대되고 HTML 요소는
+       *  컨테이너 %로 배치되어 좌표계가 달랐다.)
+       */}
+      <div className="login-cover-layer">
+        <img
+          className="login-bg-img"
+          src="/login-bg.webp"
+          alt="Don't Paw-get Your Book"
+          width={1920}
+          height={1080}
+          decoding="async"
+        />
+
+        {/* 로고 (3D 젤리 스티커 효과) */}
+        <img
+          className="login-logo-3d"
+          src="/button/logo_bl.webp"
+          alt="Don't Paw-get Logo"
+          width={2560}
+          height={1440}
+          decoding="async"
+          draggable={false}
+        />
+
+        {/* 입력 필드 이미지 레이어 (투명) */}
+        <img
+          className="login-layer-img login-layer-img--input"
+          src="/Input_field/id.webp"
+          alt=""
+          width={2560}
+          height={1440}
+          decoding="async"
+          draggable={false}
+        />
+        <img
+          className="login-layer-img login-layer-img--input"
+          src="/Input_field/pw.webp"
+          alt=""
+          width={2560}
+          height={1440}
+          decoding="async"
+          draggable={false}
+        />
+
+        {/* 실제 입력 필드 (이미지 위에 투명하게 겹침) */}
+        <input
+          className="login-input-field"
+          style={{
+            left: `${INPUT_FIELDS.id.left}%`,
+            top: `${INPUT_FIELDS.id.top}%`,
+            width: `${INPUT_FIELDS.id.width}%`,
+            height: `${INPUT_FIELDS.id.height}%`,
+          }}
+          type="email"
+          placeholder="이메일"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+          autoComplete="email"
+        />
+        <input
+          className="login-input-field"
+          style={{
+            left: `${INPUT_FIELDS.pw.left}%`,
+            top: `${INPUT_FIELDS.pw.top}%`,
+            width: `${INPUT_FIELDS.pw.width}%`,
+            height: `${INPUT_FIELDS.pw.height}%`,
+          }}
+          type={eyeActive ? 'text' : 'password'}
+          placeholder="비밀번호"
+          value={userPw}
+          onChange={(e) => { setUserPw(e.target.value); if (error) setError(''); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
+          autoComplete="current-password"
+        />
+
+        {/* 버튼들 */}
+        {BUTTONS.map((btn) => {
+          // 눈 버튼은 비밀번호 표시 중(eyeActive)이면 분홍 이미지로 스왑
+          const isEye = btn.id === 'eye';
+          const resolvedBtn =
+            isEye && eyeActive ? { ...btn, src: btn.srcActive } : btn;
+          return (
+            <LoginButton
+              key={btn.id}
+              btn={resolvedBtn}
+              onClick={() => handleClick(btn.id)}
+              disabled={isButtonDisabled(btn.id)}
+            />
+          );
+        })}
+
+        {/*
+          소셜 로그인(Google/Kakao)·DPYB 체험하기 버튼은 위 BUTTONS 배열의 이미지 레이어
+          방식으로 통합했다(2026-09 신규 UI). 예전에는 배경 시안에 이 버튼들이 없어 CSS로
+          만든 별도 버튼(.login-social-container)을 화면 하단에 띄웠는데, 새 시안에 세
+          버튼이 그려져 들어오면서 다른 버튼들과 같은 방식으로 맞췄다.
+        */}
+      </div>
 
       {/* 숨김 처리된 Google 표준 버튼 렌더링 컨테이너 (필요 시 One Tap 트리거) */}
       <div ref={googleBtnRef} style={{ display: 'none' }} />
