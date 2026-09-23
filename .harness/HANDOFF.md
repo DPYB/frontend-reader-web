@@ -1,5 +1,17 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-23: 마이페이지 프로필 사진 변경 버튼(카메라 이모지) UI 제거
+- 작업 브랜치: `feat/mypage-hide-avatar-edit-btn`
+- **사용자 요청**: 마이페이지에 보이는 프로필 사진 변경 기능(카메라 이모지 📷)을 UI적으로 제거해달라.
+- **수정 내용**:
+  1. `app/pages/MyPage.jsx`:
+     - 프로필 이미지 우측 하단에 위치하던 카메라 버튼(`📷`) 및 숨겨진 파일 선택 `<input>` 제거.
+     - 미사용 상태/핸들러/임포트(`ImageCropModal`, `profileFileInputRef`, `cropImageFile`, `avatarLoading`, `handleProfileFileChange`, `handleProfileCropComplete`) 정리.
+- **검증**:
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~2.8s)
+
 ## 2026-09-23: 체험 모드(게스트) 마이페이지 생년월일 표기 변경
 - 작업 브랜치: `fix/guest-mypage-birthdate`
 - **사용자 요청**: DPYB 체험하기 버튼을 눌러 진입한 체험 모드에서 마이페이지의 생년월일이 현재 '체험 계정'으로 표시되고 있는데, 이를 '2000년 1월 1일'로 변경해달라.
