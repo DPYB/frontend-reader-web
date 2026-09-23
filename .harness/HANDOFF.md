@@ -1,5 +1,16 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-23: 책 등록 화면 레이아웃 마진/패딩을 독서 리포트 페이지와 통일
+- 작업 브랜치: `feat/unify-page-margins`
+- **사용자 요청**: 현재 책등록 페이지와 독서 리포트 페이지의 마진/패딩이 다른데 독서 리포트에 맞춰 통일해달라.
+- **수정 내용**:
+  1. `app/pages/RegisterBook.jsx`:
+     - 루트 컨테이너 스타일의 `maxWidth`를 기존 `900`에서 `1080`으로, `padding`을 기존 `24px 16px`에서 `36px 20px 80px`로 변경하여 `MonthlyReport.css`의 `.report-container`(`max-width: 1080px; margin: 0 auto; padding: 36px 20px 80px;`)와 동일하게 통일.
+- **검증**:
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~2.5s)
+
 ## 2026-09-23: 마이페이지 정보 수정 버튼 제거 및 비밀번호/탈퇴 버튼 비활성화
 - 작업 브랜치: `feat/mypage-disable-edit-pw-withdraw`
 - **사용자 요청**: 계정(예: dpyb26 등) 로그인 상태에서 마이페이지의 정보 수정 버튼을 UI적으로 제거하고, 비밀번호 변경 버튼과 회원 탈퇴 버튼도 `disabled` 처리하여 클릭되지 않도록 비활성화해달라.
