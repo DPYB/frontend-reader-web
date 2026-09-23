@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-24: 로그인 페이지 창 리사이즈 시 버튼/이미지 위치 어긋남 수정
+- 작업 브랜치: `fix/login-resize-misalignment`
+- **사용자 요청**: 로그인 페이지에서 창 아래를 당겨 크기를 줄이면 버튼의 시각적 위치와 클릭 영역이 어긋나는 이슈 수정.
+- **원인 분석**:
+  - `.login-page`(100% × 100vh) 안에서 배경/버튼 이미지(`<img>`)는 `object-fit: cover`로 표시되어 이미지가 잘리지만, 클릭 영역(`login-hit-area`)과 입력 필드는 컨테이너의 %로 배치됨.
+  - `object-fit: cover`는 `<img>` 태그 내부에서만 이미지를 변환하므로, 뷰포트 비율이 16:9가 아닐 때 이미지와 HTML 요소의 좌표계가 달라져 위치가 어긋남.
+- **수정 내용**:
+  1. `app/pages/LoginPage.css`:
+     - `.login-cover-layer` 클래스 추가: 16:9 비율 cover 레이어 (LibraryScene CLIAR-288 패턴).
+     - `width: max(100%, calc(100vh * 16/9)); height: max(100vh, calc(100vw * 9/16)); aspect-ratio: 16/9`로 뷰포트를 완전히 덮도록 설정.
+     - `.login-bg-img`, `.login-logo-3d`, `.login-layer-img`에서 `object-fit: cover` 제거 — cover 레이어 안에서 `width: 100%; height: 100%`로 꽉 채움.
+  2. `app/pages/LoginPage.jsx`:
+     - 모든 이미지/버튼/입력 필드를 `<div className="login-cover-layer">` 안으로 이동하여 동일한 16:9 좌표계 공유.
+     - 뷰포트 고정 UI(에러 메시지, 개발 배지, 비밀번호 인디케이터)는 레이어 밖 유지.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~1.6s)
+
 ## 2026-09-23: 책 등록 화면 레이아웃 마진/패딩을 독서 리포트 페이지와 통일
 - 작업 브랜치: `feat/unify-page-margins`
 - **사용자 요청**: 현재 책등록 페이지와 독서 리포트 페이지의 마진/패딩이 다른데 독서 리포트에 맞춰 통일해달라.
