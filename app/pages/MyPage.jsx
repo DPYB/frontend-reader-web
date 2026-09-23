@@ -33,7 +33,7 @@ export default function MyPage() {
   const profileImage = member?.profileImageUrl || member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
   const email = member?.email ?? '';
   const rawBirthDate = member?.birthDate || member?.birth_date;
-  const birthDate = rawBirthDate ?? (isGuest ? '체험 계정' : '-');
+  const birthDate = isGuest ? '2000년 1월 1일' : (rawBirthDate ?? '-');
   const nickname = member?.nickname ?? '';
   const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '선택 안 함');
 

@@ -1,5 +1,15 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-23: 체험 모드(게스트) 마이페이지 생년월일 표기 변경
+- 작업 브랜치: `fix/guest-mypage-birthdate`
+- **사용자 요청**: DPYB 체험하기 버튼을 눌러 진입한 체험 모드에서 마이페이지의 생년월일이 현재 '체험 계정'으로 표시되고 있는데, 이를 '2000년 1월 1일'로 변경해달라.
+- **수정 내용**:
+  1. `app/pages/MyPage.jsx`:
+     - 게스트(`isGuest`) 상태일 때의 생년월일 fallback/표시값을 `'체험 계정'`에서 `'2000년 1월 1일'`로 변경 (`isGuest ? '2000년 1월 1일' : (rawBirthDate ?? '-')`).
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~13s)
+
 ## 2026-09-22: 월간 독서 리포트 날씨별 베스트 도서 실데이터(weatherPreferences) 매핑 정상화
 - 작업 브랜치: `fix/monthly-report-weather-mapping`
 - **사용자 요청**: 백엔드 실제 응답 필드(`preferences.weatherPreferences` / `taste.weatherPreferences`)와 프론트엔드 코드(`rhythm.weatherBooks` 기대) 사이의 불일치로 인해 실데이터가 있음에도 고정 목업 도서로 빠지는 문제를 해결해달라.
