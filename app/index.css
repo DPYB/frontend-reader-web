@@ -326,12 +326,15 @@ body.reading-room {
   width: 100%;
   height: 100%;
   touch-action: pan-x;
+  overscroll-behavior: contain;
 }
 
-/* 모바일 서재 가로 스크롤바 숨김 처리 */
+/* 모바일 서재 가로 스크롤바 숨김 및 고무줄 오버스크롤 차단 */
 .library-scene-container {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
 }
 
 .library-scene-container::-webkit-scrollbar {

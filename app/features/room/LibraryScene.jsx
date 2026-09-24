@@ -205,6 +205,15 @@ export default function LibraryScene() {
       const el = sceneRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
+
+      // 가로 스크롤 범위가 씬 이미지 영역 범위를 넘어서지 않도록 클램프
+      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      if (el.scrollLeft < 0) {
+        el.scrollLeft = 0;
+      } else if (el.scrollLeft > maxScroll) {
+        el.scrollLeft = maxScroll;
+      }
+
       const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
       const clientX = touch ? touch.clientX : (e?.clientX !== undefined ? e.clientX : lastClientPosRef.current.x);
       const clientY = touch ? touch.clientY : (e?.clientY !== undefined ? e.clientY : lastClientPosRef.current.y);
@@ -377,6 +386,7 @@ export default function LibraryScene() {
         overflowY: 'hidden',
         touchAction: 'pan-x',
         WebkitOverflowScrolling: 'touch',
+        background: '#0a0806',
         '--mx': '50%',
         '--my': '50%',
       }}
@@ -434,8 +444,8 @@ export default function LibraryScene() {
           ))}
         </Canvas>
 
-        {/* 손전등 효과: 다크 모드에서만. 16:9 배경/3D 전체를 덮도록 16:9 레이어 내부(Canvas 직후)에 위치 (캘리브레이션 중엔 끔) */}
-        {isDark && !calibrating && (
+        {/* 손전등 효과: 다크 모드 전환 시 0.35s 부드러운 opacity 페이드인/아웃으로 깜빡임 및 처리 보임 현상 해결 (캘리브레이션 중엔 끔) */}
+        {!calibrating && (
           <>
             {/*
              * 어둡게 하는 비네트 (CLIAR-181: 손전등이 비추는 부분만 보이도록 훨씬 더 어둡게)
@@ -448,6 +458,8 @@ export default function LibraryScene() {
                 inset: 0,
                 pointerEvents: 'none',
                 zIndex: 5,
+                opacity: isDark ? 1 : 0,
+                transition: 'opacity 0.35s ease',
                 background:
                   'radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(5,3,1,0) 0px, rgba(5,3,1,0.55) 113px, rgba(5,3,1,0.97) 209px)',
               }}
@@ -464,6 +476,8 @@ export default function LibraryScene() {
                 pointerEvents: 'none',
                 zIndex: 6,
                 mixBlendMode: 'screen',
+                opacity: isDark ? 1 : 0,
+                transition: 'opacity 0.35s ease',
                 background:
                   'radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,214,150,0.4) 0px, rgba(255,200,130,0.2) 90px, rgba(255,190,120,0) 173px)',
               }}
