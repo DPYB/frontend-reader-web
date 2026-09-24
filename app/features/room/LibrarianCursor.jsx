@@ -129,16 +129,18 @@ export default function LibrarianCursor({ librarian, answer, active, thinking })
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     if (!hasClickMotion) return;
 
-    const handleMouseDown = (e) => {
-      if (e.button !== 0) return; // 좌클릭만
+    const handleStart = (e) => {
+      if (e.type === 'mousedown' && e.button !== 0) return; // 좌클릭만
       setClickActive(true);
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
       clickTimerRef.current = setTimeout(() => setClickActive(false), librarian.clickMotionMs);
     };
 
-    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousedown', handleStart);
+    window.addEventListener('touchstart', handleStart, { passive: true });
     return () => {
-      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousedown', handleStart);
+      window.removeEventListener('touchstart', handleStart);
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     };
     // librarian.id로 의존성을 좁혀, 답변 갱신 등으로 librarian 객체 참조가 바뀌어도
