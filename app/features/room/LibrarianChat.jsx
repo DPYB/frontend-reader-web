@@ -163,7 +163,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       if (mobile) {
         setFabPos((prev) => {
           if (prev) return getClampPos(prev.x, prev.y);
-          return getClampPos(window.innerWidth - 68, window.innerHeight - 138);
+          // 독서 타이머 버튼 위로 뜨도록 초기 Y 위치 설정
+          return getClampPos(window.innerWidth - 68, window.innerHeight - 190);
         });
       }
     };
@@ -925,7 +926,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       startX: e.clientX,
       startY: e.clientY,
       initialX: fabPos?.x ?? (window.innerWidth - 68),
-      initialY: fabPos?.y ?? (window.innerHeight - 138),
+      initialY: fabPos?.y ?? (window.innerHeight - 190),
       hasMoved: false,
     };
     try {
@@ -973,7 +974,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
           style={{
             position: 'fixed',
             left: fabPos?.x ?? (window.innerWidth - 68),
-            top: fabPos?.y ?? (window.innerHeight - 138),
+            top: fabPos?.y ?? (window.innerHeight - 190),
             zIndex: 85,
           }}
           onPointerDown={handlePointerDown}

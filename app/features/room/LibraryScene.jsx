@@ -155,6 +155,15 @@ export default function LibraryScene() {
 
   // 사서(librarianId)가 변경되면 커서 말풍선도 해당 사서의 저장된 마지막 응답(또는 null)으로 즉시 교체
   const prevSceneLibrarianRef = useRef(librarianId);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   useEffect(() => {
     if (prevSceneLibrarianRef.current !== librarianId) {
       prevSceneLibrarianRef.current = librarianId;
@@ -336,15 +345,15 @@ export default function LibraryScene() {
       <div
         style={{
           position: 'absolute',
-          left: '50%',
+          left: isMobile ? 0 : '50%',
           bottom: 0,
-          transform: 'translateX(-50%)',
+          transform: isMobile ? 'none' : 'translateX(-50%)',
           width: `max(100vw, calc(100svh * ${BG_ASPECT}))`,
           aspectRatio: String(BG_ASPECT),
           backgroundImage: `url(${getBgSrc(librarianId)})`,
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
+          backgroundPosition: isMobile ? 'left bottom' : 'center',
         }}
       >
         <Canvas
