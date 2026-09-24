@@ -112,10 +112,10 @@ function CalibrationControls({ camera, shelf, activeIdx, onCamera, onCamComp, on
  * (CSS 변수를 3D 캔버스 안에서 직접 읽기 어려워 값을 그대로 복제해 둔다)
  */
 const GLOW_COLOR = {
-  cat: { dark: '#ff9a3c', light: '#e06a10' },
+  cat: { dark: '#ff7a00', light: '#e06a10' },
   stork: { dark: '#9b7bf0', light: '#7d50c0' },
-  nudi: { dark: '#4fc4ac', light: '#23907c' },
-  gecko: { dark: '#ff6fa5', light: '#d63d7c' },
+  nudi: { dark: '#ff5a4e', light: '#e03e30' },
+  gecko: { dark: '#ff2a85', light: '#c02f70' },
 };
 
 function getGlowColor(librarianId, isDark) {
