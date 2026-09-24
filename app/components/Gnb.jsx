@@ -153,9 +153,9 @@ export default function Gnb() {
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
                 <NavLink to="/library" className="gnb-left" aria-label="내 서재로 이동">
                     <span className="gnb-logo-wrap">
-                        <img className="gnb-logo" src="/logo_nv.webp" alt="Don't Paw-get Your Book 로고" width={30} height={30} decoding="async" />
+                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={30} height={30} decoding="async" />
                     </span>
-                    <img className="gnb-service-name" src="/service name.webp" alt="Don't Paw-get Your Book" width={174} height={25} decoding="async" />
+                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book" width={174} height={25} decoding="async" />
                     {isGuest && (
                         <span className="gnb-guest-badge">
                             🐾 체험 모드
