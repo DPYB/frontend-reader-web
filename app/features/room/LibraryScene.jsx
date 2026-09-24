@@ -186,6 +186,8 @@ export default function LibraryScene() {
     setWorkingConfig(saved || { camera: getDefaultCamera(librarianId), shelves: getDefaultShelves(librarianId) });
   }, [librarianId]);
 
+  const lastClientPosRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
+
   /*
    * 커서 위치 추적 (CLIAR-214).
    * 사서 커서와 손전등 효과는 컨테이너의 --mx/--my를 따른다. 예전에는 씬 컨테이너의
@@ -193,6 +195,9 @@ export default function LibraryScene() {
    * 아니라 상단 바 위에서는 이벤트가 오지 않아 사서 커서가 멈춰 있었다. 그 상태에서
    * OS 커서까지 숨기면 아무 커서도 안 보이므로, window에서 좌표를 받아 상단 바 위에서도
    * 사서 커서가 따라오게 한다(리렌더 없이 CSS 변수만 갱신).
+   * 모바일/터치 기기 환경에서는 pointermove, touchstart, touchmove 이벤트를 추적하며
+   * el.scrollLeft 수평 스크롤 위치를 함께 합산하여 모바일 손가락 슬라이딩 중에도
+   * 커서 및 조명이 위치를 유지하도록 지원한다.
    */
   useEffect(() => {
     if (calibrating) return;
@@ -201,24 +206,51 @@ export default function LibraryScene() {
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
-      const clientX = touch ? touch.clientX : e.clientX;
-      const clientY = touch ? touch.clientY : e.clientY;
+      const clientX = touch ? touch.clientX : (e?.clientX !== undefined ? e.clientX : lastClientPosRef.current.x);
+      const clientY = touch ? touch.clientY : (e?.clientY !== undefined ? e.clientY : lastClientPosRef.current.y);
       if (clientX !== undefined && clientY !== undefined) {
-        el.style.setProperty('--mx', `${clientX - rect.left}px`);
-        el.style.setProperty('--my', `${clientY - rect.top}px`);
+        lastClientPosRef.current = { x: clientX, y: clientY };
+        const mx = clientX - rect.left + el.scrollLeft;
+        const my = clientY - rect.top + el.scrollTop;
+        el.style.setProperty('--mx', `${mx}px`);
+        el.style.setProperty('--my', `${my}px`);
       }
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('touchstart', handleMove, { passive: true });
     window.addEventListener('touchmove', handleMove, { passive: true });
+
+    const el = sceneRef.current;
+    if (el) {
+      el.addEventListener('scroll', handleMove, { passive: true });
+    }
+
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('touchstart', handleMove);
       window.removeEventListener('touchmove', handleMove);
+      if (el) {
+        el.removeEventListener('scroll', handleMove);
+      }
     };
   }, [calibrating]);
+
+  // 모바일 진입 시 서재 씬 중앙(중앙 선반)이 기본 노출되도록 초기 가로 스크롤 정렬
+  useEffect(() => {
+    if (!isMobile) return;
+    const timer = setTimeout(() => {
+      const el = sceneRef.current;
+      if (el) {
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (maxScroll > 0) {
+          el.scrollLeft = maxScroll / 2;
+        }
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [isMobile]);
 
   // 서재 페이지에서는 OS 커서를 숨긴다 (CLIAR-214).
   // 씬 컨테이너는 cursor:none이지만 #root 고정폭(1126px) 바깥 레터박스나 씬 박스
@@ -333,16 +365,18 @@ export default function LibraryScene() {
   return (
     <div
       ref={sceneRef}
+      className="library-scene-container"
       style={{
         position: 'relative',
-        // CLIAR-288: 서재는 몰입형 화면이라 #root(1126px) 좌우 레터박스 여백을 없애고
-        // 뷰포트 전체(가로·세로)를 채운다. 배경/3D는 아래 16:9 레이어에서 처리.
         width: '100vw',
         marginLeft: 'calc(50% - 50vw)',
         height: '100svh',
         cursor: calibrating ? 'auto' : 'none',
-        // 화면을 덮도록 확대한 16:9 레이어의 넘치는 부분(위쪽)과 커서 추종 요소를 잘라낸다.
-        overflow: 'hidden',
+        // 모바일에서는 손가락 슬라이딩으로 전체 씬(좌/중앙/우)을 구경할 수 있도록 가로 스크롤 허용, 세로는 고정
+        overflowX: isMobile ? 'auto' : 'hidden',
+        overflowY: 'hidden',
+        touchAction: 'pan-x',
+        WebkitOverflowScrolling: 'touch',
         '--mx': '50%',
         '--my': '50%',
       }}
