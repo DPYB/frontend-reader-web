@@ -200,11 +200,24 @@ export default function LibraryScene() {
       const el = sceneRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
-      el.style.setProperty('--my', `${e.clientY - rect.top}px`);
+      const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
+      const clientX = touch ? touch.clientX : e.clientX;
+      const clientY = touch ? touch.clientY : e.clientY;
+      if (clientX !== undefined && clientY !== undefined) {
+        el.style.setProperty('--mx', `${clientX - rect.left}px`);
+        el.style.setProperty('--my', `${clientY - rect.top}px`);
+      }
     };
     window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('touchstart', handleMove, { passive: true });
+    window.addEventListener('touchmove', handleMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('touchstart', handleMove);
+      window.removeEventListener('touchmove', handleMove);
+    };
   }, [calibrating]);
 
   // 서재 페이지에서는 OS 커서를 숨긴다 (CLIAR-214).
