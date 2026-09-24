@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../store/booksStore';
 import { answerQuestion } from './chatEngine';
@@ -136,6 +136,41 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     if (saved?.open !== undefined) return saved.open;
     return Boolean(answer?.text);
   });
+
+  // 모바일 뷰포트 (<= 768px) 감지
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  // 모바일 FAB 위치 상태 (x, y)
+  const [fabPos, setFabPos] = useState(null);
+  const dragInfoRef = useRef({ isDragging: false, startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false });
+
+  const getClampPos = useCallback((x, y) => {
+    const btnSize = 54;
+    const minX = 12;
+    const maxX = Math.max(minX, window.innerWidth - btnSize - 12);
+    const minY = 60; // 상단 GNB 아래
+    const maxY = Math.max(minY, window.innerHeight - btnSize - 74); // 하단 메뉴바 위
+    return {
+      x: Math.min(Math.max(x, minX), maxX),
+      y: Math.min(Math.max(y, minY), maxY),
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setFabPos((prev) => {
+          if (prev) return getClampPos(prev.x, prev.y);
+          return getClampPos(window.innerWidth - 68, window.innerHeight - 138);
+        });
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getClampPos]);
 
   // 사서 패널 모드: 'chat' (일반 대화) | 'library' (내 서재 빠른 조회) | 'debate' (사서 토론)
   const [chatMode, setChatMode] = useState('chat');
@@ -883,19 +918,97 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     await sendQuery(message, librarian.id);
   };
 
-  const box = {
-    position: 'fixed', // absolute → fixed로 변경하여 뷰포트 기준으로 고정 (CLIAR-284)
-    right: 'min(16px, 2vw)', // 작은 화면에서 여백 조정 (CLIAR-284)
-    bottom: 'min(16px, 2vh)', // 작은 화면에서 여백 조정 (CLIAR-284)
-    zIndex: 20,
-    width: open ? 'min(340px, calc(100vw - 32px))' : 'auto', // 작은 화면에서 반응형 조정 (CLIAR-284)
-    fontSize: 17,
-    cursor: 'auto',
+  const handlePointerDown = (e) => {
+    e.stopPropagation();
+    dragInfoRef.current = {
+      isDragging: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: fabPos?.x ?? (window.innerWidth - 68),
+      initialY: fabPos?.y ?? (window.innerHeight - 138),
+      hasMoved: false,
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // 무시
+    }
   };
 
+  const handlePointerMove = (e) => {
+    if (!dragInfoRef.current.isDragging) return;
+    const dx = e.clientX - dragInfoRef.current.startX;
+    const dy = e.clientY - dragInfoRef.current.startY;
+    if (Math.hypot(dx, dy) > 6) {
+      dragInfoRef.current.hasMoved = true;
+    }
+    if (dragInfoRef.current.hasMoved) {
+      const nextX = dragInfoRef.current.initialX + dx;
+      const nextY = dragInfoRef.current.initialY + dy;
+      setFabPos(getClampPos(nextX, nextY));
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (!dragInfoRef.current.isDragging) return;
+    dragInfoRef.current.isDragging = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // 무시
+    }
+
+    if (!dragInfoRef.current.hasMoved) {
+      setOpen(true);
+    }
+  };
+
+  // 닫힌 상태 (open === false)
   if (!open) {
+    if (isMobile) {
+      return (
+        <button
+          type="button"
+          className="lc-mobile-fab"
+          style={{
+            position: 'fixed',
+            left: fabPos?.x ?? (window.innerWidth - 68),
+            top: fabPos?.y ?? (window.innerHeight - 138),
+            zIndex: 85,
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          aria-label="사서에게 질문하기 (드래그하여 이동 가능)"
+          title="사서에게 질문하기 (터치하여 열기, 드래그하여 이동)"
+        >
+          <img
+            src="/logo_nv.webp"
+            alt="DPYB 로고"
+            className="lc-mobile-fab-logo"
+            width={34}
+            height={34}
+            decoding="async"
+            draggable={false}
+          />
+          <span className="lc-mobile-fab-badge" aria-hidden="true">
+            {librarian.icon || '🐾'}
+          </span>
+        </button>
+      );
+    }
+
     return (
-      <div style={box}>
+      <div
+        style={{
+          position: 'fixed',
+          right: 'min(16px, 2vw)',
+          bottom: 'min(16px, 2vh)',
+          zIndex: 20,
+          fontSize: 17,
+        }}
+      >
         <button
           onClick={() => setOpen(true)}
           style={{
@@ -919,11 +1032,35 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     );
   }
 
-  return (
-    <div
-      style={{
-        ...box,
-        // CLIAR-301: 채팅창 패널 배경을 사서 말풍선(--bubble-bg)과 동일하게 맞춤
+  // 열린 상태 (open === true)
+  const panelStyle = isMobile
+    ? {
+        position: 'fixed',
+        bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
+        left: 10,
+        right: 10,
+        maxWidth: 440,
+        margin: '0 auto',
+        zIndex: 95,
+        minHeight: 'min(420px, calc(100vh - 140px))',
+        maxHeight: 'min(640px, calc(100vh - 140px))',
+        background: 'var(--bubble-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        padding: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        color: 'var(--text-h)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }
+    : {
+        position: 'fixed',
+        right: 'min(16px, 2vw)',
+        bottom: 'min(16px, 2vh)',
+        zIndex: 20,
+        width: 'min(340px, calc(100vw - 32px))',
+        fontSize: 17,
         background: 'var(--bubble-bg)',
         border: '1px solid var(--border)',
         borderRadius: 14,
@@ -931,15 +1068,15 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
         color: 'var(--text-h)',
         height: 'auto',
-        // 처음 열 때는 토론 모드를 기준으로 높이를 고정(minHeight)하여 모드 전환 시 창 크기 널뛰기 방지
         minHeight: 'min(460px, calc(100vh - 173px))',
-        // 채팅창 세로 길이 확장: 대화 시작 시 상단 한계를 GNB(로그아웃 버튼) 높이(~60px) + 여유 약 3cm(~113px) 유지
         maxHeight: 'min(700px, calc(100vh - 173px))',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-      }}
-    >
+      };
+
+  return (
+    <div style={panelStyle} className="lc-chat-panel">
       {/* 1. 최상단 헤더: 사서 이름 + [✨ 새 대화] + 모드별 도움말 (?) + 닫기 (✕) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
