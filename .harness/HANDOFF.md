@@ -1,5 +1,35 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-24: 모바일 네비게이션바 및 프로필 메뉴 UI/UX 개선
+- 작업 브랜치: `feat/mobile-gnb-profile-menu`
+- **사용자 요청**: 모바일에서 네비게이션바랑 프로필 메뉴를 예쁘고 보기 쉽게 변경.
+- **원인 및 분석**:
+  - 기존 데스크톱 GNB는 중앙 메뉴가 `position: absolute; left: 50%`로 고정되어 있어 화면 폭이 좁은 모바일(<= 768px)에서 좌우 로고/프로필 버튼과 겹침 및 오버플로우 발생.
+  - 모바일 화면에서 프로필 드롭다운이 작고 터치 영역이 협소하여 사용성이 저하됨.
+- **개선 내용**:
+  1. `app/components/Gnb.jsx`:
+     - **모바일 하단 네비게이션 바 (`gnb-mobile-bottom-bar`) 신설**:
+       - 4개 주요 탭(내 서재, 책 등록, 독서 리포트, 마이페이지)에 직관적인 SVG 아이콘 및 라벨 배치.
+       - 활성 탭 인디케이터 바 및 테마 Accent 컬러 하이라이트.
+       - iOS Safe Area Inset(`env(safe-area-inset-bottom)`) 완벽 지원.
+     - **프로필 메뉴 모달 / 바텀 시트 (`gnb-profile-sheet`) 구현**:
+       - 모바일에서는 바텀 시트 형태, 데스크톱에서는 세련된 드롭다운 카드로 반응형 동작.
+       - 사서 아바타(52px + 테마 링 + 캐릭터 아이콘 뱃지), 사서명, 종, 특화 장르 해시태그, 따뜻한 한마디 인용구 표시.
+       - '사서 프로필 & 변경' 이동 버튼, 테마(라이트/다크) 빠른 토글, 로그아웃 버튼 탑재.
+       - 배경 딤(`gnb-profile-backdrop`) 클릭, ESC 키, 라우트 이동 시 자동 닫힘 처리.
+     - **모바일 상단 헤더 컴팩트화**:
+       - 로고 및 서비스명 이미지 반응형 크기 축소.
+       - 모바일 상단 바에서는 긴 사서명 텍스트 대신 아바타 중심의 원형 뱃지 버튼으로 깔끔하게 정돈.
+  2. `app/components/Gnb.css`:
+     - `@media (max-width: 768px)` 반응형 미디어 쿼리 완비.
+     - Glassmorphism(`backdrop-filter: blur(16px)`), 부드러운 애니메이션(`gnbSlideUp`, `gnbFadeIn`, `gnbFadeDown`), 키보드 포커스 링(`:focus-visible`), 모션 감소(`prefers-reduced-motion`) 지원.
+  3. `app/pages/MyPage.css`, `app/pages/LibrarianProfiles.css`:
+     - 모바일 하단 네비게이션 바로 인해 최하단 콘텐츠가 가려지지 않도록 `padding-bottom: 88px` 안전 여백 적용.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~13s)
+
 ## 2026-09-24: 로그인 페이지 창 리사이즈 시 버튼/이미지 위치 어긋남 수정
 - 작업 브랜치: `fix/login-resize-misalignment`
 - **사용자 요청**: 로그인 페이지에서 창 아래를 당겨 크기를 줄이면 버튼의 시각적 위치와 클릭 영역이 어긋나는 이슈 수정.
