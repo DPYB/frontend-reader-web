@@ -700,14 +700,36 @@
     }
 
     @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+        /* 블루 (고양이: 오렌지/그린) */
         .gnb-mobile-bottom-bar {
-            background: rgba(21, 12, 4, 0.88);
+            background: rgba(21, 12, 4, 0.9);
         }
         [data-theme='light'] .gnb-mobile-bottom-bar {
-            background: rgba(245, 212, 166, 0.92);
+            background: rgba(245, 212, 166, 0.94);
         }
+
+        /* 슈빌 (스토크: 연보라/찐보라) */
         [data-librarian='stork'] .gnb-mobile-bottom-bar {
-            background: rgba(34, 30, 64, 0.9);
+            background: rgba(34, 30, 64, 0.92);
+        }
+        [data-theme='light'][data-librarian='stork'] .gnb-mobile-bottom-bar {
+            background: rgba(206, 192, 237, 0.94);
+        }
+
+        /* 누디 (산호/청록) */
+        [data-librarian='nudi'] .gnb-mobile-bottom-bar {
+            background: rgba(15, 38, 36, 0.92);
+        }
+        [data-theme='light'][data-librarian='nudi'] .gnb-mobile-bottom-bar {
+            background: rgba(191, 232, 224, 0.94);
+        }
+
+        /* 게코 (그레이/마젠타 핑크) */
+        [data-librarian='gecko'] .gnb-mobile-bottom-bar {
+            background: rgba(28, 26, 28, 0.92);
+        }
+        [data-theme='light'][data-librarian='gecko'] .gnb-mobile-bottom-bar {
+            background: rgba(228, 224, 226, 0.94);
         }
     }
 
