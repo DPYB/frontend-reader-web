@@ -163,7 +163,7 @@ export default function Gnb() {
                     )}
                 </NavLink>
 
-                {/* 데스크톱 상단 중앙 메뉴 (모바일에서는 하단 탭바로 대체) */}
+                {/* 데스크톱 상단 중앙 메뉴 (모바일에서는 하단 탭바) */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
                     <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>내 서재</NavLink>
                     <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>책 등록</NavLink>
@@ -172,29 +172,10 @@ export default function Gnb() {
                 </nav>
 
                 <div className="gnb-right">
-                    {/* 데스크톱 로그아웃 버튼 (모바일에서는 프로필 메뉴 시트 내부에 제공) */}
+                    {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
                         {loggingOut ? '로그아웃 중...' : '로그아웃'}
                     </button>
-
-                    <div className="gnb-theme" role="group" aria-label="테마 설정">
-                        <button
-                            className={theme === 'light' ? 'on' : undefined}
-                            onClick={() => setTheme('light')}
-                            title="라이트 모드"
-                            aria-label="라이트 모드"
-                        >
-                            <SunIcon />
-                        </button>
-                        <button
-                            className={theme === 'dark' ? 'on' : undefined}
-                            onClick={() => setTheme('dark')}
-                            title="다크 모드 (손전등)"
-                            aria-label="다크 모드"
-                        >
-                            <MoonIcon />
-                        </button>
-                    </div>
 
                     <div className="gnb-profile-wrap" ref={profileWrapRef}>
                         <button
@@ -207,11 +188,10 @@ export default function Gnb() {
                             <span className="gnb-profile-name">{librarian.displayName}</span>
                             <div className="gnb-profile-avatar-wrap">
                                 <img className="gnb-profile" src={librarian.profileImage} alt={`${librarian.displayName} 프로필`} width={32} height={32} decoding="async" />
-                                <span className="gnb-profile-status-dot" />
                             </div>
                         </button>
 
-                        {/* 프로필 팝업 / 바텀 시트 (데스크톱 드롭다운 & 모바일 바텀시트 공용) */}
+                        {/* 프로필 팝업 / 바텀 시트 */}
                         {showProfileMenu && (
                             <>
                                 <div
@@ -224,7 +204,6 @@ export default function Gnb() {
                                     <div className="gnb-sheet-header">
                                         <div className="gnb-sheet-librarian-avatar">
                                             <img src={librarian.profileImage} alt="" width={56} height={56} decoding="async" />
-                                            <span className="gnb-sheet-icon-badge">{librarian.icon || '🐾'}</span>
                                         </div>
                                         <div className="gnb-sheet-librarian-info">
                                             <div className="gnb-sheet-name-row">
@@ -258,7 +237,7 @@ export default function Gnb() {
                                             <span>사서 프로필 & 변경</span>
                                         </button>
 
-                                        {/* 모바일 전용 테마 빠른 토글 */}
+                                        {/* 프로필 메뉴 내 테마 빠른 토글 */}
                                         <div className="gnb-sheet-theme-row">
                                             <span className="gnb-sheet-theme-label">화면 테마</span>
                                             <div className="gnb-theme">
@@ -291,7 +270,7 @@ export default function Gnb() {
                 </div>
             </header>
 
-            {/* 모바일 하단 고정 네비게이션 탭바 (768px 이하 전용) */}
+            {/* 모바일 하단 고정 네비게이션 탭바 */}
             <nav className="gnb-mobile-bottom-bar" aria-label="모바일 하단 내비게이션">
                 <NavLink
                     to="/library"

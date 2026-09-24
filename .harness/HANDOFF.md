@@ -1,5 +1,23 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-24: GNB 프로필 이모지 뱃지 제거, 원형 아바타 자름 방지 및 테마 버튼 정돈
+- 작업 브랜치: `feat/gnb-profile-theme-refactor`
+- **사용자 요청**:
+  1. 상단 네비게이션바의 사서 프로필 이미지 위에 같이 뜨는 동물 이모지 뱃지 제거.
+  2. 상단 프로필 원형 이미지가 오른쪽이 잘리지 않도록 스타일 수정.
+  3. 테마 토글 버튼은 사서 프로필을 클릭하면 메뉴 안에서 조작 가능하므로 상단 메뉴바에서는 제거.
+- **개선 내용**:
+  1. `app/components/Gnb.jsx`:
+     - 프로필 이미지 위의 `gnb-profile-status-dot` 및 `gnb-sheet-icon-badge` 동물 이모지 뱃지 제거.
+     - 상단 헤더 우측(`.gnb-right`)에서 중복되는 `gnb-theme` 버튼 제거 (사서 프로필 시트/드롭다운 내부의 테마 토글 `gnb-sheet-theme-row`는 항시 제공).
+  2. `app/components/Gnb.css`:
+     - `.gnb-profile-btn`: 오른쪽 패딩을 10px로 확대하여 원형 아바타 테두리가 오른쪽에서 잘리지 않도록 정돈 (`padding: 4px 10px 4px 14px; overflow: visible`).
+     - 모바일 `.gnb-profile-btn`: `width: 38px; height: 38px; padding: 3px; border-radius: 50%; border: 1.5px solid var(--accent); box-sizing: border-box;`으로 테두리와 이미지가 자름 없이 깔끔하게 렌더링되도록 수정.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~1.95s)
+
 ## 2026-09-24: 모바일 전용 드래그 가능한 사서 질문 플로팅 버튼(FAB) 구현 및 서재 뷰포트 좌측 정렬
 - 작업 브랜치: `feat/mobile-draggable-chat-button`
 - **사용자 요청**:
