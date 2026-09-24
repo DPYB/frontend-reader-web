@@ -750,3 +750,72 @@
 .lc-new-chat-btn:active {
   transform: translateY(0);
 }
+
+/* ==========================================================================
+   Mobile Floating Action Button (FAB) - Draggable Chat Trigger
+   ========================================================================== */
+
+.lc-mobile-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), 0 0 10px var(--accent-bg);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lc-mobile-fab:active {
+  cursor: grabbing;
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 16px var(--accent);
+}
+
+.lc-mobile-fab-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.lc-mobile-fab-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--code-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* 모바일 열린 패널 애니메이션 */
+@media (max-width: 768px) {
+  .lc-chat-panel {
+    animation: lcPanelSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes lcPanelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

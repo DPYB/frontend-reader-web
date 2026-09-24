@@ -1,5 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-24: 모바일 전용 드래그 가능한 사서 질문 플로팅 버튼(FAB) 구현
+- 작업 브랜치: `feat/mobile-draggable-chat-button`
+- **사용자 요청**: 모바일에서 하단 메뉴바 뒤에 사서에게 질문하기 버튼이 가려지는 문제 해결. 모바일에서만 로고 이미지로 동그란 버튼을 만들어 사용자가 하단 메뉴 위 어디든 자유롭게 드래그하여 옮길 수 있도록 하고, 클릭 시 모바일 화면에 맞춰 대화창이 열리도록 변경.
+- **개선 내용**:
+  1. `app/features/room/LibrarianChat.jsx`:
+     - 모바일 화면(≤ 768px) 감지 및 닫힌 상태(`!open`)에서 원형 플로팅 액션 버튼(`lc-mobile-fab`) 렌더링.
+     - DPYB 로고(`logo_nv.webp`) + 사서 이모지 뱃지 조합의 54px 원형 FAB 디자인.
+     - **포인터/터치 드래그 인터랙션 (`handlePointerDown`, `handlePointerMove`, `handlePointerUp`)**:
+       - Pointer capture를 활용해 화면 내 어디든 부드럽게 드래그 가능.
+       - 상단 GNB 및 하단 네비게이션 탭바를 벗어나지 않도록 화면 경계 제약(Clamping) 처리.
+       - 6px 이상 이동 시 드래그로 판정하고, 단순 탭일 때만 대화창 오픈(`setOpen(true)`).
+     - **모바일 채팅 패널(`lc-chat-panel`) 뷰포트 최적화**:
+       - 모바일에서 대화창 오픈 시 하단 탭바 위에 뜨도록 `bottom: calc(68px + env(safe-area-inset-bottom, 0px))` 및 좌우 마진 자동 조정.
+  2. `app/features/room/LibrarianChat.css`:
+     - `.lc-mobile-fab` 원형 스타일, 글로우 그림자, 터치 시 확대 스케일 인터랙션 및 모바일 패널 부드러운 슬라이드업 애니메이션(`lcPanelSlideUp`) 구현.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~2.0s)
+
 ## 2026-09-24: 모바일 네비게이션바 및 프로필 메뉴 UI/UX 개선
 - 작업 브랜치: `feat/mobile-gnb-profile-menu`
 - **사용자 요청**: 모바일에서 네비게이션바랑 프로필 메뉴를 예쁘고 보기 쉽게 변경.
