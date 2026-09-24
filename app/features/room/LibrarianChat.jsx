@@ -985,7 +985,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
           title="사서에게 질문하기 (터치하여 열기, 드래그하여 이동)"
         >
           <img
-            src="/logo_nv.webp"
+            src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
             alt="DPYB 로고"
             className="lc-mobile-fab-logo"
             width={34}

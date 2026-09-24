@@ -84,6 +84,9 @@ export const LIBRARIANS = [
     clickMotionMs: 2000,
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
     profileImage: '/profile/cat.webp',
+    // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
+    logoImage: '/logo/logo_cat.png',
+    nameImage: '/name/name_cat.png',
     // 커서 이미지에서 실제 포인터가 될 지점(뻗은 앞발 끝) — 이미지 알파 채널 실측 비율
     tip: { x: 0.26, y: 0.287 },
     tipHover: { x: 0.143, y: 0.357 },
@@ -129,6 +132,9 @@ export const LIBRARIANS = [
     imgScale: 1.56,
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
     profileImage: '/profile/stork.webp',
+    // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
+    logoImage: '/logo/logo_stork.png',
+    nameImage: '/name/name_stork.png',
   },
   {
     id: 'nudi',
@@ -159,6 +165,9 @@ export const LIBRARIANS = [
     tipHover: { x: 0.27, y: 0.4 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
     profileImage: '/profile/nudi.jpg',
+    // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
+    logoImage: '/logo/logo_nudi.png',
+    nameImage: '/name/name_nudi.png',
   },
   {
     id: 'gecko',
@@ -213,9 +222,14 @@ export const LIBRARIANS = [
     tipHover: { x: 0.42, y: 0.32 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
     profileImage: '/profile/gecko.jpg',
+    // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
+    logoImage: '/logo/logo_gecko.png',
+    nameImage: '/name/name_gecko.png',
   },
 ].map((l) => ({
   ...l,
+  logoImage: l.logoImage || `/logo/logo_${l.id}.png`,
+  nameImage: l.nameImage || `/name/name_${l.id}.png`,
   // 특화 장르 한글 라벨 (파생) — 여러 장르는 '·'로 이어붙인다 (예: '총류·철학·종교')
   specialtyGenre: l.specialtyCodes.map(genreLabel).filter(Boolean).join('·'),
   // "○○·○○ 장르 추천" 형태의 표시 문구 (파생)
