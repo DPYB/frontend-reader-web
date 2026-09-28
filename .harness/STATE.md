@@ -65,5 +65,7 @@
 - 모바일 사서 질문 FAB 초기 위치를 독서 타이머 위로 배치(겹침 방지) 및 모바일 내 서재 UI 좌측 정렬 뷰포트 반영 완료
 - GNB 상단 프로필 이미지 동물 이모지 뱃지 제거, 원형 프로필 이미지 오른쪽 자름 방지 패딩 조정 및 상단 테마 버튼 제거(프로필 메뉴 내부로 통합) 완료
 - GNB 상단 사서별 서비스 이름 이미지(고양이/슈빌/누디/게코) WebP 변환 및 최적화(총 1.7MB ➔ 174KB, 90% 용량 감축, 1000px 고해상도 규격) 및 GNB/데이터 경로 연동 완료
+- 프론트엔드 성능 최적화 및 리팩토링 완료: App.jsx 라우트 레벨 코드 스플리팅(React.lazy), Vite manualChunks 벤더 분할(vendor-react/three/charts/pdf), BooksProvider context value useMemo 메모이제이션, LibraryScene 3D placement useMemo 적용, index.html lang=ko 및 폰트 preload 설정 (초기 메인 번들 1.33MB ➔ 38KB, 97% 감축)
+
 
 

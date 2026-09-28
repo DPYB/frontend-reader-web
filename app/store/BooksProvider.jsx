@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BooksContext } from './booksStore';
 import { useAuth } from './authStore';
 import * as bookApi from '../api/bookApi';
@@ -240,26 +240,40 @@ export function BooksProvider({ children }) {
     return bookApi.deleteScrap(scrapId);
   }, []);
 
-  return (
-    <BooksContext.Provider
-      value={{
-        books,
-        loading,
-        error,
-        reload,
-        addBook,
-        removeBook,
-        saveReadingProgress,
-        saveBookMeta,
-        fetchScraps,
-        fetchScrapsPage,
-        hydrateScrapMemos,
-        addScrap,
-        editScrap,
-        removeScrap,
-      }}
-    >
-      {children}
-    </BooksContext.Provider>
+  const value = useMemo(
+    () => ({
+      books,
+      loading,
+      error,
+      reload,
+      addBook,
+      removeBook,
+      saveReadingProgress,
+      saveBookMeta,
+      fetchScraps,
+      fetchScrapsPage,
+      hydrateScrapMemos,
+      addScrap,
+      editScrap,
+      removeScrap,
+    }),
+    [
+      books,
+      loading,
+      error,
+      reload,
+      addBook,
+      removeBook,
+      saveReadingProgress,
+      saveBookMeta,
+      fetchScraps,
+      fetchScrapsPage,
+      hydrateScrapMemos,
+      addScrap,
+      editScrap,
+      removeScrap,
+    ]
   );
+
+  return <BooksContext.Provider value={value}>{children}</BooksContext.Provider>;
 }
