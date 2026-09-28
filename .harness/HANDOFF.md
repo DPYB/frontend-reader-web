@@ -1170,10 +1170,25 @@
   - `public/name/`: 기존 PNG 4종 삭제 및 고해상도 최적화 WebP(`name_{cat,gecko,nudi,stork}.webp`) 신규 생성.
   - `app/data/librarians.js`: 4종 사서의 `nameImage` 경로 및 fallback 기본 확장자를 `.png`에서 `.webp`로 수정.
   - `app/components/Gnb.jsx`: `nameImage` fallback 경로를 `.webp`로 변경.
+## 2026-09-28: 프론트엔드 라우트 코드 스플리팅 & 벤더 분할 & 렌더링 성능 최적화
+- 작업 브랜치: `feat/frontend-performance-refactor`
+- **배경 및 원인 분석**:
+  - `App.jsx`에서 모든 페이지가 정적으로 `import`되어 초기 진입 시 무거운 Three.js/Recharts/jsPDF 라이브러리 전체가 단일 메인 번들(1.33 MB)로 다운로드되는 로딩 병목이 존재.
+  - `vite.config.js`에 벤더 청크 분할 설정이 없고, `BooksProvider` 컨텍스트 및 `LibraryScene` 3D placement 연산의 메모이제이션 누락으로 무차별 하위 트리 리렌더링 및 슬롯 재계산 발생.
+- **수정 내용**:
+  - `app/App.jsx`: `React.lazy()` 및 `Suspense` 기반 라우트 레벨 코드 스플리팅 적용 (모든 페이지 전용 독립 청크 분리).
+  - `vite.config.js`: `build.rollupOptions.output.manualChunks` 도입으로 `vendor-react`, `vendor-three`, `vendor-charts`, `vendor-pdf` 청크를 격리하여 브라우저 HTTP 캐싱 효율 극대화.
+  - `app/store/BooksProvider.jsx`: Context `value` 객체를 `useMemo`로 감싸 데이터 변경 없는 하위 컴포넌트의 무차별 리렌더링 완벽 차단.
+  - `app/features/room/LibraryScene.jsx`: `placeBooks(sourceBooks, activeConfig.shelves)` 3D 책 슬롯 배치 연산을 `useMemo`로 감싸 매 리렌더링마다 50권 좌표 재계산 억제.
+  - `index.html`: `lang="en"` -> `lang="ko"` 변경 및 한글 폰트(`MemomentKkukkukk.woff2`) `<link rel="preload">` 적용으로 텍스트 FOUT 깜빡임 완화.
+- **성과**:
+  - 초기 진입 메인 엔트리 번들 크기 **1,332 kB ➔ 38.9 kB (gzip 13.3 kB)로 97% 대폭 감축**!
+  - 로그인 페이지 진입 시 다운로드 소스 코드 **단 8.2 kB**로 최적화 달성.
 - **검증**:
   - `npx tsc --noEmit` 통과 (0 errors).
-  - `npm run lint` 통과 (0 errors, 8 warnings 기존 유지).
-  - `npm run build` Vite 프로덕션 빌드 정상 통과 및 `dist/name/*.webp` 산출물 확인 완료.
+  - `npm run lint` 통과 (0 errors).
+  - `npm run build` 정상 통과 (3.01초 만에 완료, 벤더 청크 4종 및 페이지 청크 정상 분리 산출 확인).
+
 
 
 

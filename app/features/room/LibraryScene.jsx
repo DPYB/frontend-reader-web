@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Leva, useControls, folder } from 'leva';
 import * as THREE from 'three';
@@ -367,7 +367,7 @@ export default function LibraryScene() {
   // 캘리브레이션 중이면 작업용 설정, 아니면 해당 사서의 배포용 기본 설정
   const activeConfig = calibrating ? workingConfig : { camera: getDefaultCamera(librarianId), shelves: getDefaultShelves(librarianId) };
   const sourceBooks = calibrating ? makePreviewBooks(previewCount) : books;
-  const placements = placeBooks(sourceBooks, activeConfig.shelves);
+  const placements = useMemo(() => placeBooks(sourceBooks, activeConfig.shelves), [sourceBooks, activeConfig.shelves]);
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];
 
