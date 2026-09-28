@@ -155,7 +155,7 @@ export default function Gnb() {
                     <span className="gnb-logo-wrap">
                         <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={30} height={30} decoding="async" />
                     </span>
-                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book" width={174} height={25} decoding="async" />
+                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={174} height={25} decoding="async" />
                     {isGuest && (
                         <span className="gnb-guest-badge">
                             🐾 체험 모드
