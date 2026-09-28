@@ -1161,7 +1161,19 @@
     - `getGenreSubLabel`: 세부 `subject`나 `displayGenre`가 없을 때 무조건 `(컴퓨터/IT)`를 붙이던 하드코딩을 제거. 서버가 내려준 세부 주제가 있을 때만 괄호로 명시하고, 없을 경우 KDC 10대 표준 대분류명(`기술과학`)으로 정돈하여 의학/요리/실용서의 오해 소지 원천 제거.
     - 장르 선택 `<select>` 드롭다운 옵션에서도 `기술과학 (컴퓨터/IT)` 등 고정 수식어 제거하고 `g.label` 표준 라벨로 렌더링.
 - **검증**:
-  - `npm run lint` 통과 (0 errors)
-  - `npm run build` Vite 번들 빌드 통과 (347ms)
+## 2026-09-28: GNB 사서별 서비스 이름 이미지 WebP 변환 및 최적화
+- 작업 브랜치: `feat/librarian-name-webp`
+- **배경 및 원인 분석**:
+  - 사용자 신규 제공 사서별 서비스 이름 이미지(`public/name/name_{cat,gecko,nudi,stork}.png`)의 해상도가 8000x1601px(파일당 약 420KB, 총 1.7MB)로 지나치게 거대하여, 브라우저 다운로드 및 GPU 텍스처 디코딩 메모리(장당 51.2MB) 낭비 발생.
+  - 실제 GNB 표시 너비(174px) 대비 레티나 4K 디스플레이까지 완전 대응 가능한 1000px 규격으로 다운샘플링하고 고품질 WebP(quality=90)로 변환해 용량을 90% 감축(파일당 42~44KB, 총 174KB).
+- **수정 내용**:
+  - `public/name/`: 기존 PNG 4종 삭제 및 고해상도 최적화 WebP(`name_{cat,gecko,nudi,stork}.webp`) 신규 생성.
+  - `app/data/librarians.js`: 4종 사서의 `nameImage` 경로 및 fallback 기본 확장자를 `.png`에서 `.webp`로 수정.
+  - `app/components/Gnb.jsx`: `nameImage` fallback 경로를 `.webp`로 변경.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors).
+  - `npm run lint` 통과 (0 errors, 8 warnings 기존 유지).
+  - `npm run build` Vite 프로덕션 빌드 정상 통과 및 `dist/name/*.webp` 산출물 확인 완료.
+
 
 
