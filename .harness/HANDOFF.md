@@ -1,5 +1,23 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-28: GNB 상단 로고 및 서비스명 스타일/반투명 배경 개선
+- 작업 브랜치: `feat/gnb-logo-style`
+- **사용자 요청**: 상단 로고랑 로고 옆 이름 크기를 중앙에 있는 네비게이션 메뉴들과 동일하게 맞춰주고 이름 뒤에 반투명 처리 해서 이름 잘 보이게 (중앙에 있는 네비게이션 메뉴들처럼)
+- **개선 내용**:
+  1. `app/components/Gnb.jsx`:
+     - `gnb-logo` image size: `width={24} height={24}`
+     - `gnb-service-name` image size: `width={110} height={22}`
+  2. `app/components/Gnb.css`:
+     - `.gnb-left`를 중앙 네비게이션 메뉴(`.gnb-menu`) 및 프로필 버튼(`.gnb-profile-btn`)과 동일한 알약(Pill) 형태 컨테이너로 스타일링:
+       - `padding: 4px 14px 4px 5px`, `border: 1px solid var(--border)`, `border-radius: 999px`, `background: var(--code-bg)`, `backdrop-filter: blur(8px)`, `-webkit-backdrop-filter: blur(8px)`
+       - Hover & active hover 효과(translateY, accent border, shadow) 통일
+     - 오버레이 모드(`.gnb--overlay .gnb-left`)에 반투명 배경(`rgba(0, 0, 0, 0.25)`, 라이트 모드 `rgba(0, 0, 0, 0.42)`, `backdrop-filter: blur(4px)`) 연동하여 3D 배경 서재에서도 브랜드 서비스 로고명이 또렷하게 읽히도록 가독성 극대화
+     - 모바일(<= 768px) 미디어 쿼리 조율(`padding: 3px 10px 3px 4px`, logo wrap 30px, logo 20px, service name height 18px)
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in ~3.15s)
+
 ## 2026-09-28: 도서 등록 화면 수동 ISBN 도서 검색 및 Enter 키/검색 버튼 연동
 - 작업 브랜치: `feat/isbn-manual-search`
 - **배경 및 원인 분석**:

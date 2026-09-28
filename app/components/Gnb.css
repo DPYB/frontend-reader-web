@@ -36,14 +36,16 @@
 /* 오버레이일 때 드롭다운/컨트롤 배경은 살짝 불투명하게 유지해 가독성 확보 */
 .gnb--overlay .gnb-logout-btn,
 .gnb--overlay .gnb-profile-btn,
-.gnb--overlay .gnb-menu {
+.gnb--overlay .gnb-menu,
+.gnb--overlay .gnb-left {
     background: rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
 }
 
 /* 라이트 모드 + 내 서재 오버레이 */
-[data-theme='light'] .gnb--overlay .gnb-menu {
+[data-theme='light'] .gnb--overlay .gnb-menu,
+[data-theme='light'] .gnb--overlay .gnb-left {
     background: rgba(0, 0, 0, 0.42);
 }
 
@@ -63,38 +65,57 @@
 .gnb-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    padding: 4px 14px 4px 5px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--code-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     text-decoration: none;
     color: inherit;
     flex-shrink: 0;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gnb-left:hover {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+.gnb-left:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 .gnb-logo-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--bg);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .gnb-left:hover .gnb-logo-wrap {
-    transform: scale(1.04);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    transform: scale(1.05);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 .gnb-logo {
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
 }
 
 .gnb-service-name {
-    height: 25px;
+    height: 22px;
     width: auto;
     object-fit: contain;
 }
@@ -533,18 +554,23 @@
         box-sizing: border-box;
     }
 
+    .gnb-left {
+        padding: 3px 10px 3px 4px;
+        gap: 6px;
+    }
+
     .gnb-logo-wrap {
-        width: 36px;
-        height: 36px;
+        width: 30px;
+        height: 30px;
     }
 
     .gnb-logo {
-        width: 26px;
-        height: 26px;
+        width: 20px;
+        height: 20px;
     }
 
     .gnb-service-name {
-        height: 20px;
+        height: 18px;
     }
 
     .gnb-guest-badge {
