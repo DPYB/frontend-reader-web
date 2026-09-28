@@ -123,6 +123,7 @@ export default function RegisterBook() {
   // 인식한 ISBN과, /ocr/covers가 서재에 만들어 둔 도서 ID.
   // bookId가 있으면 등록 시 새로 만들지 않고 이 책을 갱신한다(중복 등록 방지).
   const [isbn, setIsbn] = useState('');
+  const [isbnSearching, setIsbnSearching] = useState(false);
   const [ocrBookId, setOcrBookId] = useState(null);
   // 화면에서 편집하지 않지만 PATCH 시 그대로 돌려보내야 하는 조회 결과
   // (updateLibraryBookMeta는 전체 페이로드를 요구해, 안 넘기면 null로 덮인다)
@@ -342,6 +343,78 @@ export default function RegisterBook() {
     setWebcamOpen(false);
     handleFile(file);
   }
+
+  /**
+   * ISBN 수동 입력 후 도서 검색.
+   * 입력된 ISBN을 정제하여 백엔드(/books/search?isbn=...)를 통해 국립중앙도서관 서지정보 및 서재 등록 여부를 조회한다.
+   */
+  const handleSearchIsbn = useCallback(async () => {
+    const raw = (isbn || '').trim();
+    const cleanIsbn = raw.replace(/[^0-9X]/gi, '');
+    if (!cleanIsbn || (cleanIsbn.length !== 10 && cleanIsbn.length !== 13)) {
+      setOcrError('올바른 10자리 또는 13자리 ISBN 숫자를 입력해 주세요.');
+      return;
+    }
+
+    setIsbnSearching(true);
+    setOcrError('');
+    setOcrNotice('');
+
+    try {
+      const searched = await searchBookByIsbn(cleanIsbn);
+      const found = searched.book;
+
+      if (searched.alreadyRegistered) {
+        setOcrNotice('이미 서재에 있는 책이에요. 등록하면 기존 책 정보가 갱신됩니다.');
+      }
+      if (searched.bookId) {
+        setOcrBookId(searched.bookId);
+      }
+
+      if (!found) {
+        setOcrError('해당 ISBN으로 도서 정보를 찾지 못했어요. 직접 정보를 입력해 주세요.');
+        setEditing(true);
+        setOcrDone(true);
+        setColorIdx((prev) => (prev === null ? 0 : prev));
+        return;
+      }
+
+      setIsbn(found.isbn || cleanIsbn);
+      const nextTitle = found.title || '';
+      const nextAuthor = found.author || '';
+      setTitle(nextTitle);
+      setAuthor(nextAuthor);
+      if (found.totalPages) setTotalPage(String(found.totalPages));
+      setColorIdx((prev) => (prev === null ? 0 : prev));
+
+      setExtraMeta({
+        publisher: found.publisher ?? null,
+        publishedDate: found.publishedDate ?? null,
+        coverUrl: found.coverUrl ?? null,
+      });
+
+      if (found.subject) setSubject(found.subject);
+      if (found.displayGenre) setDisplayGenre(found.displayGenre);
+
+      if (found.genre) {
+        setGenre(found.genre);
+      } else {
+        autoClassifyGenre({ title: nextTitle, author: nextAuthor, isbn: found.isbn || cleanIsbn });
+      }
+
+      setOcrDone(true);
+      if (!nextTitle || !nextAuthor || !found.totalPages) {
+        setEditing(true);
+      }
+    } catch (err) {
+      setOcrError(describeCoverOcrError(err));
+      setEditing(true);
+      setOcrDone(true);
+      setColorIdx((prev) => (prev === null ? 0 : prev));
+    } finally {
+      setIsbnSearching(false);
+    }
+  }, [isbn, autoClassifyGenre]);
 
   // 미리보기로 만든 object URL은 화면을 떠날 때 정리한다.
   // (StrictMode의 이펙트 두 번 실행에 사용 중인 URL이 해제되지 않도록 ref로 들고 있는다)
@@ -582,13 +655,59 @@ export default function RegisterBook() {
            */}
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 15, color: 'var(--text)' }}>ISBN 직접 입력 (인식이 잘 안 될 때)</span>
-            <input
-              type="text"
-              value={isbn}
-              onChange={(e) => setIsbn(e.target.value)}
-              placeholder="예: 9791164794348"
-              style={{ padding: '7px 8px', fontSize: 16, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
-            />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearchIsbn();
+                  }
+                }}
+                placeholder="예: 9791164794348"
+                style={{ flex: 1, minWidth: 0, padding: '7px 8px', fontSize: 16, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
+              />
+              <button
+                type="button"
+                onClick={handleSearchIsbn}
+                disabled={isbnSearching || ocrLoading}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  borderRadius: 6,
+                  border: '1px solid var(--accent-border)',
+                  background: 'var(--accent-bg)',
+                  color: 'var(--text-h)',
+                  cursor: (isbnSearching || ocrLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (isbnSearching || ocrLoading) ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                {isbnSearching ? (
+                  <>
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        border: '1.5px solid transparent',
+                        borderTop: '1.5px solid var(--accent)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                      }}
+                    />
+                    검색
+                  </>
+                ) : (
+                  '검색'
+                )}
+              </button>
+            </div>
           </label>
         </div>
 

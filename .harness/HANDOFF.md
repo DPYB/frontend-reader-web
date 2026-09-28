@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-28: 도서 등록 화면 수동 ISBN 도서 검색 및 Enter 키/검색 버튼 연동
+- 작업 브랜치: `feat/isbn-manual-search`
+- **배경 및 원인 분석**:
+  - 사용자가 바코드 스캔이나 OCR 촬영에 실패했을 때 직접 10자리/13자리 ISBN을 입력할 수 있는 필드가 있었으나, 해당 필드가 단순 `isbn` state만 바인딩하고 검색 트리거(버튼 / Enter 이벤트)가 없어 실제 백엔드 도서 검색(`GET /api/v1/books/search?isbn=...`)이 호출되지 않았음.
+- **개선 내용**:
+  - `app/pages/RegisterBook.jsx`:
+    1. 수동 ISBN 검색 비동기 핸들러(`handleSearchIsbn`) 구현:
+       - 입력된 ISBN에서 하이픈 및 특수문자 제거 후 10/13자리 유효성 검사.
+       - `searchBookByIsbn` 호출로 백엔드 국립중앙도서관 Open API 서지정보 및 서재 등록 여부 조회.
+       - 조회 성공 시 제목, 저자, 출판사, 발행일, 표지 이미지(Kyobo CDN/국립도서관), 페이지 수, KDC 세부장르/대분류(`displayGenre`, `subject`, `genre`) 폼 자동 완성.
+       - 서재에 이미 등록된 도서일 경우 갱신 안내(`ocrNotice`) 및 `ocrBookId` 동기화.
+       - 미조회 도서의 경우 안내 메시지 표시 후 직접 입력 모드(`editing = true`)로 전환.
+    2. ISBN 직접 입력 UI 보강:
+       - [검색] 버튼 배치 및 검색 중 스피너 표시(`isbnSearching`).
+       - 입력창 내 Enter 키 입력 시 폼 서브밋 방지 및 `handleSearchIsbn()` 실행 연동.
+- **검증**:
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in 338ms)
+
 ## 2026-09-24: GNB 프로필 이모지 뱃지 제거, 원형 아바타 자름 방지 및 테마 버튼 정돈
 - 작업 브랜치: `feat/gnb-profile-theme-refactor`
 - **사용자 요청**:
