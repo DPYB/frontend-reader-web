@@ -68,6 +68,7 @@
 - 프론트엔드 성능 최적화 및 리팩토링 완료: App.jsx 라우트 레벨 코드 스플리팅(React.lazy), Vite manualChunks 벤더 분할(vendor-react/three/charts/pdf), BooksProvider context value useMemo 메모이제이션, LibraryScene 3D placement useMemo 적용, index.html lang=ko 및 폰트 preload 설정 (초기 메인 번들 1.33MB ➔ 38KB, 97% 감축)
 - 도서 등록 화면(`RegisterBook.jsx`) 수동 ISBN 입력 기반 도서 검색 기능(`handleSearchIsbn`, 국립중앙도서관 서지정보 및 서재 등록 여부 조회, [검색] 버튼/Enter 키 이벤트) 연동 완료
 - GNB 상단 로고 및 서비스명 스타일/반투명 배경 개선 완료: 중앙 네비게이션 메뉴와 동일한 알약형(Pill) 컨테이너 geometry, border, background(var(--code-bg)), backdrop-filter(blur) 및 hover 효과 적용, 오버레이 반투명 배경(rgba(0,0,0,0.25/0.42)) 연동
+- GNB 로고·서비스명 가독성/크기 확충 및 프로필 메뉴 레이아웃 개편 완료: 로고(38px/28px) 및 이름(27px) 확대 및 고대비 오버레이 배경(rgba(0,0,0,0.45/0.55)), 프로필 메뉴 내 '사서 프로필 & 변경' ➔ '사서 프로필' 버튼 문구 변경 및 테마 토글 버튼과의 한 줄 나란히(side-by-side) 배치 연동
 
 
 
