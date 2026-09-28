@@ -1,0 +1,358 @@
+/* ==========================================================================
+   Mobile Shelf Book List Sheet & Backdrop Styles
+   ========================================================================== */
+
+.mobile-shelf-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 100;
+    animation: mobileShelfFadeIn 0.2s ease;
+}
+
+@keyframes mobileShelfFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.mobile-shelf-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 80vh;
+    border-radius: 20px 20px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    animation: mobileShelfSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mobileShelfSlideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.mobile-shelf-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 0 auto 10px;
+    flex-shrink: 0;
+}
+
+.mobile-shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.mobile-shelf-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.mobile-shelf-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.mobile-shelf-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.mobile-shelf-tab:active {
+    transform: scale(0.95);
+}
+
+.mobile-shelf-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.mobile-shelf-tab-badge {
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.mobile-shelf-tab:not(.active) .mobile-shelf-tab-badge {
+    background: var(--border);
+    color: var(--text);
+}
+
+.mobile-shelf-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: var(--code-bg);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.mobile-shelf-close-btn:active {
+    transform: scale(0.92);
+}
+
+.mobile-shelf-subtitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 4px 6px;
+}
+
+.mobile-shelf-subtitle strong {
+    font-size: 16px;
+    color: var(--text-h);
+}
+
+.mobile-shelf-count-text {
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+/* 수직 상하 스크롤 리스트 바디 */
+.mobile-shelf-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(65vh - 110px);
+    padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.mobile-shelf-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 16px;
+    text-align: center;
+}
+
+.mobile-shelf-empty-icon {
+    font-size: 42px;
+    margin-bottom: 8px;
+}
+
+.mobile-shelf-empty-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.mobile-shelf-empty-desc {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.mobile-shelf-register-btn {
+    padding: 10px 18px;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.mobile-shelf-register-btn:active {
+    transform: scale(0.96);
+}
+
+/* 도서 카드 세로 리스트 */
+.mobile-shelf-book-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.mobile-shelf-book-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--code-bg);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mobile-shelf-book-item:hover,
+.mobile-shelf-book-item:active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    transform: translateY(-1px);
+}
+
+.mobile-shelf-book-cover {
+    width: 48px;
+    height: 68px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.mobile-shelf-book-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mobile-shelf-book-placeholder {
+    font-size: 20px;
+}
+
+.mobile-shelf-book-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mobile-shelf-book-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mobile-shelf-book-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-h);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-shelf-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.mobile-shelf-status-badge.status-읽는\ 중 {
+    background: var(--accent-bg, rgba(255, 154, 60, 0.15));
+    border: 1px solid var(--accent, #ff9a3c);
+    color: var(--accent, #ff9a3c);
+}
+
+.mobile-shelf-status-badge.status-완독 {
+    background: rgba(46, 204, 113, 0.15);
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+}
+
+.mobile-shelf-status-badge.status-시작전 {
+    background: rgba(149, 165, 166, 0.15);
+    border: 1px solid #95a5a6;
+    color: #95a5a6;
+}
+
+.mobile-shelf-book-author {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-shelf-genre-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    width: fit-content;
+}
+
+.mobile-shelf-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.mobile-shelf-progress-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.mobile-shelf-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.mobile-shelf-progress-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.mobile-shelf-arrow {
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0.5;
+}
