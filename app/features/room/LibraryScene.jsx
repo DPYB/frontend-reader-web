@@ -9,6 +9,7 @@ import LibrarianChat from './LibrarianChat';
 import LibrarianCursor from './LibrarianCursor';
 import BookDetail from './BookDetail';
 import ReadingTimerModal from './ReadingTimerModal';
+import MobileShelfSheet from './MobileShelfSheet';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import {
@@ -22,6 +23,15 @@ import {
 
 const isDev = import.meta.env.DEV;
 const CALIB_KEY_PREFIX = 'myReadingRoom.calibration';
+
+// 모바일 5개 선반 터치 좌표 (cat_shelves 1.png~5.png 기반)
+const SHELF_TOUCH_BOUNDS = [
+  { top: '32.5%', height: '9.5%' }, // 1번 선반 (상단)
+  { top: '40.5%', height: '8.5%' }, // 2번 선반
+  { top: '48.0%', height: '8.5%' }, // 3번 선반
+  { top: '55.8%', height: '8.5%' }, // 4번 선반
+  { top: '63.5%', height: '8.5%' }, // 5번 선반 (하단)
+];
 
 function getCalibKey(librarianId) {
   return `${CALIB_KEY_PREFIX}.${librarianId}`;
@@ -139,6 +149,7 @@ export default function LibraryScene() {
   const isDark = theme === 'dark';
   const [selectedId, setSelectedId] = useState(null);
   const [showTimer, setShowTimer] = useState(false);
+  const [activeMobileShelfIdx, setActiveMobileShelfIdx] = useState(null);
   // 챗봇 답변 대기(thinking) 상태 — 사서 커서(LibrarianCursor)가 대기 이미지로 전환하는 데 사용
   const [chatLoading, setChatLoading] = useState(false);
   // CLIAR-280: 책 위에 커서를 올리면(클릭 없이) 제목/저자를 말풍선으로 보여준다.
@@ -436,7 +447,13 @@ export default function LibraryScene() {
               coverColor={b.coverColor}
               selected={selectedId === b.id}
               glowColor={getGlowColor(librarianId, isDark)}
-              onSelect={() => setSelectedId((prev) => (prev === b.id ? null : b.id))}
+              onSelect={() => {
+                if (isMobile) {
+                  setActiveMobileShelfIdx(b.shelfIndex ?? 0);
+                } else {
+                  setSelectedId((prev) => (prev === b.id ? null : b.id));
+                }
+              }}
               onHover={(over) =>
                 setHoveredBook((cur) => (over ? b : cur?.id === b.id ? null : cur))
               }
@@ -482,6 +499,49 @@ export default function LibraryScene() {
                   'radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,214,150,0.4) 0px, rgba(255,200,130,0.2) 90px, rgba(255,190,120,0) 173px)',
               }}
             />
+          </>
+        )}
+
+        {/* 모바일 5개 선반 터치 영역 & 선택 시 cat_shelves 오버레이 이미지 */}
+        {isMobile && !calibrating && (
+          <>
+            {/* 선택된 선반 하이라이트 오버레이 (cat 서재 cat_shelves/1.png~5.png 이미지) */}
+            {activeMobileShelfIdx !== null && (
+              <img
+                src={`/cat_shelves/${activeMobileShelfIdx + 1}.png`}
+                alt={`선반 ${activeMobileShelfIdx + 1} 하이라이트`}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  zIndex: 6,
+                  objectFit: 'cover',
+                  filter: 'drop-shadow(0 0 10px var(--accent, #ff9a3c))',
+                }}
+              />
+            )}
+
+            {/* 5개 선반 터치 오버레이 레이어 */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto', zIndex: 7 }}>
+              {SHELF_TOUCH_BOUNDS.map((bound, i) => (
+                <div
+                  key={i}
+                  onClick={() => setActiveMobileShelfIdx(i)}
+                  style={{
+                    position: 'absolute',
+                    top: bound.top,
+                    height: bound.height,
+                    left: '0%',
+                    width: '100%',
+                    cursor: 'pointer',
+                    backgroundColor: activeMobileShelfIdx === i ? 'rgba(255, 154, 60, 0.12)' : 'transparent',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                />
+              ))}
+            </div>
           </>
         )}
       </div>
@@ -748,6 +808,18 @@ export default function LibraryScene() {
             );
         return book ? <BookDetail book={book} onClose={() => setSelectedId(null)} /> : null;
       })()}
+
+      {/* 모바일 선반 도서 수직 스크롤 바텀시트 */}
+      {isMobile && activeMobileShelfIdx !== null && (
+        <MobileShelfSheet
+          activeShelfIdx={activeMobileShelfIdx}
+          onSelectShelf={(idx) => setActiveMobileShelfIdx(idx)}
+          onClose={() => setActiveMobileShelfIdx(null)}
+          placements={placements}
+          allBooks={books}
+          onOpenBookDetail={(book) => setSelectedId(book.id || book.bookId)}
+        />
+      )}
     </div>
   );
 }

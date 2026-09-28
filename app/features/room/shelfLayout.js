@@ -343,6 +343,8 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
 
       placements.push({
         ...book,
+        shelfIndex: i,
+        shelfId: shelf.id,
         rotation: [euler.x, euler.y, euler.z],
         size: [t, height, shelf.depth],
         position: [

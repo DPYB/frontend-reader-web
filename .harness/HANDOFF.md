@@ -1,5 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-28: 모바일 5개 선반 선택 및 수직(상하) 스크롤 도서 목록 바텀시트 구현
+- 작업 브랜치: `feat/mobile-shelf-list`
+- **사용자 요청**: 모바일에서는 책 클릭해서 책 상세를 보는 방식이 아닌 선반을 클릭했을 때 그 선반에 있는 책들을 리스트업해서 거기서 고를 수 있게 해달라. public/cat_shelves 폴더의 1~5번 선반 이미지 오버레이 연동 및 모바일 수직 상하 스크롤 목록 구현.
+- **개선 내용**:
+  1. `app/features/room/MobileShelfSheet.jsx`, `app/features/room/MobileShelfSheet.css` 신설:
+     - 모바일 전용 바텀시트(`mobile-shelf-sheet`) 구현.
+     - 상단 1~5번 선반 탭 선택 바(`mobile-shelf-tabs`) 및 선반별 도서 수 뱃지 표시.
+     - 수직 상하 스크롤 도서 카드 목록 (`overflow-y: auto`, 표지/스파인 컬러, 제목, 저자, 장르, 진행률, 독서 상태 뱃지).
+     - 책 클릭 시 책 상세 모달(`BookDetail`) 연동, 빈 선반 시 안내 카드 및 `[➕ 책 등록하러 가기]` 이동 버튼 제공.
+  2. `app/features/room/shelfLayout.js`:
+     - `placeBooks` 함수에서 각 배치 도서 객체에 `shelfIndex: i` 및 `shelfId` 메타데이터 부여.
+  3. `app/features/room/LibraryScene.jsx`:
+     - 모바일(<= 768px) 환경에서 5개 선반 영역 터치 레이어(`SHELF_TOUCH_BOUNDS`, top: 32.5% ~ 63.5%) 연동.
+     - 선반 클릭 또는 3D 책 선택 시 해당 `shelfIndex`(0~4) 활성화 및 `cat_shelves/1.png~5.png` 하이라이트 오버레이 이미지(`filter: drop-shadow`) 동적 노출.
+     - 데스크톱에서는 기존 단일 책 상세 직접 팝업 유지, 모바일에서는 선반 수직 리스트 바텀시트로 자동 분기.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in 2.39s)
+
 ## 2026-09-28: GNB 로고·서비스명 크기/가독성 및 프로필 메뉴 레이아웃 개선
 - 작업 브랜치: `feat/gnb-ui-improvements`
 - **사용자 요청**:
