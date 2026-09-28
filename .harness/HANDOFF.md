@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-09-28: GNB 로고·서비스명 크기/가독성 및 프로필 메뉴 레이아웃 개선
+- 작업 브랜치: `feat/gnb-ui-improvements`
+- **사용자 요청**:
+  1. 상단 로고랑 이름 크기 확대 및 배경색 조절로 가독성 강화.
+  2. 프로필 메뉴의 '사서 프로필 & 변경' ➔ '사서 프로필'로 명칭 변경.
+  3. '사서 프로필' 버튼과 테마 선택 아이콘(Sun/Moon)을 한 줄(Side-by-side)에 나란히 배치하고 '화면 테마' 라벨 제거.
+- **개선 내용**:
+  1. `app/components/Gnb.jsx`:
+     - `gnb-logo` 이미지 `width={28} height={28}`, `gnb-service-name` 이미지 `width={135} height={27}`로 확충.
+     - `gnb-sheet-actions` 내부에 `gnb-sheet-action-row`를 신설하여 `'사서 프로필'` 버튼과 `gnb-theme` 토글 버튼을 1개 행으로 결합.
+  2. `app/components/Gnb.css`:
+     - `.gnb-left`: `padding: 5px 16px 5px 6px`, logo wrap `38px`, logo `28px`, service name height `27px`로 가독성 보장.
+     - `.gnb--overlay .gnb-left`: 오버레이 배경 오파시티를 `rgba(0, 0, 0, 0.45)` (라이트 모드 `0.55`)로 높여 3D 선반 테마 위 가독성 최상급으로 확보.
+     - `.gnb-sheet-action-row`: `flex: 1` 사서 프로필 버튼 + `flex-shrink: 0` 테마 아이콘 토글 뱃지(높이 42px 통일)로 수평 배치.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in 2.25s)
+
 ## 2026-09-28: GNB 상단 로고 및 서비스명 스타일/반투명 배경 개선
 - 작업 브랜치: `feat/gnb-logo-style`
 - **사용자 요청**: 상단 로고랑 로고 옆 이름 크기를 중앙에 있는 네비게이션 메뉴들과 동일하게 맞춰주고 이름 뒤에 반투명 처리 해서 이름 잘 보이게 (중앙에 있는 네비게이션 메뉴들처럼)

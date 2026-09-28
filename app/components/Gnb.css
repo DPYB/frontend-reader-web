@@ -38,15 +38,15 @@
 .gnb--overlay .gnb-profile-btn,
 .gnb--overlay .gnb-menu,
 .gnb--overlay .gnb-left {
-    background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 /* 라이트 모드 + 내 서재 오버레이 */
 [data-theme='light'] .gnb--overlay .gnb-menu,
 [data-theme='light'] .gnb--overlay .gnb-left {
-    background: rgba(0, 0, 0, 0.42);
+    background: rgba(0, 0, 0, 0.55);
 }
 
 [data-theme='light'] .gnb--overlay .gnb-menu a {
@@ -65,13 +65,14 @@
 .gnb-left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 14px 4px 5px;
+    gap: 10px;
+    padding: 5px 16px 5px 6px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--code-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     text-decoration: none;
     color: inherit;
     flex-shrink: 0;
@@ -82,7 +83,7 @@
     border-color: var(--accent);
     background: var(--accent-bg);
     transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
 }
 
 .gnb-left:active {
@@ -94,28 +95,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: var(--bg);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
     flex-shrink: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .gnb-left:hover .gnb-logo-wrap {
-    transform: scale(1.05);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    transform: scale(1.06);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.38);
 }
 
 .gnb-logo {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
 }
 
 .gnb-service-name {
-    height: 22px;
+    height: 27px;
     width: auto;
     object-fit: contain;
 }
@@ -507,21 +508,37 @@
     border-color: rgba(229, 83, 83, 0.3);
 }
 
-/* 프로필 메뉴 내 테마 전환 행 (데스크톱 및 모바일 공용) */
-.gnb-sheet-theme-row {
+/* 프로필 메뉴 내 버튼 + 테마 아이콘 한 줄 배치 (데스크톱 및 모바일 공용) */
+.gnb-sheet-action-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    gap: 8px;
+    width: 100%;
 }
 
-.gnb-sheet-theme-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-h);
+.gnb-sheet-action-row .gnb-sheet-btn--primary {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    height: 42px;
+    box-sizing: border-box;
+}
+
+.gnb-sheet-action-row .gnb-theme {
+    flex-shrink: 0;
+    height: 42px;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.gnb-sheet-action-row .gnb-theme button {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
 }
 
 /* --------------------------------------------------------------------------
@@ -555,22 +572,22 @@
     }
 
     .gnb-left {
-        padding: 3px 10px 3px 4px;
-        gap: 6px;
+        padding: 4px 12px 4px 5px;
+        gap: 8px;
     }
 
     .gnb-logo-wrap {
-        width: 30px;
-        height: 30px;
+        width: 34px;
+        height: 34px;
     }
 
     .gnb-logo {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
     }
 
     .gnb-service-name {
-        height: 18px;
+        height: 22px;
     }
 
     .gnb-guest-badge {
@@ -688,21 +705,7 @@
         transform: scale(0.92);
     }
 
-    .gnb-sheet-theme-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px;
-        background: var(--code-bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-    }
 
-    .gnb-sheet-theme-label {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text-h);
-    }
 
     /* ----------------------------------------------------------------------
        모바일 하단 네비게이션 탭바 (Mobile Bottom Tab Bar)

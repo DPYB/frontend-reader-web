@@ -153,9 +153,9 @@ export default function Gnb() {
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
                 <NavLink to="/library" className="gnb-left" aria-label="내 서재로 이동">
                     <span className="gnb-logo-wrap">
-                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={24} height={24} decoding="async" />
+                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={28} height={28} decoding="async" />
                     </span>
-                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={110} height={22} decoding="async" />
+                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={135} height={27} decoding="async" />
                     {isGuest && (
                         <span className="gnb-guest-badge">
                             🐾 체험 모드
@@ -232,14 +232,12 @@ export default function Gnb() {
                                     )}
 
                                     <div className="gnb-sheet-actions">
-                                        <button className="gnb-sheet-btn gnb-sheet-btn--primary" onClick={() => goTo('/librarians')}>
-                                            <SparklesIcon />
-                                            <span>사서 프로필 & 변경</span>
-                                        </button>
+                                        <div className="gnb-sheet-action-row">
+                                            <button className="gnb-sheet-btn gnb-sheet-btn--primary" onClick={() => goTo('/librarians')}>
+                                                <SparklesIcon />
+                                                <span>사서 프로필</span>
+                                            </button>
 
-                                        {/* 프로필 메뉴 내 테마 빠른 토글 */}
-                                        <div className="gnb-sheet-theme-row">
-                                            <span className="gnb-sheet-theme-label">화면 테마</span>
                                             <div className="gnb-theme">
                                                 <button
                                                     className={theme === 'light' ? 'on' : undefined}
