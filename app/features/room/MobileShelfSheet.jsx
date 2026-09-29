@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toKoreanStatus } from '../../api/bookApi';
 import { genreLabel } from '../../data/genres';
+import { coverImageSrc, onFallbackCover } from '../../lib/coverImage';
 import './MobileShelfSheet.css';
 
 function CloseIcon() {
@@ -109,6 +110,8 @@ export default function MobileShelfSheet({
                                 const progressPct = Math.min(100, Math.max(0, Number(book.progress) || 0));
                                 const rawGenre = book.genre || book.displayGenre || book.subject;
                                 const displayGenre = genreLabel(rawGenre) || rawGenre;
+                                const rawCoverUrl = book.coverUrl || book.cover_url || book.coverImage || book.cover_image;
+                                const coverSrc = coverImageSrc(rawCoverUrl);
 
                                 return (
                                     <div
@@ -121,20 +124,21 @@ export default function MobileShelfSheet({
                                         role="button"
                                         tabIndex={0}
                                     >
-                                        {/* 책 표지 / 스파인 섬네일 */}
+                                        {/* 책 표지 / 스파인 섬네일 — 개별 책 상세와 동일한 이미지 규격 적용 */}
                                         <div
                                             className="mobile-shelf-book-cover"
                                             style={{
                                                 backgroundColor: book.coverColor || book.spineColor || 'var(--code-bg)',
                                             }}
                                         >
-                                            {book.coverImage ? (
-                                                <img src={book.coverImage} alt={book.title} width={48} height={68} decoding="async" />
-                                            ) : (
-                                                <div className="mobile-shelf-book-placeholder">
-                                                    <span>📖</span>
-                                                </div>
-                                            )}
+                                            <img
+                                                src={coverSrc}
+                                                alt={`${book.title || '도서'} 표지`}
+                                                width={48}
+                                                height={68}
+                                                decoding="async"
+                                                onError={onFallbackCover}
+                                            />
                                         </div>
 
                                         {/* 도서 메타 데이터 정보 */}
