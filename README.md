@@ -13,8 +13,8 @@
 flowchart TB
     Client["frontend-reader-web<br/>(Cloudflare Pages SPA)"]
     
-    Client -- "VITE_CORE_API_BASE_URL<br/>(/auth, /library, /books, /reading-sessions, /reports/monthly-stats)" --> Core["backend-core-api<br/>(FastAPI / Render)"]
-    Client -- "VITE_AI_API_BASE_URL<br/>(/chat/stream, /vision, /ocr, /reports/monthly, /classify-genre)" --> Agent["backend-ai-agent<br/>(LangGraph / Render)"]
+    Client -- "VITE_CORE_API_BASE_URL<br/>(/auth, /library, /books, /reading-sessions, /reports/monthly-stats)" --> Core["backend-core-api<br/>(FastAPI / Google Cloud Run)"]
+    Client -- "VITE_AI_API_BASE_URL<br/>(/chat/stream, /vision, /ocr, /reports/monthly, /classify-genre)" --> Agent["backend-ai-agent<br/>(LangGraph / Google Cloud Run)"]
 
     Core --> SupaDB[("Supabase PostgreSQL<br/>• member, core, record")]
     Core --> NL["국립중앙도서관 API"]

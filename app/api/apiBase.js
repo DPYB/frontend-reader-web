@@ -15,5 +15,10 @@
  * 같은 도메인 뒤에 리버스 프록시로 합쳐 배포하는 경우와 호환).
  */
 
-export const CORE_API_BASE = import.meta.env.VITE_CORE_API_BASE_URL || '/api/v1';
-export const AI_API_BASE = import.meta.env.VITE_AI_API_BASE_URL || '/api/v1';
+export const CORE_API_BASE =
+  import.meta.env.VITE_CORE_API_BASE_URL ||
+  (import.meta.env.DEV ? '/api/v1' : 'https://backend-core-api-708438247739.asia-northeast3.run.app/api/v1');
+
+export const AI_API_BASE =
+  import.meta.env.VITE_AI_API_BASE_URL ||
+  (import.meta.env.DEV ? '/api/v1' : 'https://backend-ai-agent-708438247739.asia-northeast3.run.app/api/v1');
