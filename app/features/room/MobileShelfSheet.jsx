@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toKoreanStatus } from '../../api/bookApi';
+import { genreLabel } from '../../data/genres';
 import './MobileShelfSheet.css';
 
 function CloseIcon() {
@@ -106,6 +107,8 @@ export default function MobileShelfSheet({
                             {shelfBooks.map((book) => {
                                 const statusText = toKoreanStatus(book.status || book.readingStatus);
                                 const progressPct = Math.min(100, Math.max(0, Number(book.progress) || 0));
+                                const rawGenre = book.genre || book.displayGenre || book.subject;
+                                const displayGenre = genreLabel(rawGenre) || rawGenre;
 
                                 return (
                                     <div
@@ -147,9 +150,9 @@ export default function MobileShelfSheet({
                                                 {book.author ? `✍️ ${book.author}` : '저자 정보 없음'}
                                             </p>
 
-                                            {(book.displayGenre || book.subject || book.genre) && (
+                                            {displayGenre && (
                                                 <span className="mobile-shelf-genre-tag">
-                                                    #{book.displayGenre || book.subject || book.genre}
+                                                    #{displayGenre}
                                                 </span>
                                             )}
 

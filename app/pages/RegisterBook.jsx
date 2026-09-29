@@ -134,6 +134,15 @@ export default function RegisterBook() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // 이미 등록된 책을 고치는 흐름(ocrBookId)은 신규 추가가 아니라 상한에서 제외한다.
   const isLibraryFull = !ocrBookId && books.length >= MAX_LIBRARY_BOOKS;
 
@@ -515,7 +524,7 @@ export default function RegisterBook() {
   const compactViewStyle = { fontSize: 18, color: 'var(--text-h)', lineHeight: 1.4, wordBreak: 'break-word' };
 
   return (
-    <div style={{ width: '100%', maxWidth: 1080, margin: '0 auto', padding: '36px 20px 80px', textAlign: 'left', boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', maxWidth: 1080, margin: '0 auto', padding: isMobile ? '20px 16px 100px' : '36px 20px 80px', textAlign: 'left', boxSizing: 'border-box' }}>
       <h2 style={{ textAlign: 'center', marginBottom: 16 }}>책 등록</h2>
 
       {fromRecommendation && (
@@ -546,7 +555,7 @@ export default function RegisterBook() {
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 34, alignItems: 'start', width: '100%' }}
+        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px minmax(0, 1fr)', gap: isMobile ? 24 : 34, alignItems: 'start', width: '100%' }}
       >
         {/*
           왼쪽: ISBN 바코드 촬영/업로드
@@ -748,13 +757,13 @@ export default function RegisterBook() {
               왼쪽에서 ISBN 바코드 번호를 촬영하거나 업로드하면 제목·저자를 자동으로 인식합니다.
             </p>
           ) : (
-            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 20, alignItems: isMobile ? 'center' : 'flex-start' }}>
               {/* 책 표지 — 고정폭으로 작게 두어 옆의 정보 항목들이 밀리지 않게 한다 */}
               <img
                 src={coverImageSrc(extraMeta.coverUrl)}
                 alt={title ? `${title} 표지` : '책 표지'}
                 style={{
-                  width: 130,
+                  width: isMobile ? 120 : 130,
                   flexShrink: 0,
                   height: 'auto',
                   display: 'block',
