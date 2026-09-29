@@ -48,6 +48,15 @@ export default function BookDetail({ book, onClose }) {
   const [detail, setDetail] = useState(null) // 서버 상세(전체 메타 — 저장 시 full payload에 필요)
   const [saving, setSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   // 우측 문장 갤러리의 편집 내용을 "완료" 시 함께 저장하기 위한 핸들 (CLIAR-241)
   const galleryRef = useRef(null)
 
@@ -209,12 +218,13 @@ export default function BookDetail({ book, onClose }) {
 
   const panelStyle = {
     ...basePanelStyle,
-    width: 'min(1000px, 94%)',
-    maxHeight: '88%',
-    // 내부(문장 갤러리)가 남은 높이를 다 쓰도록 flex 컨테이너로 둔다.
+    width: isMobile ? '94vw' : 'min(1000px, 94%)',
+    maxHeight: isMobile ? '90vh' : '88%',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden',
+    overflowY: isMobile ? 'auto' : 'hidden',
+    overflowX: 'hidden',
+    padding: isMobile ? 14 : 20,
   }
 
   const narrowPanelStyle = { ...basePanelStyle, width: 320, maxWidth: '90vw' }
@@ -300,13 +310,12 @@ export default function BookDetail({ book, onClose }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(240px, 300px) 1px minmax(0, 1fr)',
-          gap: 20,
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 300px) 1px minmax(0, 1fr)',
+          gap: isMobile ? 16 : 20,
           alignItems: 'stretch',
-          marginTop: 30,
-          minHeight: 320,
+          marginTop: isMobile ? 20 : 30,
+          minHeight: isMobile ? 'auto' : 320,
           flex: 1,
-          // 좌측 열이 길어도 갤러리가 넘치지 않도록 (내부에서 각자 스크롤)
           minWidth: 0,
         }}
       >
@@ -316,7 +325,7 @@ export default function BookDetail({ book, onClose }) {
             display: 'flex',
             flexDirection: 'column',
             minWidth: 0,
-            overflowY: 'auto',
+            overflowY: isMobile ? 'visible' : 'auto',
           }}
         >
           {/* 제목 */}
@@ -529,8 +538,10 @@ export default function BookDetail({ book, onClose }) {
         <div
           style={{
             background: 'var(--border)',
-            width: 1,
+            width: isMobile ? '100%' : 1,
+            height: isMobile ? 1 : 'auto',
             alignSelf: 'stretch',
+            margin: isMobile ? '6px 0' : 0,
           }}
         />
 
@@ -543,7 +554,7 @@ export default function BookDetail({ book, onClose }) {
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            overflow: isMobile ? 'visible' : 'hidden',
           }}
         >
           {/*
@@ -554,6 +565,7 @@ export default function BookDetail({ book, onClose }) {
           <div
             style={{
               display: 'flex',
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 8,
@@ -688,7 +700,7 @@ export default function BookDetail({ book, onClose }) {
           </div>
 
           {/* 탭 콘텐츠 본문 */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
+          <div style={{ flex: 1, minHeight: isMobile ? 320 : 0, overflow: isMobile ? 'visible' : 'hidden', display: 'flex' }}>
             {rightTab === 'scraps' ? (
               <ScrapGallery
                 key={`${book.bookId}-${scrapVersion}`}

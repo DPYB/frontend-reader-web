@@ -62,6 +62,15 @@ export default function SentenceCollectModal({ book, onClose }) {
   // backend-book이 scrapImageUrl을 필수로 요구하므로, 저장 시 이 값을 함께 보낸다.
   // 새 문장은 스캔을 해야 이 값이 생기고, 값이 없으면 저장할 수 없다.
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 문장 목록 로드 (서버)
   const reloadQuotes = useCallback(async () => {
@@ -224,13 +233,13 @@ export default function SentenceCollectModal({ book, onClose }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: 'min(1280px, 95vw)', maxHeight: '88vh', overflowY: 'auto',
+              width: isMobile ? '94vw' : 'min(1280px, 95vw)', maxHeight: isMobile ? '92vh' : '88vh', overflowY: 'auto',
               background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16,
-              padding: 24, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', color: 'var(--text-h)',
+              padding: isMobile ? 16 : 24, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', color: 'var(--text-h)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <h3 style={{ margin: 0, fontSize: 22 }}>📝 문장 수집 — {book.title}</h3>
+              <h3 style={{ margin: 0, fontSize: isMobile ? 19 : 22 }}>📝 문장 수집 — {book.title}</h3>
               <button
                 onClick={onClose}
                 style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}
@@ -239,7 +248,7 @@ export default function SentenceCollectModal({ book, onClose }) {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 320px', gap: 28, alignItems: 'start', width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px minmax(0, 1fr) 320px', gap: isMobile ? 20 : 28, alignItems: 'start', width: '100%' }}>
               {/* 왼쪽: OCR 촬영/선택 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <span style={{ fontWeight: 600, fontSize: 17 }}>문장 스캔</span>
@@ -427,7 +436,7 @@ export default function SentenceCollectModal({ book, onClose }) {
               {/* 오른쪽: 저장된 문장 목록 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <span style={{ fontWeight: 600, fontSize: 17 }}>저장된 문장 ({quotes.length})</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 480, overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: isMobile ? 'none' : 480, overflowY: isMobile ? 'visible' : 'auto' }}>
                   {quotesLoading && (
                     <div
                       style={{
