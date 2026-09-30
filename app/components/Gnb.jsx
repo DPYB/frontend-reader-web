@@ -153,18 +153,13 @@ export default function Gnb() {
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
                 <NavLink to="/library" className="gnb-left" aria-label="내 서재로 이동">
                     <span className="gnb-logo-wrap">
-                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={28} height={28} decoding="async" />
+                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={32} height={32} decoding="async" />
                     </span>
-                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={135} height={27} decoding="async" />
+                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={40} decoding="async" />
                     <span className="gnb-beta-badge gnb-beta-badge--desktop">
                         BETA
                     </span>
                 </NavLink>
-
-                {/* 모바일 상단 중앙 BETA 표시 */}
-                <div className="gnb-mobile-beta-wrap" aria-label="서비스 베타 버전">
-                    <span className="gnb-beta-badge gnb-beta-badge--mobile">BETA</span>
-                </div>
 
                 {/* 데스크톱 상단 중앙 메뉴 (모바일에서는 하단 탭바) */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
@@ -175,6 +170,11 @@ export default function Gnb() {
                 </nav>
 
                 <div className="gnb-right">
+                    {/* 모바일 상단: 테마 전환 버튼 왼쪽에 위치하는 BETA 뱃지 */}
+                    <span className="gnb-beta-badge gnb-beta-badge--mobile">
+                        BETA
+                    </span>
+
                     {/* 모바일 상단 우측: 라이트 / 다크 모드 즉시 전환 버튼 */}
                     <button
                         className="gnb-mobile-theme-btn"
