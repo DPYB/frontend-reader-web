@@ -315,8 +315,8 @@ export default function LoginPage() {
           className="login-bg-img"
           src="/login-bg.webp"
           alt="Don't Paw-get Your Book"
-          width={1920}
-          height={1080}
+          width={2560}
+          height={1440}
           decoding="async"
         />
 
