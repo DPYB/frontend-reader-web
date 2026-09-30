@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import { AUTH_BYPASS } from '../store/authBypass';
 import { ApiError } from '../api/authApi';
@@ -112,10 +112,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login, loginWithGoogle, loginWithKakao, loginAsGuest } = useAuth();
-  // 보호 라우트에서 리다이렉트된 경우 로그인 후 원래 위치로 복귀
-  const from = location.state?.from || '/library';
   const [eyeActive, setEyeActive] = useState(false);
   const [email, setEmail] = useState('');
   const [userPw, setUserPw] = useState('');
@@ -129,7 +126,7 @@ export default function LoginPage() {
     setError('');
     try {
       await loginAsGuest();
-      navigate(from, { replace: true });
+      navigate('/library', { replace: true });
     } catch (err) {
       setError(err?.message || '체험 모드 진입에 실패했습니다.');
     } finally {
@@ -167,7 +164,7 @@ export default function LoginPage() {
     setError('');
     try {
       await login({ email: email.trim(), password: userPw });
-      navigate(from, { replace: true });
+      navigate('/library', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 403 && err.code === 'EMAIL_NOT_VERIFIED') {
@@ -201,7 +198,7 @@ export default function LoginPage() {
       } else if (socialType === 'kakao') {
         await loginWithKakao(token);
       }
-      navigate(from, { replace: true });
+      navigate('/library', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message || '소셜 로그인 처리에 실패했습니다.');
@@ -211,7 +208,7 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [loginWithGoogle, loginWithKakao, navigate, from]);
+  }, [loginWithGoogle, loginWithKakao, navigate]);
 
   const handleGoogleClick = async () => {
     if (loading) return;

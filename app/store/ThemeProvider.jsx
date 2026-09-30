@@ -8,7 +8,7 @@ function loadTheme() {
   } catch {
     // 무시
   }
-  return 'dark'; // 기본값: 다크(손전등 모드)
+  return 'light'; // 기본값: 라이트 모드
 }
 
 export function ThemeProvider({ children }) {
