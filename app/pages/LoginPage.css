@@ -95,8 +95,8 @@
 }
 
 .login-layer-img--disabled {
-  opacity: 0.4;
-  filter: grayscale(0.5);
+  /* 불투명도/필터 변경 시 배경 이미지와 경계 차이로 좌표 박스가 드러나는 현상 방지 */
+  pointer-events: none;
 }
 
 /* 입력 필드 이미지: 투명하게 */
@@ -125,21 +125,34 @@
 
 .login-input-field:focus {
   background: transparent;
+  outline: none;
 }
 
 /* 히트 영역 */
 .login-hit-area {
   position: absolute;
   border: none;
-  background: none;
+  outline: none;
+  background: transparent;
   padding: 0;
   cursor: pointer;
   z-index: 6;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.login-hit-area:focus,
+.login-hit-area:focus-visible,
+.login-hit-area:active {
+  outline: none;
+  border: none;
+  box-shadow: none;
 }
 
 .login-hit-area--disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  outline: none;
 }
 
 .login-hit-area:active~.login-layer-img {

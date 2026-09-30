@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toKoreanStatus } from '../../api/bookApi';
 import { genreLabel } from '../../data/genres';
@@ -23,6 +23,69 @@ export default function MobileShelfSheet({
     onOpenBookDetail,
 }) {
     const navigate = useNavigate();
+
+    // 초기 시트 높이 (뷰포트 높이의 약 60%)
+    const [sheetHeight, setSheetHeight] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return Math.min(Math.round(window.innerHeight * 0.62), 560);
+        }
+        return 480;
+    });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef({
+        startY: 0,
+        startHeight: 0,
+        isDown: false,
+    });
+
+    // 화면 리사이즈 시 높이 경계값 보정
+    useEffect(() => {
+        const handleResize = () => {
+            setSheetHeight((prev) => {
+                const maxH = window.innerHeight * 0.92;
+                const minH = Math.min(320, window.innerHeight * 0.38);
+                return Math.max(minH, Math.min(maxH, prev));
+            });
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 상단 드래그 핸들 포인터 이벤트 핸들러
+    const handleDragStart = useCallback((e) => {
+        dragRef.current = {
+            isDown: true,
+            startY: e.clientY,
+            startHeight: sheetHeight,
+        };
+        setIsDragging(true);
+        try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+            // 무시
+        }
+    }, [sheetHeight]);
+
+    const handleDragMove = useCallback((e) => {
+        if (!dragRef.current.isDown) return;
+        const deltaY = dragRef.current.startY - e.clientY;
+        const vh = window.innerHeight;
+        const minH = Math.min(320, vh * 0.38);
+        const maxH = vh * 0.92;
+        const nextH = Math.max(minH, Math.min(maxH, dragRef.current.startHeight + deltaY));
+        setSheetHeight(nextH);
+    }, []);
+
+    const handleDragEnd = useCallback((e) => {
+        if (!dragRef.current.isDown) return;
+        dragRef.current.isDown = false;
+        setIsDragging(false);
+        try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+            // 무시
+        }
+    }, []);
 
     // 5개 선반 목록
     const shelves = [0, 1, 2, 3, 4];
@@ -50,9 +113,25 @@ export default function MobileShelfSheet({
             {/* 모바일 바텀시트 딤 배경 */}
             <div className="mobile-shelf-backdrop" onClick={onClose} aria-hidden="true" />
 
-            <div className="mobile-shelf-sheet" role="dialog" aria-modal="true" aria-label={`${shelfNumber}번 선반 도서 목록`}>
-                {/* 상단 드래그 핸들 */}
-                <div className="mobile-shelf-handle" />
+            <div
+                className={`mobile-shelf-sheet${isDragging ? ' is-dragging' : ''}`}
+                style={{ height: `${sheetHeight}px` }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${shelfNumber}번 선반 도서 목록`}
+            >
+                {/* 상단 드래그 핸들 터치 영역 */}
+                <div
+                    className="mobile-shelf-handle-area"
+                    onPointerDown={handleDragStart}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                    onPointerCancel={handleDragEnd}
+                    title="위아래로 드래그하여 창 크기 조절"
+                    aria-label="선반 창 높이 조절"
+                >
+                    <div className="mobile-shelf-handle" />
+                </div>
 
                 {/* 선반 선택 탭 바 (1번~5번 선반) */}
                 <div className="mobile-shelf-header">
