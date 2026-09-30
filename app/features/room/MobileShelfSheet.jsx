@@ -14,6 +14,21 @@ function CloseIcon() {
     );
 }
 
+function getDefaultHeight() {
+    if (typeof window !== 'undefined') {
+        return Math.min(Math.round(window.innerHeight * 0.54), 480);
+    }
+    return 440;
+}
+
+function getExpandedHeight() {
+    if (typeof window !== 'undefined') {
+        // 상단 GNB / 서비스 이름 바로 아래까지 (약 56px 여백 확보)
+        return Math.max(380, window.innerHeight - 56);
+    }
+    return 700;
+}
+
 export default function MobileShelfSheet({
     activeShelfIdx,
     onSelectShelf,
@@ -24,32 +39,37 @@ export default function MobileShelfSheet({
 }) {
     const navigate = useNavigate();
 
-    // 초기 시트 높이 (뷰포트 높이의 약 60%)
-    const [sheetHeight, setSheetHeight] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return Math.min(Math.round(window.innerHeight * 0.62), 560);
-        }
-        return 480;
-    });
+    // 2가지 높이 상태: default(기본 54vh) / expanded(서비스 이름 아래까지)
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [sheetHeight, setSheetHeight] = useState(getDefaultHeight);
+    const [prevShelfIdx, setPrevShelfIdx] = useState(activeShelfIdx);
     const [isDragging, setIsDragging] = useState(false);
     const dragRef = useRef({
         startY: 0,
         startHeight: 0,
         isDown: false,
+        hasMoved: false,
     });
 
-    // 화면 리사이즈 시 높이 경계값 보정
+    // 닫고 다시 열거나 선반 탭을 변경할 때마다 항상 기본(default) 높이로 리셋
+    if (activeShelfIdx !== prevShelfIdx) {
+        setPrevShelfIdx(activeShelfIdx);
+        setIsExpanded(false);
+        setSheetHeight(getDefaultHeight());
+    }
+
+    // 화면 리사이즈 시 높이 보정
     useEffect(() => {
         const handleResize = () => {
-            setSheetHeight((prev) => {
-                const maxH = window.innerHeight * 0.92;
-                const minH = Math.min(320, window.innerHeight * 0.38);
-                return Math.max(minH, Math.min(maxH, prev));
-            });
+            if (isExpanded) {
+                setSheetHeight(getExpandedHeight());
+            } else {
+                setSheetHeight(getDefaultHeight());
+            }
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [isExpanded]);
 
     // 상단 드래그 핸들 포인터 이벤트 핸들러
     const handleDragStart = useCallback((e) => {
@@ -57,6 +77,7 @@ export default function MobileShelfSheet({
             isDown: true,
             startY: e.clientY,
             startHeight: sheetHeight,
+            hasMoved: false,
         };
         setIsDragging(true);
         try {
@@ -69,15 +90,19 @@ export default function MobileShelfSheet({
     const handleDragMove = useCallback((e) => {
         if (!dragRef.current.isDown) return;
         const deltaY = dragRef.current.startY - e.clientY;
-        const vh = window.innerHeight;
-        const minH = Math.min(320, vh * 0.38);
-        const maxH = vh * 0.92;
+        if (Math.abs(deltaY) > 5) {
+            dragRef.current.hasMoved = true;
+        }
+        const minH = Math.min(260, window.innerHeight * 0.32);
+        const maxH = getExpandedHeight();
         const nextH = Math.max(minH, Math.min(maxH, dragRef.current.startHeight + deltaY));
         setSheetHeight(nextH);
     }, []);
 
     const handleDragEnd = useCallback((e) => {
         if (!dragRef.current.isDown) return;
+        const deltaY = dragRef.current.startY - (e.clientY ?? dragRef.current.startY);
+        const wasMoved = dragRef.current.hasMoved;
         dragRef.current.isDown = false;
         setIsDragging(false);
         try {
@@ -85,7 +110,39 @@ export default function MobileShelfSheet({
         } catch {
             // 무시
         }
-    }, []);
+
+        const defaultH = getDefaultHeight();
+        const expandedH = getExpandedHeight();
+
+        // 탭/클릭만 한 경우 (드래그 없이 터치): 토글
+        if (!wasMoved) {
+            setIsExpanded((prev) => {
+                const next = !prev;
+                setSheetHeight(next ? expandedH : defaultH);
+                return next;
+            });
+            return;
+        }
+
+        // 2가지 범위 스냅 판정: 위로 드래그 시 확장(서비스 이름 아래), 아래로 드래그 시 기본 높이
+        if (!isExpanded) {
+            if (deltaY > 30) {
+                setIsExpanded(true);
+                setSheetHeight(expandedH);
+            } else if (deltaY < -100) {
+                onClose();
+            } else {
+                setSheetHeight(defaultH);
+            }
+        } else {
+            if (deltaY < -30) {
+                setIsExpanded(false);
+                setSheetHeight(defaultH);
+            } else {
+                setSheetHeight(expandedH);
+            }
+        }
+    }, [isExpanded, onClose]);
 
     // 5개 선반 목록
     const shelves = [0, 1, 2, 3, 4];

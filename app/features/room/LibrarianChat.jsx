@@ -1037,7 +1037,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                 >
                   <span className="lc-mobile-menu-item-icon">✨</span>
                   <div className="lc-mobile-menu-item-text">
-                    <strong>사서 프로필 & 변경</strong>
+                    <strong>사서 프로필 <span className="lc-ampersand">&amp;</span> 변경</strong>
                     <span>다른 사서 프로필 둘러보기</span>
                   </div>
                 </button>

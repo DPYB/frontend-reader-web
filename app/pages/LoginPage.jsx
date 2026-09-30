@@ -19,13 +19,13 @@ const BUTTONS = [
   {
     id: 'signup',
     src: '/button/signup_btn.webp',
-    tooltip: '회원가입',
+    tooltip: '회원가입 (BETA 기간 준비 중)',
     left: 40.9, top: 61.5, width: 7.8, height: 8.5,
   },
   {
     id: 'password',
     src: '/button/forgotpw_btn.webp',
-    tooltip: '비밀번호 찾기',
+    tooltip: '비밀번호 찾기 (BETA 기간 준비 중)',
     left: 50.2, top: 62.1, width: 4.3, height: 7.2,
   },
   {
@@ -82,7 +82,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
   return (
     <>
       <img
-        className={`login-layer-img${hovered || active ? ' login-layer-img--hover' : ''}${disabled ? ' login-layer-img--disabled' : ''}`}
+        className={`login-layer-img${!disabled && (hovered || active) ? ' login-layer-img--hover' : ''}${disabled ? ' login-layer-img--disabled' : ''}`}
         src={btn.src}
         alt=""
         width={2560}
@@ -104,7 +104,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
         disabled={disabled}
         aria-label={btn.tooltip}
       >
-        {hovered && !disabled && <span className="login-hit-tooltip">{btn.tooltip}</span>}
+        {hovered && <span className="login-hit-tooltip">{btn.tooltip}</span>}
       </button>
     </>
   );
@@ -271,10 +271,8 @@ export default function LoginPage() {
         handleLogin();
         break;
       case 'signup':
-        navigate('/signup');
-        break;
       case 'password':
-        navigate('/password/forgot');
+        // BETA 테스트 기간 동안 회원가입 및 비밀번호 찾기 비활성화
         break;
       case 'eye':
         handleEyeClick();
@@ -291,8 +289,9 @@ export default function LoginPage() {
     }
   };
 
-  /** 버튼별 비활성 조건 — 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
+  /** 버튼별 비활성 조건 — 회원가입/비밀번호찾기(BETA 비활성), 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
   const isButtonDisabled = (id) => {
+    if (id === 'signup' || id === 'password') return true;
     if (id === 'login') return !isLoginEnabled;
     if (id === 'google' || id === 'kakao' || id === 'dpyb') return loading;
     return false;
