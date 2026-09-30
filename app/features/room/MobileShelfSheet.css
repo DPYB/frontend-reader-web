@@ -23,7 +23,8 @@
     left: 0;
     right: 0;
     width: 100%;
-    max-height: 80vh;
+    min-height: 280px;
+    max-height: 94vh;
     border-radius: 20px 20px 0 0;
     border: 1px solid var(--border);
     border-bottom: none;
@@ -32,9 +33,15 @@
     z-index: 101;
     display: flex;
     flex-direction: column;
-    padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
     animation: mobileShelfSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-shelf-sheet.is-dragging {
+    transition: none;
+    user-select: none;
 }
 
 @keyframes mobileShelfSlideUp {
@@ -46,13 +53,30 @@
     }
 }
 
-.mobile-shelf-handle {
-    width: 40px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border);
-    margin: 0 auto 10px;
+.mobile-shelf-handle-area {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0 10px;
+    cursor: ns-resize;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
+}
+
+.mobile-shelf-handle {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background 0.15s ease, width 0.15s ease;
+}
+
+.mobile-shelf-handle-area:hover .mobile-shelf-handle,
+.mobile-shelf-sheet.is-dragging .mobile-shelf-handle {
+    background: var(--accent);
+    width: 56px;
 }
 
 .mobile-shelf-header {
@@ -155,8 +179,8 @@
 /* 수직 상하 스크롤 리스트 바디 */
 .mobile-shelf-body {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    max-height: calc(65vh - 110px);
     padding-right: 2px;
     -webkit-overflow-scrolling: touch;
 }
@@ -166,8 +190,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 36px 16px;
+    padding: 24px 16px 36px;
     text-align: center;
+    min-height: 180px;
 }
 
 .mobile-shelf-empty-icon {
@@ -190,15 +215,18 @@
 }
 
 .mobile-shelf-register-btn {
-    padding: 10px 18px;
+    padding: 12px 24px;
+    margin-top: 4px;
+    margin-bottom: 20px;
     border: 1px solid var(--accent);
     border-radius: 999px;
     background: var(--accent-bg);
     color: var(--accent);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .mobile-shelf-register-btn:active {
