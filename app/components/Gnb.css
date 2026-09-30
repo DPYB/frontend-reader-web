@@ -121,16 +121,26 @@
     object-fit: contain;
 }
 
-.gnb-guest-badge {
-    margin-left: 2px;
-    padding: 3px 8px;
+.gnb-beta-badge {
+    margin-left: 4px;
+    padding: 2px 8px;
     background: var(--accent-bg, rgba(255, 154, 60, 0.15));
     border: 1px solid var(--accent-border, rgba(255, 154, 60, 0.5));
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
     color: var(--accent, #ff9a3c);
     white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.gnb-mobile-beta-wrap {
+    display: none;
+}
+
+.gnb-mobile-theme-btn {
+    display: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -590,9 +600,26 @@
         height: 22px;
     }
 
-    .gnb-guest-badge {
+    /* 데스크톱 로고 옆 BETA 숨기고 모바일 중앙 BETA 표시 */
+    .gnb-beta-badge--desktop {
+        display: none;
+    }
+
+    .gnb-mobile-beta-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    .gnb-beta-badge--mobile {
         font-size: 11px;
-        padding: 2px 6px;
+        padding: 2px 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .gnb-menu {
@@ -603,31 +630,32 @@
         display: none;
     }
 
-    /* 모바일 프로필 아바타 버튼 (원형 테두리가 오른쪽으로 잘리지 않도록 크기 및 패딩 정돈) */
-    .gnb-profile-btn {
-        padding: 3px;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: var(--code-bg);
-        border: 1.5px solid var(--accent);
+    /* 모바일 상단 우측: 라이트 / 다크 모드 토글 버튼 노출 */
+    .gnb-mobile-theme-btn {
+        display: flex;
+        align-items: center;
         justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        padding: 0;
         box-sizing: border-box;
     }
 
-    .gnb-profile-name {
+    .gnb-mobile-theme-btn:active {
+        transform: scale(0.92);
+        border-color: var(--accent);
+        background: var(--accent-bg);
+    }
+
+    /* 모바일에서는 상단 오른쪽 사서 프로필 버튼 숨김 (하단 플로팅 버튼으로 일원화) */
+    .gnb-profile-wrap {
         display: none;
-    }
-
-    .gnb-profile-avatar-wrap {
-        width: 30px;
-        height: 30px;
-    }
-
-    .gnb-profile {
-        width: 30px;
-        height: 30px;
-        border: none;
     }
 
     /* ----------------------------------------------------------------------

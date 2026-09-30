@@ -140,6 +140,9 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   // 모바일 뷰포트 (<= 768px) 감지
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
+  // 모바일 사서 플로팅 버튼 클릭 시 미니 메뉴(사서 변경 / 사서와 대화하기) 팝업 상태
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
   // 모바일 FAB 위치 상태 (x, y)
   const [fabPos, setFabPos] = useState(null);
   const dragInfoRef = useRef({ isDragging: false, startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false });
@@ -960,43 +963,106 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     }
 
     if (!dragInfoRef.current.hasMoved) {
-      setOpen(true);
+      setShowMobileMenu((prev) => !prev);
     }
   };
 
   // 닫힌 상태 (open === false)
   if (!open) {
     if (isMobile) {
+      const fabX = fabPos?.x ?? (window.innerWidth - 68);
+      const fabY = fabPos?.y ?? (window.innerHeight - 190);
+      const isNearRight = fabX > window.innerWidth / 2;
+
       return (
-        <button
-          type="button"
-          className="lc-mobile-fab"
-          style={{
-            position: 'fixed',
-            left: fabPos?.x ?? (window.innerWidth - 68),
-            top: fabPos?.y ?? (window.innerHeight - 190),
-            zIndex: 85,
-          }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          aria-label="사서에게 질문하기 (드래그하여 이동 가능)"
-          title="사서에게 질문하기 (터치하여 열기, 드래그하여 이동)"
-        >
-          <img
-            src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
-            alt="DPYB 로고"
-            className="lc-mobile-fab-logo"
-            width={34}
-            height={34}
-            decoding="async"
-            draggable={false}
-          />
-          <span className="lc-mobile-fab-badge" aria-hidden="true">
-            {librarian.icon || '🐾'}
-          </span>
-        </button>
+        <>
+          {showMobileMenu && (
+            <div
+              className="lc-mobile-menu-backdrop"
+              onClick={() => setShowMobileMenu(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          <div
+            className="lc-mobile-fab-wrap"
+            style={{
+              position: 'fixed',
+              left: fabX,
+              top: fabY,
+              zIndex: 85,
+            }}
+          >
+            {/* 사서 프로필 플로팅 버튼 */}
+            <button
+              type="button"
+              className={`lc-mobile-fab${showMobileMenu ? ' active' : ''}`}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              aria-label={`${librarian.displayName || librarian.name} 사서 메뉴 (드래그하여 이동 가능)`}
+              title="사서 메뉴 (터치하여 열기, 드래그하여 이동)"
+            >
+              <img
+                src={librarian.profileImage}
+                alt={`${librarian.displayName || librarian.name} 사서 프로필`}
+                className="lc-mobile-fab-avatar"
+                width={48}
+                height={48}
+                decoding="async"
+                draggable={false}
+              />
+              <span className="lc-mobile-fab-badge" aria-hidden="true">
+                {librarian.icon || '🐾'}
+              </span>
+            </button>
+
+            {/* 사서 탭 시 노출되는 2가지 미니 메뉴 (사서 변경, 사서와 대화하기) */}
+            {showMobileMenu && (
+              <div
+                className={`lc-mobile-mini-menu ${isNearRight ? 'align-right' : 'align-left'}`}
+                role="menu"
+                aria-label="사서 퀵 메뉴"
+              >
+                <div className="lc-mobile-menu-header">
+                  <strong>{librarian.displayName || librarian.name} 사서</strong>
+                  <span>{librarian.species}</span>
+                </div>
+                <button
+                  type="button"
+                  className="lc-mobile-menu-item"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/librarians');
+                  }}
+                  role="menuitem"
+                >
+                  <span className="lc-mobile-menu-item-icon">✨</span>
+                  <div className="lc-mobile-menu-item-text">
+                    <strong>사서 변경</strong>
+                    <span>다른 사서 프로필 둘러보기</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="lc-mobile-menu-item lc-mobile-menu-item--primary"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    setOpen(true);
+                  }}
+                  role="menuitem"
+                >
+                  <span className="lc-mobile-menu-item-icon">💬</span>
+                  <div className="lc-mobile-menu-item-text">
+                    <strong>사서와 대화하기</strong>
+                    <span>도서 추천·검색·독서 토론</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       );
     }
 
