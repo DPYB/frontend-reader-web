@@ -1013,12 +1013,9 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                 decoding="async"
                 draggable={false}
               />
-              <span className="lc-mobile-fab-badge" aria-hidden="true">
-                {librarian.icon || '🐾'}
-              </span>
             </button>
 
-            {/* 사서 탭 시 노출되는 2가지 미니 메뉴 (사서 변경, 사서와 대화하기) */}
+            {/* 사서 탭 시 노출되는 2가지 미니 메뉴 (사서 프로필 & 변경, 사서와 대화하기) */}
             {showMobileMenu && (
               <div
                 className={`lc-mobile-mini-menu ${isNearRight ? 'align-right' : 'align-left'}`}
@@ -1027,7 +1024,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
               >
                 <div className="lc-mobile-menu-header">
                   <strong>{librarian.displayName || librarian.name} 사서</strong>
-                  <span>{librarian.species}</span>
+                  <span>{librarian.specialtyGenre || librarian.species}</span>
                 </div>
                 <button
                   type="button"
@@ -1040,7 +1037,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                 >
                   <span className="lc-mobile-menu-item-icon">✨</span>
                   <div className="lc-mobile-menu-item-text">
-                    <strong>사서 변경</strong>
+                    <strong>사서 프로필 & 변경</strong>
                     <span>다른 사서 프로필 둘러보기</span>
                   </div>
                 </button>
@@ -1092,7 +1089,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
             cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: 22 }}>{librarian.icon}</span>
+          <span style={{ fontSize: 20 }}>💬</span>
           사서에게 질문하기
         </button>
       </div>

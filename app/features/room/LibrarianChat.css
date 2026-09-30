@@ -829,12 +829,12 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mobile Mini Quick Action Menu (사서 변경 / 사서와 대화하기)
+   Mobile Mini Quick Action Menu (사서 프로필 & 변경 / 사서와 대화하기)
    -------------------------------------------------------------------------- */
 .lc-mobile-mini-menu {
   position: absolute;
   bottom: calc(100% + 12px);
-  width: 220px;
+  width: 240px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -872,6 +872,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 4px 8px 6px;
   border-bottom: 1px solid var(--border);
 }
@@ -880,12 +881,16 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--text-h);
+  white-space: nowrap;
 }
 
 .lc-mobile-menu-header span {
   font-size: 11px;
   color: var(--accent);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lc-mobile-menu-item {
