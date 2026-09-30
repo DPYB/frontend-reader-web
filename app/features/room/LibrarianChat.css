@@ -752,54 +752,195 @@
 }
 
 /* ==========================================================================
-   Mobile Floating Action Button (FAB) - Draggable Chat Trigger
+   Mobile Floating Action Button (FAB) & Mini Action Menu
    ========================================================================== */
+
+.lc-mobile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 80;
+  animation: lcMenuFadeIn 0.2s ease;
+}
+
+@keyframes lcMenuFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lc-mobile-fab-wrap {
+  z-index: 85;
+}
 
 .lc-mobile-fab {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 2px solid var(--accent);
+  border: 2.5px solid var(--accent);
   background: var(--bg);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), 0 0 10px var(--accent-bg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), 0 0 12px var(--accent-bg);
   cursor: grab;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   padding: 0;
   position: relative;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .lc-mobile-fab:active {
   cursor: grabbing;
-  transform: scale(1.08);
+  transform: scale(1.06);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 16px var(--accent);
 }
 
-.lc-mobile-fab-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
+.lc-mobile-fab.active {
+  border-color: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 20px var(--accent);
+}
+
+.lc-mobile-fab-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
   pointer-events: none;
+  display: block;
 }
 
 .lc-mobile-fab-badge {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
-  background: var(--code-bg);
-  border: 1.5px solid var(--border);
+  background: var(--bg);
+  border: 1.5px solid var(--accent);
   border-radius: 50%;
-  padding: 2px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  padding: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Mini Quick Action Menu (사서 변경 / 사서와 대화하기)
+   -------------------------------------------------------------------------- */
+.lc-mobile-mini-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  width: 220px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 90;
+  animation: lcMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lc-mobile-mini-menu.align-right {
+  right: 0;
+  transform-origin: bottom right;
+}
+
+.lc-mobile-mini-menu.align-left {
+  left: 0;
+  transform-origin: bottom left;
+}
+
+@keyframes lcMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lc-mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lc-mobile-menu-header strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.lc-mobile-menu-header span {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lc-mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lc-mobile-menu-item:active {
+  transform: scale(0.96);
+}
+
+.lc-mobile-menu-item-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.lc-mobile-menu-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lc-mobile-menu-item-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.lc-mobile-menu-item-text span {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-mobile-menu-item--primary {
+  background: var(--accent-bg);
+  border-color: var(--accent-border, var(--accent));
+}
+
+.lc-mobile-menu-item--primary .lc-mobile-menu-item-text strong {
+  color: var(--accent);
 }
 
 /* 모바일 열린 패널 애니메이션 */

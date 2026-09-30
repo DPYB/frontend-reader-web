@@ -91,7 +91,7 @@ function CloseIcon() {
 export default function Gnb() {
     const { theme, setTheme } = useTheme();
     const { librarian } = useLibrarian();
-    const { logout, isGuest } = useAuth();
+    const { logout } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const profileWrapRef = useRef(null);
@@ -156,12 +156,15 @@ export default function Gnb() {
                         <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={28} height={28} decoding="async" />
                     </span>
                     <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={135} height={27} decoding="async" />
-                    {isGuest && (
-                        <span className="gnb-guest-badge">
-                            🐾 체험 모드
-                        </span>
-                    )}
+                    <span className="gnb-beta-badge gnb-beta-badge--desktop">
+                        BETA
+                    </span>
                 </NavLink>
+
+                {/* 모바일 상단 중앙 BETA 표시 */}
+                <div className="gnb-mobile-beta-wrap" aria-label="서비스 베타 버전">
+                    <span className="gnb-beta-badge gnb-beta-badge--mobile">BETA</span>
+                </div>
 
                 {/* 데스크톱 상단 중앙 메뉴 (모바일에서는 하단 탭바) */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
@@ -172,6 +175,16 @@ export default function Gnb() {
                 </nav>
 
                 <div className="gnb-right">
+                    {/* 모바일 상단 우측: 라이트 / 다크 모드 즉시 전환 버튼 */}
+                    <button
+                        className="gnb-mobile-theme-btn"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                        title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                    >
+                        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+                    </button>
+
                     {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
                         {loggingOut ? '로그아웃 중...' : '로그아웃'}
