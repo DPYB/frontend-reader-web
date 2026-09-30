@@ -257,16 +257,13 @@ export default function LibraryScene() {
     };
   }, [calibrating]);
 
-  // 모바일 진입 시 서재 씬 중앙(중앙 선반)이 기본 노출되도록 초기 가로 스크롤 정렬
+  // 모바일 진입 시 서재 씬 제일 왼쪽(1번 선반)부터 노출되도록 초기 가로 스크롤 정렬
   useEffect(() => {
     if (!isMobile) return;
     const timer = setTimeout(() => {
       const el = sceneRef.current;
       if (el) {
-        const maxScroll = el.scrollWidth - el.clientWidth;
-        if (maxScroll > 0) {
-          el.scrollLeft = maxScroll / 2;
-        }
+        el.scrollLeft = 0;
       }
     }, 60);
     return () => clearTimeout(timer);

@@ -200,18 +200,18 @@ export default function BookDetail({ book, onClose }) {
    * 삭제 확인 등 단독 화면은 좁은 폭(narrowPanelStyle)을 그대로 쓴다.
    */
   const basePanelStyle = {
-    position: 'absolute',
-    top: '50%',
+    position: 'fixed',
+    top: isMobile ? 'calc(58px + env(safe-area-inset-top, 0px))' : '50%',
     left: '50%',
-    transform: 'translate(-50%, -50%)',
+    transform: isMobile ? 'translateX(-50%)' : 'translate(-50%, -50%)',
     boxSizing: 'border-box',
     background: 'var(--bg)',
     border: '1px solid var(--border)',
-    borderRadius: 14,
-    padding: 20,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
+    borderRadius: 16,
+    padding: isMobile ? '14px 14px 18px' : 20,
+    boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
     color: 'var(--text-h)',
-    zIndex: 25,
+    zIndex: 95,
     fontSize: 18,
     lineHeight: 1.6,
   }
@@ -219,15 +219,21 @@ export default function BookDetail({ book, onClose }) {
   const panelStyle = {
     ...basePanelStyle,
     width: isMobile ? '94vw' : 'min(1000px, 94%)',
-    maxHeight: isMobile ? '90vh' : '88%',
+    maxHeight: isMobile ? 'calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))' : '88%',
     display: 'flex',
     flexDirection: 'column',
     overflowY: isMobile ? 'auto' : 'hidden',
     overflowX: 'hidden',
-    padding: isMobile ? 14 : 20,
   }
 
-  const narrowPanelStyle = { ...basePanelStyle, width: 320, maxWidth: '90vw' }
+  const narrowPanelStyle = {
+    ...basePanelStyle,
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 320,
+    maxWidth: '90vw',
+    zIndex: 105,
+  }
 
   const btnStyle = {
     padding: '6px 12px',
@@ -285,187 +291,215 @@ export default function BookDetail({ book, onClose }) {
   }
 
   return (
-    <div style={panelStyle}>
-      {/* 닫기 — 최상단 오른쪽 (사용자 요청, 2026-09) */}
-      <button
+    <>
+      {/* 모달 딤 배경 */}
+      <div
         onClick={onClose}
         style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--text)',
-          cursor: 'pointer',
-          fontSize: 20,
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.55)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          zIndex: 90,
         }}
-      >
-        ✕
-      </button>
+        aria-hidden="true"
+      />
 
-      {/*
-       * 2단 레이아웃 (CLIAR-241): 왼쪽은 기존 책 상세, 오른쪽은 수집한 문장 갤러리.
-       * 가운데 세로 구분선으로 영역을 나눈다.
-       */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 300px) 1px minmax(0, 1fr)',
-          gap: isMobile ? 16 : 20,
-          alignItems: 'stretch',
-          marginTop: isMobile ? 20 : 30,
-          minHeight: isMobile ? 'auto' : 320,
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
-        {/* ── 왼쪽: 책 상세 ── */}
-        <div
+      <div style={panelStyle}>
+        {/* 닫기 — 최상단 오른쪽 (사용자 요청, 2026-09) */}
+        <button
+          onClick={onClose}
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            minWidth: 0,
-            overflowY: isMobile ? 'visible' : 'auto',
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text)',
+            cursor: 'pointer',
+            fontSize: 20,
           }}
         >
-          {/* 제목 */}
-          <h3
-            style={{
-              margin: '0 0 6px',
-              fontSize: 21,
-              fontWeight: 700,
-              wordBreak: 'break-word',
-            }}
-          >
-            {book.title}
-          </h3>
+          ✕
+        </button>
 
-          {/* 책 표지 — 제목 바로 아래 가운데 정렬. 표지 URL이 없으면 기본 표지를 쓴다 */}
-          <div style={{ marginBottom: 12 }}>
-            <img
-              src={coverImageSrc(coverUrl)}
-              alt={`${book.title} 표지`}
-              style={{
-                width: '70%',
-                height: 'auto',
-                display: 'block',
-                margin: '0 auto',
-                background: '#fff',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-              }}
-              onError={onFallbackCover}
-            />
-          </div>
-
-          {/*
-           * 표지 아래 메타 정보 한 줄 (저자·장르·진행 상태·페이지) — CLIAR-241.
-           * 좁은 좌측 열에 맞춰 flex-wrap으로 가로 배치하고 폰트를 줄여 컴팩트하게 둔다.
-           * 장르·총 페이지 수는 등록 시 자동 인식되는 읽기 전용 값이다.
-           * 현재 페이지는 수정 모드와 무관하게 입력·엔터로 바로 저장된다.
-           */}
+        {/*
+         * 2단 레이아웃 (CLIAR-241): 왼쪽은 기존 책 상세, 오른쪽은 수집한 문장 갤러리.
+         * 가운데 세로 구분선으로 영역을 나눈다.
+         */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 300px) 1px minmax(0, 1fr)',
+            gap: isMobile ? 16 : 20,
+            alignItems: 'stretch',
+            marginTop: isMobile ? 12 : 24,
+            minHeight: isMobile ? 'auto' : 320,
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {/* ── 왼쪽: 책 상세 ── */}
           <div
             style={{
               display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '6px 8px',
-              marginBottom: 6,
-              fontSize: 16,
+              flexDirection: 'column',
+              minWidth: 0,
+              overflowY: isMobile ? 'visible' : 'auto',
             }}
           >
-            {/* 저자 */}
-            <span style={{ color: 'var(--text)' }}>
-              {book.author || '저자 미입력'}
-            </span>
-
-            {/* 장르 */}
-            <span
-              style={{
-                padding: '2px 8px',
-                borderRadius: 999,
-                border: '1px solid var(--accent-border)',
-                background: 'var(--accent-bg)',
-                color: 'var(--text-h)',
-              }}
-            >
-              {genreLabel(genre) || '장르 미지정'}
-            </span>
-
-            {/* 진행 상태 */}
-            {editing ? (
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                aria-label="진행 상태"
+            {/* 도서 기본 정보 헤더: 제목 + 저자 (명확하고 직관적인 UI 배치) */}
+            <div style={{ marginBottom: 10, textAlign: 'center' }}>
+              <h3
                 style={{
-                  padding: '2px 6px',
-                  borderRadius: 8,
-                  fontSize: 16,
-                  border: '1px solid var(--border)',
-                  background: 'var(--code-bg)',
+                  margin: '0 0 4px',
+                  fontSize: isMobile ? 18 : 21,
+                  fontWeight: 700,
                   color: 'var(--text-h)',
+                  wordBreak: 'keep-all',
+                  lineHeight: 1.35,
                 }}
               >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            ) : (
+                {book.title}
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: isMobile ? 13 : 15,
+                  color: 'var(--text)',
+                  opacity: 0.9,
+                  fontWeight: 500,
+                }}
+              >
+                ✍️ {book.author || '저자 미입력'}
+              </p>
+            </div>
+
+            {/* 책 표지 — 기존 대비 10% 축소 (width: 54%~63%) */}
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={coverImageSrc(coverUrl)}
+                alt={`${book.title} 표지`}
+                style={{
+                  width: isMobile ? '54%' : '63%',
+                  maxHeight: isMobile ? 180 : 250,
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  background: '#fff',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                }}
+                onError={onFallbackCover}
+              />
+            </div>
+
+            {/*
+             * 표지 아래 메타 정보 칩 (장르·진행 상태·페이지) — CLIAR-241.
+             */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px 8px',
+                marginBottom: 8,
+                fontSize: 15,
+              }}
+            >
+              {/* 장르 */}
               <span
                 style={{
                   padding: '2px 8px',
                   borderRadius: 999,
-                  border: '1px solid var(--border)',
+                  border: '1px solid var(--accent-border)',
+                  background: 'var(--accent-bg)',
                   color: 'var(--text-h)',
+                  fontSize: 13,
+                  fontWeight: 600,
                 }}
               >
-                {status}
+                #{genreLabel(genre) || '장르 미지정'}
               </span>
-            )}
 
-            {/* 페이지 📖 */}
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                color: 'var(--text)',
-              }}
-            >
-              📖
-              <input
-                type="number"
-                min={0}
-                max={Number(totalPage) || undefined}
-                value={currentPage}
-                onChange={(e) => setCurrentPage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleSaveProgress()
-                  }
-                }}
-                disabled={savingProgress}
-                aria-label="현재 읽은 페이지"
+              {/* 진행 상태 */}
+              {editing ? (
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  aria-label="진행 상태"
+                  style={{
+                    padding: '2px 6px',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    border: '1px solid var(--border)',
+                    background: 'var(--code-bg)',
+                    color: 'var(--text-h)',
+                  }}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-h)',
+                    fontSize: 13,
+                  }}
+                >
+                  {status}
+                </span>
+              )}
+
+              {/* 페이지 📖 */}
+              <span
                 style={{
-                  width: 46,
-                  boxSizing: 'border-box',
-                  padding: '2px 4px',
-                  borderRadius: 6,
-                  fontSize: 16,
-                  textAlign: 'right',
-                  border: '1px solid var(--border)',
-                  background: 'var(--code-bg)',
-                  color: 'var(--text-h)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: 'var(--text)',
+                  fontSize: 14,
                 }}
-              />
-              <span>/ {Number(totalPage) > 0 ? totalPage : '-'} 쪽</span>
-            </span>
-          </div>
+              >
+                📖
+                <input
+                  type="number"
+                  min={0}
+                  max={Number(totalPage) || undefined}
+                  value={currentPage}
+                  onChange={(e) => setCurrentPage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleSaveProgress()
+                    }
+                  }}
+                  disabled={savingProgress}
+                  aria-label="현재 읽은 페이지"
+                  style={{
+                    width: 46,
+                    boxSizing: 'border-box',
+                    padding: '2px 4px',
+                    borderRadius: 6,
+                    fontSize: 14,
+                    textAlign: 'right',
+                    border: '1px solid var(--border)',
+                    background: 'var(--code-bg)',
+                    color: 'var(--text-h)',
+                  }}
+                />
+                <span>/ {Number(totalPage) > 0 ? totalPage : '-'} 쪽</span>
+              </span>
+            </div>
 
           <span
             style={{
@@ -797,6 +831,7 @@ export default function BookDetail({ book, onClose }) {
           </div>,
           document.body,
         )}
-    </div>
+      </div>
+    </>
   )
 }
