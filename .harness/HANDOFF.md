@@ -1,5 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-02: 월간 독서 리포트 가짜 목데이터 제거 및 정직한 Empty State & 게스트 배너 연동
+- 작업 브랜치: `feat/monthly-report-real-data-and-empty-state`
+- **사용자 요청**: 월간 독서 리포트에서 백엔드 실제 데이터가 아니라 칼 세이건 《코스모스》 등 가짜 목데이터가 강제로 뜨는 문제 해결 및 게스트 모드 공용 서재 연동 고려.
+- **원인 분석**:
+  - `MonthlyReport.jsx`에서 `hasDayActivity`나 `taste.genreStats`가 비어있을 때 `DEFAULT_FALLBACK_DATA`(완독 4권, 1240쪽, 코스모스, 이기적 유전자, 문학 38% 등)를 강제로 덮어씌워, 신규 회원/게스트에게 허위 데이터가 렌더링되던 결함 규명.
+- **수정 내용**:
+  1. `app/pages/MonthlyReport.jsx`:
+     - `DEFAULT_FALLBACK_DATA`를 순수 초기 스켈레톤 `EMPTY_REPORT_DATA`로 전면 교체.
+     - 백엔드 실제 통계(`data`)만 보존하고 가짜 목데이터 덮어쓰기 로직 완전 제거.
+     - 활동 유무 판별(`hasActivity`) 훅 도입 (완독 권수, 총 독서시간, 세션 횟수, 스크랩, 장르 기반).
+     - 활동이 없는 달 진입 시 친절한 안내 배너(`report-empty-banner`) 및 사서별 맞춤 독서 독려 멘트(`librarianSpeech`) 표출.
+     - 공용 체험(게스트) 모드 접속 시 상단 띠 배너(`guest-notice-banner`) 노출 (`useAuth().isGuest`).
+     - 장르 통계, 날씨별 도서, 문장 스크랩, 처방 도서 섹션별 정직한 Empty State 카드 연동.
+  2. `app/pages/MonthlyReport.css`:
+     - `.guest-notice-banner`, `.report-empty-banner`, `.report-empty-placeholder` 등 Empty State 및 안내 배너 스타일 추가.
+- **검증**:
+  - `npm run lint`: 0 errors 통과
+  - `npm run typecheck`: 0 errors 통과
+  - `npm run build`: Vite 클라이언트 번들링 성공 (466ms)
+
 ## 2026-10-01: 계층형 3단계 검증 체계(Tiered Verification) 도입 및 완화된 중앙 컨벤션 연동
 - 작업 브랜치: `feat/tiered-verification-harness`
 - **사용자 요청**: 바이브 코딩 생산성 저하를 방지하기 위해 백엔드와 동일한 3단계 검증 체계(Tier 1 lint, Tier 2 typecheck+build, Tier 3 원격 CI) 및 완화된 중앙 컨벤션을 프론트엔드 AGENTS.md에 동기화.
