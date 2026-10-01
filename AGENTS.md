@@ -34,11 +34,17 @@
 - **3D 인터랙션**: Three.js, `@react-three/fiber`, `@react-three/drei` 기반 서재 렌더링
 - **에셋 보호 정책**: 모든 시각 에셋(일러스트, 버튼, 커서 등)은 독점 저작물(`ASSETS_LICENSE.md`)이며 무단 도용 및 복제를 엄격히 금지함. 고해상도 디자인 원본(`design-src/`)은 gitignore 유지.
 - **백엔드 연동**: DPYB 조직의 듀얼 백엔드 구조 (`MAIN_BACKEND_URL`: core-api, `AI_BACKEND_URL`: ai-agent) 연동
-- **AI 자가 검증 필수**: 코드 수정 직후 반드시 `npx tsc --noEmit`와 `npm run lint -- --fix`를 터미널에서 실행하고, 에러나 경고가 0개가 될 때까지 스스로 터미널 로그를 보고 코드를 고칠 것.
+- **AI 자가 검증 (3단계 계층형 검증 체계)**: 불필요한 반복 전체 빌드로 인한 시간/토큰 낭비를 방지하기 위해 3단계로 검증한다:
+  - **Tier 1 (작업 중 - Fast Iteration Loop)**: `npm run lint` (ESLint 정적 검사로 문법 오류/미사용 변수 1초 컷 포착)
+  - **Tier 2 (커밋 & PR 직전 1회 - Pre-PR Sanity Check)**: `npm run typecheck` (`tsc --noEmit`) 및 `npm run build` (`vite build`로 번들링/임포트 누락 최종 방어)
+  - **Tier 3 (원격 CI - Remote Safety Net)**: PR 푸시 시 GitHub Actions CI(`ci.yml`) 및 완화된 중앙 PR 린터(`reusable-pr-lint.yml@main`)가 머지 전 안전망을 최종 통제.
 - **꼼수 금지**: `any` 타입, `@ts-ignore`, 인라인 스타일 절대 사용 금지.
 
 ## 5. 브랜치 & 커밋 컨벤션
 [DPYB `.github` 레포의 02-git-conventions.md](https://github.com/DPYB/.github/blob/main/docs/02-git-conventions.md)를 따른다.
+- 브랜치 전략: `feat/*` 단일화 (`main` <- `develop` <- `feat/*`)
+- 커밋 & PR 형식: `타입[적용범위]: 제목` 또는 `타입(적용범위): 제목` (소괄호 및 대괄호 둘 다 허용, 끝 마침표 없음 권장)
+- PR 본문: Type B 템플릿(4대 필수 섹션) 준수 (개행 작성 지원, 고려사항 섹션 빈칸 허용)
 
 ## 6. 배포
 [DPYB `.github` 레포의 04-deployment-policy.md](https://github.com/DPYB/.github/blob/main/docs/04-deployment-policy.md)를 따른다.
