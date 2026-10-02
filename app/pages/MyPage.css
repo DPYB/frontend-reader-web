@@ -376,6 +376,36 @@
   cursor: pointer;
 }
 
+/* 계정 관리 내 로그아웃 버튼 */
+.mypage-logout-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.mypage-logout-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.mypage-logout-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mypage-logout-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* 계정 탈퇴 (비밀번호 '변경' 버튼과 동일한 크기) */
 .mypage-withdraw-btn {
   flex-shrink: 0;
