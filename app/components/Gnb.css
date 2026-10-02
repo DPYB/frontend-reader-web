@@ -36,7 +36,9 @@
 /* 오버레이일 때 드롭다운/컨트롤 배경은 살짝 불투명하게 유지해 가독성 확보 */
 .gnb--overlay .gnb-logout-btn,
 .gnb--overlay .gnb-profile-btn,
-.gnb--overlay .gnb-menu {
+.gnb--overlay .gnb-menu,
+.gnb--overlay .gnb-mobile-theme-btn,
+.gnb--overlay .gnb-mobile-logout-btn {
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -53,7 +55,9 @@
 }
 
 [data-theme='light'] .gnb--overlay .gnb-logout-btn,
-[data-theme='light'] .gnb--overlay .gnb-profile-name {
+[data-theme='light'] .gnb--overlay .gnb-profile-name,
+[data-theme='light'] .gnb--overlay .gnb-mobile-theme-btn,
+[data-theme='light'] .gnb--overlay .gnb-mobile-logout-btn {
     color: #fff;
 }
 
@@ -140,7 +144,8 @@
     display: none;
 }
 
-.gnb-mobile-theme-btn {
+.gnb-mobile-theme-btn,
+.gnb-mobile-logout-btn {
     display: none;
 }
 
@@ -636,8 +641,9 @@
         gap: 8px;
     }
 
-    /* 모바일 상단 우측: 라이트 / 다크 모드 토글 버튼 노출 */
-    .gnb-mobile-theme-btn {
+    /* 모바일 상단 우측: 라이트 / 다크 모드 토글 버튼 및 로그아웃 버튼 노출 */
+    .gnb-mobile-theme-btn,
+    .gnb-mobile-logout-btn {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -648,15 +654,27 @@
         background: var(--code-bg);
         color: var(--text);
         cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
         padding: 0;
         box-sizing: border-box;
     }
 
-    .gnb-mobile-theme-btn:active {
+    .gnb-mobile-theme-btn:active,
+    .gnb-mobile-logout-btn:active {
         transform: scale(0.92);
         border-color: var(--accent);
         background: var(--accent-bg);
+    }
+
+    .gnb-mobile-logout-btn:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: var(--accent-bg);
+    }
+
+    .gnb-mobile-logout-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     /* 모바일에서는 상단 오른쪽 사서 프로필 버튼 숨김 (하단 플로팅 버튼으로 일원화) */

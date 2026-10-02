@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import './MyPage.css';
 
@@ -9,7 +10,21 @@ const DEFAULT_PROFILE_IMAGE = '/profile/default_avatar.svg';
 const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 
 export default function MyPage() {
-  const { member, isGuest } = useAuth();
+  const { member, isGuest, logout } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // ignore
+    } finally {
+      navigate('/login');
+    }
+  }, [loggingOut, logout, navigate]);
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
   // 백엔드 응답이 camelCase(birthDate) 또는 snake_case(birth_date) 양쪽 모두 지원되도록 처리
@@ -57,7 +72,7 @@ export default function MyPage() {
           </dl>
         </div>
 
-        {/* 계정 관리: 이메일/비밀번호 설정 + 탈퇴(마지막 줄) */}
+        {/* 계정 관리: 이메일/로그아웃/비밀번호 설정 + 탈퇴(마지막 줄) */}
         <h2 className="mypage-section-heading">계정 관리</h2>
         <div className="mypage-card mypage-card--section">
           {/* 이메일 (변경 불가 — 읽기 전용), 라벨과 값을 한 줄에 표시 */}
@@ -66,8 +81,21 @@ export default function MyPage() {
             <span className="mypage-field-value">{isGuest ? '게스트 체험 계정' : email}</span>
           </div>
 
+          {/* 로그아웃 버튼 (모든 사용자 공통) */}
+          <div className="mypage-field mypage-field--row">
+            <span className="mypage-field-label">로그아웃</span>
+            <button
+              type="button"
+              className="mypage-logout-btn"
+              onClick={handleLogout}
+              disabled={loggingOut}
+            >
+              {loggingOut ? '로그아웃 중...' : '로그아웃'}
+            </button>
+          </div>
+
           {isGuest ? (
-            <div style={{ padding: '16px 0', color: 'var(--text)', fontSize: 15, lineHeight: 1.6 }}>
+            <div style={{ padding: '12px 0 4px', color: 'var(--text)', fontSize: 14, lineHeight: 1.6 }}>
               🐾 <strong>체험 모드 이용 중</strong><br />
               체험 모드에서는 회원정보 수정, 비밀번호 변경, 회원 탈퇴 기능을 지원하지 않습니다.
             </div>

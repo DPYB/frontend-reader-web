@@ -185,6 +185,17 @@ export default function Gnb() {
                         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
                     </button>
 
+                    {/* 모바일 상단 우측: 원터치 로그아웃 버튼 */}
+                    <button
+                        className="gnb-mobile-logout-btn"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        aria-label="로그아웃"
+                        title={loggingOut ? '로그아웃 중...' : '로그아웃'}
+                    >
+                        <LogoutIcon />
+                    </button>
+
                     {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
                         {loggingOut ? '로그아웃 중...' : '로그아웃'}
