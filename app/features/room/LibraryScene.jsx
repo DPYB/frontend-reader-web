@@ -415,7 +415,7 @@ export default function LibraryScene() {
           transform: isMobile ? 'none' : 'translateX(-50%)',
           width: `max(100vw, calc(100svh * ${BG_ASPECT}))`,
           aspectRatio: String(BG_ASPECT),
-          backgroundImage: `url(${getBgSrc(librarianId)})`,
+          backgroundImage: `url(${getBgSrc(librarianId, isDark)})`,
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: isMobile ? 'left bottom' : 'center',

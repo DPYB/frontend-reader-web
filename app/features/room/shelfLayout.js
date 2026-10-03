@@ -2,7 +2,10 @@ import * as THREE from 'three';
 
 // 배경 이미지 (public/room/) — CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
 export const BG_SRC_CAT = '/room/readingroom_cat.webp';
-export const BG_SRC_STORK = '/room/readingroom2.webp';
+// 슈빌(황새) 서재 배경: 라이트 모드 & 나이트 모드 전용 UI (2026-10)
+export const BG_SRC_STORK_LIGHT = '/room/readingroom_stork_light.webp';
+export const BG_SRC_STORK_NIGHT = '/room/readingroom_stork_night.webp';
+export const BG_SRC_STORK = '/room/readingroom_stork_night.webp'; // 하위 호환 기본값
 // 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09).
 export const BG_SRC_NUDI = '/room/readingroom_nudi.webp';
 // 게코 서재 배경 (사용자 제공 readingroom_gecko.png → webp 변환, 2560x1440 → 1920x1080, 2026-09).
@@ -234,17 +237,24 @@ export const SHELVES_BY_LIBRARIAN = {
   gecko: GECKO_SHELVES,
 };
 
-// 사서 id별 서재 배경 이미지.
+// 사서 id별 서재 배경 이미지 (라이트 / 다크 테마 분기 지원).
 export const BG_SRC_BY_LIBRARIAN = {
   cat: BG_SRC_CAT,
-  stork: BG_SRC_STORK,
+  stork: {
+    light: BG_SRC_STORK_LIGHT,
+    dark: BG_SRC_STORK_NIGHT,
+  },
   nudi: BG_SRC_NUDI,
   gecko: BG_SRC_GECKO,
 };
 
-/** 사서 id에 맞는 서재 배경 이미지를 반환 (없으면 고양이 기준) */
-export function getBgSrc(librarianId) {
-  return BG_SRC_BY_LIBRARIAN[librarianId] || BG_SRC_CAT;
+/** 사서 id 및 테마(isDark)에 맞는 서재 배경 이미지를 반환 (없으면 고양이 기준) */
+export function getBgSrc(librarianId, isDark = true) {
+  const bg = BG_SRC_BY_LIBRARIAN[librarianId] || BG_SRC_CAT;
+  if (typeof bg === 'object' && bg !== null) {
+    return isDark ? bg.dark : bg.light;
+  }
+  return bg;
 }
 
 // 하위 호환용 기본값 (고양이 기준)
