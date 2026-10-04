@@ -731,10 +731,33 @@
   display: none;
 }
 
+/* 캘린더 본문 2단 가로 레이아웃 (좌: 캘린더, 우: 활동 내역) */
+.calendar-main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.calendar-left-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.calendar-right-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
 /* 캘린더 그리드 */
 .calendar-grid-card {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
   padding: 18px;
   border-radius: 16px;
   border: 1px solid var(--border);
@@ -841,21 +864,26 @@
   color: #fff;
 }
 
-/* 캘린더 하단 활동 상세 영역 */
+/* 캘린더 우측 활동 상세 영역 */
 .calendar-date-detail-section {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
   gap: 14px;
-  padding: 22px;
+  padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: var(--code-bg);
+  overflow: hidden;
 }
 
 .detail-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .detail-header-title {
@@ -887,6 +915,28 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 활동 목록 전용 스크롤바 */
+.calendar-activity-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.calendar-activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.calendar-activity-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.calendar-activity-list::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-border);
 }
 
 .calendar-activity-card {
@@ -900,6 +950,7 @@
   cursor: pointer;
   transition: border-color 0.15s ease, transform 0.15s ease;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .calendar-activity-card:hover {
@@ -992,6 +1043,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
   padding: 32px 16px;
   text-align: center;
   gap: 4px;
@@ -1024,6 +1076,20 @@
 
   .calendar-summary-bar {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .calendar-main-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .calendar-right-pane {
+    height: auto;
+  }
+
+  .calendar-date-detail-section {
+    height: auto;
+    max-height: 480px;
   }
 }
 
