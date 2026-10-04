@@ -367,7 +367,7 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
               )}
             </div>
 
-            {/* 타이머 모드 탭 (스톱워치 vs 뽀모도로) */}
+            {/* 타이머 모드 탭 (자유독서 vs 집중 인터벌) */}
             <div className="rt-mode-tabs">
               <button
                 type="button"
@@ -375,7 +375,7 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
                 onClick={() => handleModeChange('stopwatch')}
                 disabled={isRunning}
               >
-                스톱워치 (자유 독서)
+                자유독서
               </button>
               <button
                 type="button"
@@ -383,7 +383,7 @@ export default function ReadingTimerModal({ initialBook = null, onClose, onOpenB
                 onClick={() => handleModeChange('pomodoro')}
                 disabled={isRunning}
               >
-                뽀모도로 (집중 인터벌)
+                집중 인터벌
               </button>
             </div>
 
