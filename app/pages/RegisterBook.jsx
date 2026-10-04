@@ -475,7 +475,7 @@ export default function RegisterBook() {
           readingStatus,
         });
         // 색/두께는 서버가 저장하지 않는 시각 정보라 로컬에 따로 보관한다.
-        setVisual(bookId, { spineColor: color.spine, coverColor: color.cover, thickness });
+        setVisual(bookId, { colorIdx, spineColor: color.spine, coverColor: color.cover, thickness });
         await reload();
       } else {
         // 서버에 도서 생성 (색은 선택값, 두께는 총 페이지 수로 자동 계산 — provider가 로컬 bookVisuals에 저장)
@@ -486,6 +486,7 @@ export default function RegisterBook() {
           publisher: extraMeta.publisher,
           publishedDate: extraMeta.publishedDate,
           coverUrl: extraMeta.coverUrl,
+          colorIdx,
           spineColor: color.spine,
           coverColor: color.cover,
           thickness,

@@ -20,6 +20,8 @@ import {
   placeBooks,
   makePreviewBooks,
 } from './shelfLayout';
+import { getColorPresets } from '../register/ocrUtils';
+import { getColorIndex } from './bookExtractor';
 
 const isDev = import.meta.env.DEV;
 const CALIB_KEY_PREFIX = 'myReadingRoom.calibration';
@@ -374,7 +376,20 @@ export default function LibraryScene() {
 
   // 캘리브레이션 중이면 작업용 설정, 아니면 해당 사서의 배포용 기본 설정
   const activeConfig = calibrating ? workingConfig : { camera: getDefaultCamera(librarianId), shelves: getDefaultShelves(librarianId) };
-  const sourceBooks = calibrating ? makePreviewBooks(previewCount) : books;
+  const librarianPresets = useMemo(() => getColorPresets(librarianId), [librarianId]);
+  const rawSourceBooks = calibrating ? makePreviewBooks(previewCount, librarianId) : books;
+  const sourceBooks = useMemo(() => {
+    return rawSourceBooks.map((b) => {
+      const colorIdx = typeof b.colorIdx === 'number' ? b.colorIdx : getColorIndex(b.title || b.id || '');
+      const preset = librarianPresets[colorIdx % librarianPresets.length];
+      return {
+        ...b,
+        colorIdx,
+        spineColor: preset.spine,
+        coverColor: preset.cover,
+      };
+    });
+  }, [rawSourceBooks, librarianPresets]);
   const placements = useMemo(() => placeBooks(sourceBooks, activeConfig.shelves), [sourceBooks, activeConfig.shelves]);
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];
@@ -813,7 +828,7 @@ export default function LibraryScene() {
           onSelectShelf={(idx) => setActiveMobileShelfIdx(idx)}
           onClose={() => setActiveMobileShelfIdx(null)}
           placements={placements}
-          allBooks={books}
+          allBooks={sourceBooks}
           onOpenBookDetail={(book) => setSelectedId(book.id || book.bookId)}
         />
       )}

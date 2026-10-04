@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getColorPresets } from '../register/ocrUtils';
 
 // 배경 이미지 (public/room/) — CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
 export const BG_SRC_CAT = '/room/readingroom_cat.webp';
@@ -369,22 +370,15 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
   return placements;
 }
 
-// 캘리브레이션 미리보기용 더미 책 생성 (store에는 저장되지 않음)
-const previewPalette = [
-  { spine: '#7d4b3a', cover: '#a86a4c' },
-  { spine: '#2f4858', cover: '#3d6070' },
-  { spine: '#6b6b47', cover: '#8a8a5c' },
-  { spine: '#8c3b3b', cover: '#b25050' },
-  { spine: '#3a5a40', cover: '#588157' },
-  { spine: '#4a4058', cover: '#6d5f80' },
-];
-
-export function makePreviewBooks(count) {
+// 캘리브레이션 미리보기용 더미 책 생성 (사서별 테마 색상 적용, store에는 저장되지 않음)
+export function makePreviewBooks(count, librarianId = 'cat') {
+  const palette = getColorPresets(librarianId);
   return Array.from({ length: count }, (_, i) => {
-    const p = previewPalette[i % previewPalette.length];
+    const p = palette[i % palette.length];
     return {
       id: `preview-${i}`,
       title: `미리보기 ${i + 1}`,
+      colorIdx: i % palette.length,
       spineColor: p.spine,
       coverColor: p.cover,
       thickness: 0.16 + ((i * 7) % 5) * 0.03,
