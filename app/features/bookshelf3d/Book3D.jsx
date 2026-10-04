@@ -89,7 +89,7 @@ export default function Book3D({
       roughness: 0.65,
       metalness: 0.05,
       bumpMap: texture || null,
-      bumpScale: 0.015,
+      bumpScale: 0.01,
     });
 
     // 앞/뒤 표지 머티리얼: 기본 coverColor에 텍스처를 multiply 합성
@@ -99,7 +99,7 @@ export default function Book3D({
       roughness: 0.6,
       metalness: 0.05,
       bumpMap: texture || null,
-      bumpScale: 0.015,
+      bumpScale: 0.01,
     });
 
     // 책배(페이지 단면) 머티리얼
