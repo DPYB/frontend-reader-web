@@ -9,17 +9,9 @@
  * 어디서 보든 같은 색/두께/높이로 안정적으로 렌더링되게 한다.
  */
 
-const STORAGE_KEY = 'myReadingRoom.bookVisuals';
+import { getColorPresets } from '../features/register/ocrUtils';
 
-// RegisterBook / ocrUtils와 동일한 색상 팔레트
-const COLOR_PRESETS = [
-  { spine: '#c96b32', cover: '#e8944a' },
-  { spine: '#8b4513', cover: '#b5651d' },
-  { spine: '#a0522d', cover: '#cd853f' },
-  { spine: '#d4763e', cover: '#f2a365' },
-  { spine: '#6b3a2a', cover: '#8c5a3c' },
-  { spine: '#bf7830', cover: '#e0a050' },
-];
+const STORAGE_KEY = 'myReadingRoom.bookVisuals';
 
 const THICKNESS_OPTIONS = [0.16, 0.22, 0.3];
 
@@ -51,10 +43,13 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
-function deterministicVisual(bookId) {
+function deterministicVisual(bookId, librarianId = 'cat') {
   const h = hashString(bookId);
-  const preset = COLOR_PRESETS[h % COLOR_PRESETS.length];
+  const presets = getColorPresets(librarianId);
+  const colorIdx = h % presets.length;
+  const preset = presets[colorIdx];
   return {
+    colorIdx,
     spineColor: preset.spine,
     coverColor: preset.cover,
     thickness: THICKNESS_OPTIONS[h % THICKNESS_OPTIONS.length],
@@ -65,13 +60,14 @@ function deterministicVisual(bookId) {
 /**
  * bookId의 시각 정보를 반환. 저장된 값이 없으면 결정론적 기본값을 만들어 저장 후 반환.
  * @param {string|number} bookId
- * @returns {{spineColor: string, coverColor: string, thickness: number, heightFactor: number}}
+ * @param {string} [librarianId='cat']
+ * @returns {{colorIdx?: number, spineColor: string, coverColor: string, thickness: number, heightFactor: number}}
  */
-export function getVisual(bookId) {
+export function getVisual(bookId, librarianId = 'cat') {
   const key = String(bookId);
   const map = loadAll();
   if (map[key]) return map[key];
-  const visual = deterministicVisual(key);
+  const visual = deterministicVisual(key, librarianId);
   map[key] = visual;
   saveAll(map);
   return visual;
@@ -80,13 +76,14 @@ export function getVisual(bookId) {
 /**
  * 사용자가 고른 색/두께를 저장(등록 시 사용). heightFactor는 유지하거나 결정론적으로 생성.
  * @param {string|number} bookId
- * @param {{spineColor?: string, coverColor?: string, thickness?: number}} patch
+ * @param {{colorIdx?: number, spineColor?: string, coverColor?: string, thickness?: number}} patch
  */
-export function setVisual(bookId, { spineColor, coverColor, thickness } = {}) {
+export function setVisual(bookId, { colorIdx, spineColor, coverColor, thickness } = {}) {
   const key = String(bookId);
   const map = loadAll();
   const base = map[key] || deterministicVisual(key);
   map[key] = {
+    colorIdx: colorIdx !== undefined ? colorIdx : base.colorIdx,
     spineColor: spineColor ?? base.spineColor,
     coverColor: coverColor ?? base.coverColor,
     thickness: thickness ?? base.thickness,

@@ -28,6 +28,7 @@ function toFrontBook(summary) {
     status: bookApi.toKoreanStatus(summary.readingStatus, summary.progress ?? 0),
     coverUrl: summary.coverUrl ?? null,
     progress: summary.progress ?? 0,
+    colorIdx: visual.colorIdx,
     spineColor: visual.spineColor,
     coverColor: visual.coverColor,
     thickness: visual.thickness,
@@ -85,6 +86,7 @@ export function BooksProvider({ children }) {
       displayGenre: input.displayGenre || null,
     });
     setVisual(created.bookId, {
+      colorIdx: input.colorIdx,
       spineColor: input.spineColor,
       coverColor: input.coverColor,
       thickness: Number(input.thickness) || undefined,
