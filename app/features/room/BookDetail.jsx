@@ -17,8 +17,9 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
  *
  * @param {object} book - 선택된 책 데이터 (목록 요약: bookId/title/author/status 등)
  * @param {()=>void} onClose - 닫기 콜백
+ * @param {()=>void} [onBackToShelf] - 선반으로 되돌아가기 콜백 (모바일 등)
  */
-export default function BookDetail({ book, onClose }) {
+export default function BookDetail({ book, onClose, onBackToShelf }) {
   const { isGuest } = useAuth()
   const { removeBook, saveReadingProgress, saveBookMeta } = useBooks()
   const [currentPage, setCurrentPage] = useState(0)
@@ -307,9 +308,50 @@ export default function BookDetail({ book, onClose }) {
       />
 
       <div style={panelStyle}>
+        {/* 뒤로가기 / 선반으로 되돌아가기 — 최상단 왼쪽 (모바일 또는 onBackToShelf 전달 시) */}
+        {(isMobile || onBackToShelf) && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onBackToShelf) {
+                onBackToShelf();
+              } else {
+                onClose();
+              }
+            }}
+            aria-label="선반으로 되돌아가기"
+            title="선반으로 되돌아가기"
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              padding: 0,
+              background: 'var(--code-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: '50%',
+              color: 'var(--text-h)',
+              cursor: 'pointer',
+              fontSize: 16,
+              zIndex: 2,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        )}
+
         {/* 닫기 — 최상단 오른쪽 (사용자 요청, 2026-09) */}
         <button
           onClick={onClose}
+          aria-label="닫기"
+          title="닫기"
           style={{
             position: 'absolute',
             top: 12,
@@ -319,6 +361,7 @@ export default function BookDetail({ book, onClose }) {
             color: 'var(--text)',
             cursor: 'pointer',
             fontSize: 20,
+            zIndex: 2,
           }}
         >
           ✕
