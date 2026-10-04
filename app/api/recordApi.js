@@ -306,4 +306,17 @@ export async function fetchReadingSessions(bookId) {
   return [];
 }
 
+/**
+ * 특정 연/월 회원의 독서 활동(세션, 스크랩, 감상문, 도서등록) 통합 캘린더 조회 (단일 1회 최적화 API).
+ *
+ * GET /api/v1/reading-sessions/calendar?year={year}&month={month}
+ *
+ * @param {number} year - 조회 연도 (예: 2026)
+ * @param {number} month - 조회 월 (1~12)
+ * @returns {Promise<{year: number, month: number, activities: Array}>}
+ */
+export async function fetchMonthlyCalendar(year, month) {
+  return authFetch(`/reading-sessions/calendar?year=${year}&month=${month}`);
+}
+
 
