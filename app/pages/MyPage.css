@@ -1,56 +1,136 @@
-.mypage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ==========================================================================
+   MyPage Modern View Layout & Small Menu Tab Navigation Styling
+   독서 리포트와 동일한 1080px 규격 및 반응형 카드 시스템
+   ========================================================================== */
+
+.mypage-container {
+  max-width: 1080px;
+  margin: 0 auto;
   padding: 36px 20px 88px;
-  gap: 24px;
+  color: var(--text-h);
+  box-sizing: border-box;
 }
 
-/*
- * 내 정보 / 계정 관리 / 알림 설정 세 섹션을 세로로 나열해 한 페이지에서
- * 스크롤만으로 전부 보이게 한다(예전엔 왼쪽 메뉴로 탭을 전환해 한 번에 한
- * 섹션만 보였음, 사용자 요청 2026-09).
- */
-.mypage-layout {
+/* ── Header & Navigation ── */
+.mypage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mypage-title-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  max-width: 640px;
+  gap: 6px;
 }
 
-/* 각 섹션(내 정보/계정 관리/알림 설정) 위에 붙는 제목 */
-.mypage-section-heading {
+.mypage-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--text-h);
 }
 
-/* 두 번째 섹션부터는 위 카드와의 간격을 살짝 더 준다 */
-.mypage-section-heading:not(:first-child) {
-  margin-top: 8px;
+.mypage-user-badge {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
 }
 
-.mypage-card {
+.mypage-subtitle {
+  font-size: 14.5px;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── 스몰 메뉴 (Tab Navigation) ── */
+.mypage-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--code-bg);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.mypage-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mypage-tab-btn:hover {
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.mypage-tab-btn.active {
+  background: var(--bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+/* ── 탭 1: 내 정보 그리드 (3분할 카드 시스템) ── */
+.mypage-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.mypage-profile-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  width: 100%;
-  padding: 32px 24px;
+  gap: 20px;
+  padding: 24px 20px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--code-bg);
   box-sizing: border-box;
 }
 
-/* 프로필 이미지 */
+.mypage-card-heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 프로필 아바타 */
 .mypage-avatar-wrap {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 4px 0 8px;
 }
 
 .mypage-avatar {
@@ -62,309 +142,147 @@
   background: var(--border);
 }
 
-.mypage-avatar-edit-btn {
-  position: absolute;
-  bottom: 0;
-  right: -4px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--code-bg);
-  background: var(--accent);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s, background 0.15s;
-}
-
-.mypage-avatar-edit-btn:hover {
-  transform: scale(1.1);
-  background: #2563eb;
-}
-
-.mypage-avatar-edit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-
-/* 정보 리스트 */
+/* 프로필 정보 목록 */
 .mypage-info {
-  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   margin: 0;
+  width: 100%;
 }
 
 .mypage-info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.mypage-info-row:last-child {
-  border-bottom: none;
-}
-
-.mypage-info dt {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.mypage-info dd {
-  font-size: 18px;
-  color: var(--text-h);
-  margin: 0;
-}
-
-/* 내 정보 수정 폼 */
-.mypage-info-edit-form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.mypage-info-edit-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mypage-info-edit-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.mypage-gender-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.mypage-gender-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 16px;
-  color: var(--text-h);
-  cursor: pointer;
-}
-
-.mypage-gender-option input[type='radio'] {
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* 닉네임 수정 */
-.mypage-nickname-cell {
-  width: 100%;
-}
-
-.mypage-nickname-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mypage-nickname-edit-btn {
-  padding: 3px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mypage-nickname-edit-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-}
-
-.mypage-nickname-edit-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.mypage-nickname-edit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mypage-nickname-input {
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.mypage-info-row dt {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mypage-info-row dd {
+  margin: 0;
   color: var(--text-h);
-  font-size: 17px;
-  outline: none;
-  flex: 1;
-}
-
-.mypage-nickname-input:focus {
-  border-color: var(--accent);
-}
-
-.mypage-nickname-save,
-.mypage-nickname-cancel {
-  padding: 4px 10px;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.mypage-nickname-save {
-  background: var(--accent);
-  color: #fff;
-}
-
-.mypage-nickname-cancel {
-  background: var(--border);
-  color: var(--text-h);
-}
-
-/* ── 계정 설정 섹션 ── */
-.mypage-card--section {
-  align-items: stretch;
-  gap: 18px;
+/* 계정 관리 & 필드 */
+.mypage-fields-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
 .mypage-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  gap: 6px;
 }
 
-.mypage-field:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
+.mypage-field--row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 
 .mypage-field-label {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text);
-}
-
-/* 라벨과 값/버튼을 한 줄에 배치 (예: 이메일, 계정 탈퇴) */
-.mypage-field--row {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mypage-field-display {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .mypage-field-value {
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-h);
+  word-break: break-all;
 }
 
-.mypage-field-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mypage-text-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
+.mypage-logout-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-h);
-  font-size: 17px;
-  outline: none;
+  background: var(--code-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.mypage-text-input:focus {
-  border-color: var(--accent);
+.mypage-logout-btn:hover:not(:disabled) {
+  background: #e74c3c;
+  color: #fff;
+  border-color: #e74c3c;
+}
+
+.mypage-small-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mypage-withdraw-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: #e74c3c;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mypage-guest-notice {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 154, 60, 0.08);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .mypage-hint {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text);
   line-height: 1.5;
   margin: 0;
-}
-
-.mypage-error {
-  font-size: 16px;
-  color: #e74c3c;
-  margin: 0;
-}
-
-.mypage-success {
-  font-size: 16px;
-  color: var(--accent);
-  margin: 0;
-}
-
-.mypage-btn-row {
-  display: flex;
-  gap: 8px;
-}
-
-.mypage-btn-row--center {
-  justify-content: center;
-}
-
-.mypage-btn {
-  padding: 7px 14px;
-  border: none;
+  padding: 8px 10px;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.mypage-btn--primary {
-  background: var(--accent);
-  color: #fff;
-}
-
-.mypage-btn--ghost {
-  background: transparent;
+  background: var(--bg);
   border: 1px solid var(--border);
-  color: var(--text-h);
 }
 
-.mypage-btn--danger {
-  background: #e74c3c;
-  color: #fff;
-}
-
-/* 알림 토글 */
 .mypage-toggle-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  font-size: 18px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-h);
   cursor: pointer;
 }
@@ -376,93 +294,816 @@
   cursor: pointer;
 }
 
-/* 계정 관리 내 로그아웃 버튼 */
-.mypage-logout-btn {
-  flex-shrink: 0;
-  padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* ==========================================================================
+   탭 2: 독서 리스트 (Reading List) 스타일
+   ========================================================================== */
+.mypage-reading-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.mypage-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
   background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.mypage-status-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mypage-status-pill {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mypage-status-pill .pill-count {
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+.mypage-status-pill:hover {
+  border-color: var(--accent-border);
   color: var(--text-h);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
 }
 
-.mypage-logout-btn:hover:not(:disabled) {
-  border-color: var(--accent);
+.mypage-status-pill.active {
   background: var(--accent-bg);
+  border-color: var(--accent-border);
   color: var(--accent);
-  transform: translateY(-1px);
+  font-weight: 700;
 }
 
-.mypage-logout-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.mypage-logout-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* 계정 탈퇴 (비밀번호 '변경' 버튼과 동일한 크기) */
-.mypage-withdraw-btn {
-  flex-shrink: 0;
-  padding: 3px 10px;
-  border: 1px solid #e74c3c;
-  border-radius: 6px;
-  background: transparent;
-  color: #e74c3c;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mypage-withdraw-btn:hover:not(:disabled) {
-  background: #e74c3c;
+.mypage-status-pill.active .pill-count {
+  background: var(--accent);
   color: #fff;
 }
 
-.mypage-withdraw-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
+.mypage-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* 탈퇴 확인 모달 */
-.mypage-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.mypage-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage-search-box .search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.mypage-search-input {
+  padding: 7px 30px 7px 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13.5px;
+  width: 180px;
+  box-sizing: border-box;
+}
+
+.mypage-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mypage-sort-select {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* 도서 그리드 */
+.mypage-books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+.mypage-book-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.mypage-book-card:hover,
+.mypage-book-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  outline: none;
+}
+
+.mypage-book-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
 }
 
-.mypage-modal {
-  width: min(340px, 90vw);
-  box-sizing: border-box;
-  padding: 24px;
-  border-radius: 14px;
+.mypage-book-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.mypage-book-card:hover .mypage-book-cover {
+  transform: scale(1.04);
+}
+
+.mypage-book-status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  backdrop-filter: blur(4px);
+}
+
+.mypage-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.mypage-book-genre {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mypage-book-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mypage-book-author {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mypage-book-progress-area {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mypage-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.mypage-progress-meta .progress-percent {
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.mypage-progress-meta .progress-pages {
+  color: var(--text-muted);
+}
+
+.mypage-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.mypage-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* 빈 상태 & 에러 */
+.mypage-list-empty,
+.mypage-list-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  border-radius: 16px;
+  border: 1px dashed var(--border);
+  background: var(--code-bg);
+  text-align: center;
+  gap: 8px;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.empty-desc {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.mypage-primary-action-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.mypage-primary-action-btn:hover {
+  opacity: 0.9;
+}
+
+.mypage-reset-filter-btn,
+.mypage-retry-btn {
+  padding: 7px 16px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  color: var(--text-h);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mypage-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   탭 3: 독서 캘린더 (Reading Calendar) 스타일
+   ========================================================================== */
+.mypage-reading-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.calendar-header-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.calendar-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.calendar-nav-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.calendar-month-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.01em;
+}
+
+.calendar-today-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calendar-today-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* 요약 통계 바 */
+.calendar-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.summary-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   text-align: center;
 }
 
-.mypage-modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-h);
-  margin: 0 0 10px;
+.summary-stat-item .stat-label {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 500;
 }
 
-.mypage-modal-desc {
+.summary-stat-item .stat-value {
   font-size: 16px;
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+.summary-stat-divider {
+  display: none;
+}
+
+/* 캘린더 그리드 */
+.calendar-grid-card {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+}
+
+.calendar-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--text);
-  line-height: 1.5;
-  margin: 0 0 20px;
+}
+
+.calendar-weekdays-row .sun {
+  color: #e74c3c;
+}
+
+.calendar-weekdays-row .sat {
+  color: #3b82f6;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.calendar-day-cell {
+  position: relative;
+  height: 74px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.calendar-day-cell.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.calendar-day-cell .day-number {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.calendar-day-cell.today {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.calendar-day-cell.today .day-number {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.calendar-day-cell.selected {
+  background: rgba(255, 154, 60, 0.12);
+  border-color: var(--accent);
+}
+
+.calendar-day-cell:hover:not(.empty) {
+  border-color: var(--accent-border);
+  background: rgba(255, 154, 60, 0.06);
+}
+
+.calendar-day-cell.has-activity {
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.attendance-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  align-self: flex-end;
+}
+
+.attendance-stamp {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.attendance-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 캘린더 하단 활동 상세 영역 */
+.calendar-date-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+}
+
+.detail-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-header-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-count-tag {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+
+.detail-loading-tag {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.calendar-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calendar-activity-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.calendar-activity-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.activity-book-thumb {
+  width: 54px;
+  height: 74px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.activity-book-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.activity-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-type-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.activity-time-stamp {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.activity-main-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.activity-desc-text {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.activity-memo-text {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.activity-page-pill {
+  margin-top: 4px;
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 154, 60, 0.1);
+  color: var(--accent);
+}
+
+.calendar-date-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 4px;
+}
+
+.calendar-date-empty .empty-emoji {
+  font-size: 28px;
+  margin: 0 0 4px;
+}
+
+.calendar-date-empty .empty-text {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-h);
+}
+
+.calendar-date-empty .empty-subtext {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints (Mobile & Tablet)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .mypage-profile-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .calendar-summary-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .mypage-container {
+    padding: 20px 14px 72px;
+  }
+
+  .mypage-title {
+    font-size: 22px;
+  }
+
+  .mypage-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .mypage-tab-nav {
+    width: 100%;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+
+  .mypage-tab-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  .mypage-profile-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .mypage-list-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mypage-status-pills {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .mypage-status-pill {
+    flex: 1;
+    justify-content: center;
+    padding: 6px 4px;
+    font-size: 12px;
+  }
+
+  .mypage-filter-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .mypage-search-box,
+  .mypage-search-input,
+  .mypage-sort-select {
+    width: 100%;
+  }
+
+  .calendar-day-cell {
+    height: 58px;
+    padding: 4px;
+  }
+
+  .calendar-day-cell .day-number {
+    font-size: 12px;
+  }
+
+  .attendance-stamp {
+    font-size: 13px;
+  }
+
+  .calendar-summary-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
 }
