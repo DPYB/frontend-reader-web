@@ -34,6 +34,21 @@ import * as THREE from 'three';
  * @param {string} [glowColor] - hover/selected 시 테두리 glow 색상 (사서/테마 accent 색)
  * @param {function} [onSelect] - 클릭 콜백
  */
+// 3D 책 표면 질감 텍스처 (포토샵 Multiply 블렌드처럼 기본 색상과 합성)
+const TEXTURE_PATH = '/book_texture.webp';
+
+let sharedBookTexture = null;
+function getBookTexture() {
+  if (!sharedBookTexture && typeof window !== 'undefined') {
+    const loader = new THREE.TextureLoader();
+    sharedBookTexture = loader.load(TEXTURE_PATH);
+    sharedBookTexture.colorSpace = THREE.SRGBColorSpace;
+    sharedBookTexture.wrapS = THREE.RepeatWrapping;
+    sharedBookTexture.wrapT = THREE.RepeatWrapping;
+  }
+  return sharedBookTexture;
+}
+
 export default function Book3D({
   position = [0, 0, 0],
   size = [0.22, 1.2, 0.85],
@@ -60,19 +75,34 @@ export default function Book3D({
   const edgeHaloRef = useRef(null);
   const [hovered, setHovered] = useState(false);
 
+  // 싱글톤 책 표면 질감 텍스처
+  const texture = useMemo(() => getBookTexture(), []);
+
   const materials = useMemo(() => {
+    const activeSpineMap = spineMap || texture;
+    const activeCoverMap = coverMap || texture;
+
+    // 책등 머티리얼: 기본 spineColor에 텍스처를 multiply 합성
     const spine = new THREE.MeshStandardMaterial({
-      color: spineMap ? '#ffffff' : spineColor,
-      map: spineMap || null,
-      roughness: 0.7,
+      color: spineColor,
+      map: activeSpineMap,
+      roughness: 0.65,
       metalness: 0.05,
+      bumpMap: texture || null,
+      bumpScale: 0.015,
     });
+
+    // 앞/뒤 표지 머티리얼: 기본 coverColor에 텍스처를 multiply 합성
     const cover = new THREE.MeshStandardMaterial({
-      color: coverMap ? '#ffffff' : coverColor,
-      map: coverMap || null,
+      color: coverColor,
+      map: activeCoverMap,
       roughness: 0.6,
       metalness: 0.05,
+      bumpMap: texture || null,
+      bumpScale: 0.015,
     });
+
+    // 책배(페이지 단면) 머티리얼
     const pages = new THREE.MeshStandardMaterial({
       color: pageColor,
       roughness: 0.9,
@@ -82,7 +112,7 @@ export default function Book3D({
     // [+X, -X, +Y, -Y, +Z, -Z]
     // +X: 앞표지, -X: 뒤표지, +Y/-Y: 페이지 위/아래, +Z: 책등, -Z: 페이지 뒤
     return [cover, cover, pages, pages, spine, pages];
-  }, [spineColor, coverColor, spineMap, coverMap, pageColor]);
+  }, [spineColor, coverColor, spineMap, coverMap, pageColor, texture]);
 
   // 책등(+Z 로컬)이 회전 적용 후 향하는 월드 방향 = 빠져나오는 방향
   const forward = useMemo(() => {
