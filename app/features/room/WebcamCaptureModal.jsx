@@ -106,7 +106,7 @@ export default function WebcamCaptureModal({ onCapture, onClose }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 20 }}>📷 웹캠으로 촬영</h3>
+          <h3 style={{ margin: 0, fontSize: 20 }}>📷 사진 촬영</h3>
           <button
             onClick={handleClose}
             style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}

@@ -273,7 +273,13 @@ export default function SentenceCollectModal({ book, onClose }) {
 
                 <button
                   type="button"
-                  onClick={() => captureInputRef.current?.click()}
+                  onClick={() => {
+                    if (isMobile) {
+                      captureInputRef.current?.click();
+                    } else {
+                      setWebcamOpen(true);
+                    }
+                  }}
                   disabled={ocrLoading}
                   style={{ padding: '9px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: ocrLoading ? 'not-allowed' : 'pointer', fontSize: 17, opacity: ocrLoading ? 0.6 : 1 }}
                 >
@@ -286,19 +292,6 @@ export default function SentenceCollectModal({ book, onClose }) {
                   style={{ padding: '9px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: ocrLoading ? 'not-allowed' : 'pointer', fontSize: 17, opacity: ocrLoading ? 0.6 : 1 }}
                 >
                   🖼️ 이미지 선택
-                </button>
-                {/*
-              모바일의 "사진 촬영" 버튼은 <input capture>로 OS 카메라 앱을 연다.
-              데스크톱 브라우저는 이 속성을 지원하지 않아 파일 탐색기만 뜨므로,
-              노트북/PC 웹캠으로 즉석 촬영할 수 있는 별도 경로를 추가한다 (CLIAR-210).
-            */}
-                <button
-                  type="button"
-                  onClick={() => setWebcamOpen(true)}
-                  disabled={ocrLoading}
-                  style={{ padding: '9px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: ocrLoading ? 'not-allowed' : 'pointer', fontSize: 17, opacity: ocrLoading ? 0.6 : 1 }}
-                >
-                  💻 웹캠으로 촬영
                 </button>
                 <span style={{ fontSize: 15, color: 'var(--text)', lineHeight: 1.5 }}>
                   사진을 스캔하면 인식된 문장이 오른쪽에 채워집니다. 내용을 확인·수정하고 페이지·메모를 입력한 뒤 저장하세요.
