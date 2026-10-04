@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
+import { getLibraryBook } from '../../api/bookApi';
 import { createOcrSentence, createReadingRecord } from '../../api/recordApi';
 import { getWeatherCondition } from '../../api/geolocation';
 import { ApiError } from '../../api/authApi';
@@ -63,6 +64,24 @@ export default function SentenceCollectModal({ book, onClose }) {
   // 새 문장은 스캔을 해야 이 값이 생기고, 값이 없으면 저장할 수 없다.
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  // 책의 현재 독서 진행 페이지 번호 및 페이지 확인 모달 상태
+  const [currentBookPage, setCurrentBookPage] = useState(() => Number(book?.currentPage ?? book?.current_page ?? 0));
+  const [pageConfirmModal, setPageConfirmModal] = useState(null);
+
+  useEffect(() => {
+    if (book?.currentPage != null) {
+      setCurrentBookPage(Number(book.currentPage));
+    } else if (book?.bookId) {
+      getLibraryBook(book.bookId)
+        .then((d) => {
+          if (d?.currentPage != null) {
+            setCurrentBookPage(Number(d.currentPage));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [book]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -158,20 +177,30 @@ export default function SentenceCollectModal({ book, onClose }) {
     setPreviewUrl(null);
     setEditingQuoteId(null);
     setPendingImageUrl(null);
+    setPageConfirmModal(null);
   }
 
   // 새 문장은 스캔한 이미지 URL이 있어야 저장 가능(backend-book scrapImageUrl 필수).
   // 기존 문장 수정은 이미 이미지 URL을 갖고 있으므로 항상 가능.
   const canSave = text.trim() && !saving && (editingQuoteId ? true : !!pendingImageUrl);
 
-  async function handleSave() {
+  const enteredPageNum = page !== '' ? Number(page) : null;
+  const isPageSmallerThanCurrent =
+    enteredPageNum !== null &&
+    !isNaN(enteredPageNum) &&
+    enteredPageNum > 0 &&
+    currentBookPage > 0 &&
+    enteredPageNum < currentBookPage;
+
+  async function performSave(savePageValue) {
     if (!canSave) return;
     setSaving(true);
     try {
+      const finalPage = savePageValue !== '' && savePageValue != null ? Number(savePageValue) : null;
       if (editingQuoteId) {
-        await editScrap(editingQuoteId, { text, memo, page, scrapImageUrl: pendingImageUrl });
+        await editScrap(editingQuoteId, { text, memo, page: finalPage, scrapImageUrl: pendingImageUrl });
       } else {
-        await addScrap(book.bookId, { text, memo, page, scrapImageUrl: pendingImageUrl });
+        await addScrap(book.bookId, { text, memo, page: finalPage, scrapImageUrl: pendingImageUrl });
         // 신규 문장/감상 기록 작성 시 현재 날씨 condition 획득 후 POST /api/v1/records 연동 (위치 미허용 시 null)
         try {
           const weather = await getWeatherCondition();
@@ -191,7 +220,21 @@ export default function SentenceCollectModal({ book, onClose }) {
       // 저장 실패 시 폼 유지 (사용자가 재시도 가능)
     } finally {
       setSaving(false);
+      setPageConfirmModal(null);
     }
+  }
+
+  async function handleSave() {
+    if (!canSave) return;
+    // 문장 수집 시 표기된 페이지 넘버가 현재 페이지 넘버보다 작을 경우 확인 팝업 노출
+    if (isPageSmallerThanCurrent) {
+      setPageConfirmModal({
+        enteredPage: enteredPageNum,
+        currentBookPage: currentBookPage,
+      });
+      return;
+    }
+    await performSave(page);
   }
 
   function handleEditQuote(quote) {
@@ -403,15 +446,48 @@ export default function SentenceCollectModal({ book, onClose }) {
                 </label>
 
                 <label style={labelStyle}>
-                  <span style={{ fontSize: 17, fontWeight: 600 }}>페이지</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={page}
-                    onChange={(e) => setPage(e.target.value)}
-                    placeholder="예: 128"
-                    style={{ ...fieldStyle, maxWidth: 120 }}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                    <span style={{ fontSize: 17, fontWeight: 600 }}>페이지</span>
+                    {currentBookPage > 0 && (
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                        현재 독서 페이지: {currentBookPage}p
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      type="number"
+                      min={0}
+                      value={page}
+                      onChange={(e) => setPage(e.target.value)}
+                      placeholder={currentBookPage ? `예: ${currentBookPage}` : '예: 128'}
+                      style={{ ...fieldStyle, maxWidth: 130 }}
+                    />
+                    {isPageSmallerThanCurrent && (
+                      <button
+                        type="button"
+                        onClick={() => setPage(String(currentBookPage))}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          border: '1px solid var(--accent)',
+                          background: 'var(--accent)',
+                          color: '#fff',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        현재 페이지({currentBookPage}p)로 적용
+                      </button>
+                    )}
+                  </div>
+                  {isPageSmallerThanCurrent && (
+                    <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--accent)', lineHeight: 1.4 }}>
+                      💡 입력한 쪽수({enteredPageNum}p)가 현재 독서 페이지({currentBookPage}p)보다 작아요.
+                    </p>
+                  )}
                 </label>
 
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -537,6 +613,106 @@ export default function SentenceCollectModal({ book, onClose }) {
         </div>,
         document.body
       )}
+      {/* 입력한 페이지가 현재 독서 페이지보다 작을 때 확인 모달 */}
+      {pageConfirmModal &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(2px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100,
+            }}
+            onClick={() => setPageConfirmModal(null)}
+          >
+            <div
+              role="alertdialog"
+              aria-label="페이지 번호 확인"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 'min(360px, 90vw)',
+                background: 'var(--bg)',
+                color: 'var(--text-h)',
+                border: '1px solid var(--border)',
+                borderRadius: 14,
+                padding: 22,
+                boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+                textAlign: 'center',
+              }}
+            >
+              <p style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>
+                페이지 번호 확인
+              </p>
+              <p style={{ margin: '0 0 18px', fontSize: 15, color: 'var(--text)', lineHeight: 1.5 }}>
+                입력하신 문장 페이지(<strong>{pageConfirmModal.enteredPage}p</strong>)가 현재 독서 진행 페이지(<strong>{pageConfirmModal.currentBookPage}p</strong>)보다 작습니다.
+                <br /><br />
+                문장 페이지를 현재 페이지(<strong>{pageConfirmModal.currentBookPage}p</strong>)로 반영하여 저장하시겠습니까?
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPage(String(pageConfirmModal.currentBookPage));
+                    performSave(String(pageConfirmModal.currentBookPage));
+                  }}
+                  disabled={saving}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: 15,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  현재 페이지({pageConfirmModal.currentBookPage}p)로 저장
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    performSave(String(pageConfirmModal.enteredPage));
+                  }}
+                  disabled={saving}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-h)',
+                    fontWeight: 600,
+                    fontSize: 14.5,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  입력한 페이지({pageConfirmModal.enteredPage}p)로 저장
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPageConfirmModal(null)}
+                  disabled={saving}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-muted)',
+                    fontSize: 13.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       {webcamOpen && (
         <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
@@ -554,4 +730,5 @@ export default function SentenceCollectModal({ book, onClose }) {
     </>
   );
 }
+
 

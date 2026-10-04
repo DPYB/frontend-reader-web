@@ -798,7 +798,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
 
       {showSentenceModal && (
         <SentenceCollectModal
-          book={book}
+          book={detail || book}
           onClose={() => {
             setShowSentenceModal(false)
             // 모달에서 문장을 추가/수정/삭제했을 수 있으니 갤러리를 새로 로드한다.
