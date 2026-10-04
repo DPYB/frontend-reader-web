@@ -42,6 +42,16 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   const [editingScrapId, setEditingScrapId] = useState(null);
   const [savingScrapId, setSavingScrapId] = useState(null);
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 수정 중인 값 { [scrapId]: { text, memo, page } }
   const [drafts, setDrafts] = useState({});
   const [deletingId, setDeletingId] = useState(null);
@@ -112,24 +122,48 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   }, [loadPage]);
 
   /**
-   * 세로 스크롤이 하단에 가까워지면 다음 페이지를 당겨온다.
+   * 스크롤 끝에 가까워지면 다음 페이지를 당겨온다. (모바일: 세로, 데스크톱: 가로)
    */
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el || loadingRef.current || !hasMore) return;
-    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (remaining < PREFETCH_MARGIN) {
-      loadPage(nextPage);
+    if (isMobile) {
+      const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (remaining < PREFETCH_MARGIN) {
+        loadPage(nextPage);
+      }
+    } else {
+      const remaining = el.scrollWidth - el.scrollLeft - el.clientWidth;
+      if (remaining < PREFETCH_MARGIN) {
+        loadPage(nextPage);
+      }
     }
-  }, [hasMore, loadPage, nextPage]);
+  }, [hasMore, isMobile, loadPage, nextPage]);
+
+  const handleWheel = useCallback(
+    (e) => {
+      if (!isMobile && scrollRef.current) {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
+          scrollRef.current.scrollLeft += e.deltaY;
+        }
+      }
+    },
+    [isMobile]
+  );
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || loading || !hasMore || items.length === 0) return;
-    if (el.scrollHeight <= el.clientHeight + 40) {
-      loadPage(nextPage);
+    if (isMobile) {
+      if (el.scrollHeight <= el.clientHeight + 40) {
+        loadPage(nextPage);
+      }
+    } else {
+      if (el.scrollWidth <= el.clientWidth + 40) {
+        loadPage(nextPage);
+      }
     }
-  }, [items.length, loading, hasMore, nextPage, loadPage]);
+  }, [items.length, loading, hasMore, nextPage, loadPage, isMobile]);
 
   /** 현재 카드에 표시할 값 (수정 중이면 draft 우선) */
   const valueOf = useCallback(
@@ -351,19 +385,21 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
       {editError && <p style={{ margin: 0, fontSize: 14.5, color: '#e05a4e', fontWeight: 600 }}>{editError}</p>}
       {error && <p style={{ margin: 0, fontSize: 14.5, color: '#e05a4e' }}>{error}</p>}
 
-      {/* 세로형 스크롤 피드 */}
+      {/* 문장 갤러리 피드 (데스크톱: 좌우 가로 스크롤, 모바일: 상하 세로 스크롤) */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
+        onWheel={handleWheel}
         className="scrap-gallery-strip"
         style={{
           display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          paddingBottom: 48,
-          paddingRight: 4,
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 12 : 14,
+          overflowY: isMobile ? 'auto' : 'hidden',
+          overflowX: isMobile ? 'hidden' : 'auto',
+          paddingBottom: isMobile ? 48 : 10,
+          paddingRight: isMobile ? 4 : 10,
+          alignItems: isMobile ? 'stretch' : 'stretch',
           flex: 1,
           minHeight: 0,
         }}
@@ -392,6 +428,12 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                 boxShadow: isSelected ? '0 2px 10px rgba(0,0,0,0.1)' : 'none',
                 cursor: isItemEditing ? 'default' : 'pointer',
                 transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+                width: isMobile ? '100%' : 280,
+                minWidth: isMobile ? 'auto' : 260,
+                maxWidth: isMobile ? '100%' : 300,
+                flexShrink: isMobile ? 1 : 0,
+                boxSizing: 'border-box',
+                overflowY: isMobile ? 'visible' : 'auto',
               }}
             >
               {isItemEditing ? (
@@ -474,14 +516,21 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                 </div>
               ) : (
                 /* ── 읽기 전용 뷰 ── */
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: isMobile ? 'row' : 'column',
+                    gap: isMobile ? 12 : 10,
+                    alignItems: isMobile ? 'flex-start' : 'stretch',
+                  }}
+                >
                   {/* 문장 사진 (스캔 원본) */}
                   {it.scrapImageUrl && (
                     <div
                       style={{
                         position: 'relative',
-                        width: 80,
-                        height: 80,
+                        width: isMobile ? 80 : '100%',
+                        height: isMobile ? 80 : 130,
                         flexShrink: 0,
                         borderRadius: 8,
                         border: '1px solid var(--border)',
@@ -553,7 +602,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                     justifyContent: 'flex-end',
                     paddingTop: 8,
                     borderTop: '1px solid var(--border)',
-                    marginTop: 2,
+                    marginTop: 'auto',
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -608,12 +657,13 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
         {loading && (
           <div
             style={{
-              padding: '16px 0',
+              padding: isMobile ? '16px 0' : '0 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 14.5,
               color: 'var(--text)',
+              flexShrink: 0,
             }}
           >
             문장을 불러오는 중...
