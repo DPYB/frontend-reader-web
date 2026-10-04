@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useBooks } from '../../store/booksStore';
-import { fetchReadingSessions, fetchReadingRecords } from '../../api/recordApi';
-import { listScrapsPage } from '../../api/bookApi';
+import { fetchMonthlyCalendar } from '../../api/recordApi';
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage';
 import { formatDuration } from '../../lib/timeFormat';
-import { genreLabel } from '../../data/genres';
 
 /**
  * 날짜 객체 또는 ISO 문자열을 'YYYY-MM-DD' 형식으로 변환 (로컬 타임존 기준)
@@ -44,13 +42,19 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
   const [activitiesByDate, setActivitiesByDate] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // 도서별 활동 데이터 비동기 통합 수집
-  const loadAllActivities = useCallback(async () => {
-    if (!books || books.length === 0) {
-      setActivitiesByDate({});
-      return;
+  // books 배열을 bookId -> book 객체 매핑 테이블로 캐싱
+  const booksMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(books)) {
+      books.forEach((b) => {
+        if (b.bookId != null) map.set(Number(b.bookId), b);
+      });
     }
+    return map;
+  }, [books]);
 
+  // 해당 월의 활동 데이터를 단일 API(fetchMonthlyCalendar)로 1회 조회
+  const loadAllActivities = useCallback(async () => {
     setLoading(true);
     const dateMap = {};
 
@@ -62,111 +66,72 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
     };
 
     try {
-      // 1. 도서 등록 이벤트
-      books.forEach((b) => {
-        const regDate = b.createdAt || b.created_at || b.registeredDate;
-        if (regDate) {
-          addActivity(regDate, {
-            id: `book-${b.bookId}`,
-            type: 'BOOK_REGISTERED',
-            typeLabel: '도서 등록',
-            badgeBg: 'rgba(59, 130, 246, 0.15)',
-            badgeColor: '#3b82f6',
-            icon: '📚',
-            book: b,
-            title: `도서 등록: ${b.title}`,
-            desc: `${b.author || '저자 미입력'} | ${genreLabel(b.genre) || '장르 미지정'}`,
-            timestamp: regDate,
-          });
+      const calendarRes = await fetchMonthlyCalendar(currentYear, currentMonth);
+      const rawActivities = Array.isArray(calendarRes?.activities)
+        ? calendarRes.activities
+        : Array.isArray(calendarRes)
+          ? calendarRes
+          : [];
+
+      rawActivities.forEach((act) => {
+        const rawDate = act.date || act.created_at || act.createdAt;
+        const rawType = act.type;
+        const bId = act.book_id ?? act.bookId;
+        const matchedBook = bId != null ? booksMap.get(Number(bId)) : null;
+
+        // 프론트엔드 호환용 book 객체 합성
+        const resolvedBook = matchedBook || (bId != null ? {
+          bookId: bId,
+          title: act.book_title || act.bookTitle || '도서',
+          coverUrl: act.book_cover_url || act.bookCoverUrl || '',
+        } : null);
+
+        let typeLabel = '독서 활동';
+        let badgeBg = 'rgba(59, 130, 246, 0.15)';
+        let badgeColor = '#3b82f6';
+        let icon = '📖';
+
+        if (rawType === 'TIMER_SESSION') {
+          typeLabel = '집중 독서';
+          badgeBg = 'rgba(255, 154, 60, 0.15)';
+          badgeColor = 'var(--accent)';
+          icon = '⏱️';
+        } else if (rawType === 'SENTENCE_SCRAP') {
+          typeLabel = '문장 수집';
+          badgeBg = 'rgba(139, 92, 246, 0.15)';
+          badgeColor = '#8b5cf6';
+          icon = '📝';
+        } else if (rawType === 'READING_RECORD') {
+          typeLabel = '독서 기록';
+          badgeBg = 'rgba(16, 185, 129, 0.15)';
+          badgeColor = '#10b981';
+          icon = '📖';
+        } else if (rawType === 'BOOK_REGISTERED') {
+          typeLabel = '도서 등록';
+          badgeBg = 'rgba(59, 130, 246, 0.15)';
+          badgeColor = '#3b82f6';
+          icon = '📚';
         }
+
+        const durSec = Number(act.duration_seconds ?? act.durationSeconds ?? act.duration ?? 0);
+
+        addActivity(rawDate, {
+          id: act.id,
+          type: rawType,
+          typeLabel,
+          badgeBg,
+          badgeColor,
+          icon,
+          book: resolvedBook,
+          title: act.title,
+          desc: act.desc,
+          memo: act.memo,
+          pageNumber: act.page_number ?? act.pageNumber,
+          duration: durSec,
+          weather: act.weather,
+          timestamp: act.created_at || act.createdAt || rawDate,
+        });
       });
-
-      // 2. 도서별 타이머 세션, 문장 스크랩, 감상 기록 병렬 조회
-      await Promise.all(
-        books.map(async (b) => {
-          // 타이머 세션
-          try {
-            const sessions = await fetchReadingSessions(b.bookId);
-            if (Array.isArray(sessions)) {
-              sessions.forEach((s) => {
-                const date = s.createdAt || s.created_at;
-                if (!date) return;
-                const durSec = Number(s.duration || s.durationSeconds || (s.durationMinutes ? s.durationMinutes * 60 : 0)) || 0;
-                addActivity(date, {
-                  id: `session-${s.id || Math.random()}`,
-                  type: 'TIMER_SESSION',
-                  typeLabel: '집중 독서',
-                  badgeBg: 'rgba(255, 154, 60, 0.15)',
-                  badgeColor: 'var(--accent)',
-                  icon: '⏱️',
-                  book: b,
-                  title: `${b.title} — ${formatDuration(durSec)} 독서`,
-                  desc: s.memo || `${durSec > 0 ? formatDuration(durSec) : ''} 집중 독서 기록`,
-                  pageNumber: s.pageNumber,
-                  duration: durSec,
-                  weather: s.weather,
-                  timestamp: date,
-                });
-              });
-            }
-          } catch {
-            // ignore
-          }
-
-          // 문장 수집 (스크랩)
-          try {
-            const scrapRes = await listScrapsPage(b.bookId, { page: 0, size: 50 });
-            const scraps = Array.isArray(scrapRes?.scraps) ? scrapRes.scraps : Array.isArray(scrapRes) ? scrapRes : [];
-            scraps.forEach((sc) => {
-              const date = sc.createdAt || sc.created_at;
-              if (!date) return;
-              addActivity(date, {
-                id: `scrap-${sc.scrapId || sc.id || Math.random()}`,
-                type: 'SENTENCE_SCRAP',
-                typeLabel: '문장 수집',
-                badgeBg: 'rgba(139, 92, 246, 0.15)',
-                badgeColor: '#8b5cf6',
-                icon: '📝',
-                book: b,
-                title: `문장 수집: “${(sc.sentence || sc.text || '').slice(0, 40)}${(sc.sentence || sc.text || '').length > 40 ? '...' : ''}”`,
-                desc: sc.sentence || sc.text,
-                memo: sc.memo,
-                pageNumber: sc.pageNumber ?? sc.page,
-                scrapImageUrl: sc.scrapImageUrl,
-                timestamp: date,
-              });
-            });
-          } catch {
-            // ignore
-          }
-
-          // 독서 기록 / 감상문
-          try {
-            const records = await fetchReadingRecords(b.bookId);
-            if (Array.isArray(records)) {
-              records.forEach((r) => {
-                const date = r.createdAt || r.created_at;
-                if (!date) return;
-                addActivity(date, {
-                  id: `record-${r.id || r.recordId || Math.random()}`,
-                  type: 'READING_RECORD',
-                  typeLabel: '독서 기록',
-                  badgeBg: 'rgba(16, 185, 129, 0.15)',
-                  badgeColor: '#10b981',
-                  icon: '📖',
-                  book: b,
-                  title: r.title || `${b.title} 감상 기록`,
-                  desc: r.content,
-                  weather: r.weather,
-                  timestamp: date,
-                });
-              });
-            }
-          } catch {
-            // ignore
-          }
-        })
-      );
 
       // 각 날짜별 활동을 최신 시간순 정렬
       Object.keys(dateMap).forEach((k) => {
@@ -174,10 +139,12 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
       });
 
       setActivitiesByDate(dateMap);
+    } catch {
+      setActivitiesByDate({});
     } finally {
       setLoading(false);
     }
-  }, [books]);
+  }, [currentYear, currentMonth, booksMap]);
 
   useEffect(() => {
     loadAllActivities();
