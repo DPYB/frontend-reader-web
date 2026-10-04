@@ -152,6 +152,7 @@ export default function LibraryScene() {
   const [selectedId, setSelectedId] = useState(null);
   const [showTimer, setShowTimer] = useState(false);
   const [activeMobileShelfIdx, setActiveMobileShelfIdx] = useState(null);
+  const [lastActiveShelfIdx, setLastActiveShelfIdx] = useState(0);
   // 챗봇 답변 대기(thinking) 상태 — 사서 커서(LibrarianCursor)가 대기 이미지로 전환하는 데 사용
   const [chatLoading, setChatLoading] = useState(false);
   // CLIAR-280: 책 위에 커서를 올리면(클릭 없이) 제목/저자를 말풍선으로 보여준다.
@@ -461,7 +462,9 @@ export default function LibraryScene() {
               glowColor={getGlowColor(librarianId, isDark)}
               onSelect={() => {
                 if (isMobile) {
-                  setActiveMobileShelfIdx(b.shelfIndex ?? 0);
+                  const sIdx = b.shelfIndex ?? 0;
+                  setLastActiveShelfIdx(sIdx);
+                  setActiveMobileShelfIdx(sIdx);
                 } else {
                   setSelectedId((prev) => (prev === b.id ? null : b.id));
                 }
@@ -540,7 +543,10 @@ export default function LibraryScene() {
               {SHELF_TOUCH_BOUNDS.map((bound, i) => (
                 <div
                   key={i}
-                  onClick={() => setActiveMobileShelfIdx(i)}
+                  onClick={() => {
+                    setLastActiveShelfIdx(i);
+                    setActiveMobileShelfIdx(i);
+                  }}
                   style={{
                     position: 'absolute',
                     top: bound.top,
@@ -811,25 +817,46 @@ export default function LibraryScene() {
         const book =
           typeof selectedId === 'object'
             ? selectedId
-            : books.find(
+            : sourceBooks.find(
               (b) =>
                 b.id === selectedId ||
                 b.bookId === selectedId ||
                 String(b.bookId) === String(selectedId) ||
                 b.title === selectedId
             );
-        return book ? <BookDetail book={book} onClose={() => setSelectedId(null)} /> : null;
+        return book ? (
+          <BookDetail
+            book={book}
+            onClose={() => setSelectedId(null)}
+            onBackToShelf={
+              isMobile
+                ? () => {
+                  const targetShelfIdx = lastActiveShelfIdx ?? book.shelfIndex ?? 0;
+                  setSelectedId(null);
+                  setActiveMobileShelfIdx(targetShelfIdx);
+                }
+                : undefined
+            }
+          />
+        ) : null;
       })()}
 
       {/* 모바일 선반 도서 수직 스크롤 바텀시트 */}
       {isMobile && activeMobileShelfIdx !== null && (
         <MobileShelfSheet
           activeShelfIdx={activeMobileShelfIdx}
-          onSelectShelf={(idx) => setActiveMobileShelfIdx(idx)}
+          onSelectShelf={(idx) => {
+            setLastActiveShelfIdx(idx);
+            setActiveMobileShelfIdx(idx);
+          }}
           onClose={() => setActiveMobileShelfIdx(null)}
           placements={placements}
           allBooks={sourceBooks}
-          onOpenBookDetail={(book) => setSelectedId(book.id || book.bookId)}
+          onOpenBookDetail={(book) => {
+            const sIdx = activeMobileShelfIdx ?? book.shelfIndex ?? 0;
+            setLastActiveShelfIdx(sIdx);
+            setSelectedId(book.id || book.bookId);
+          }}
         />
       )}
     </div>
