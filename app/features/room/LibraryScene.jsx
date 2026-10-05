@@ -776,35 +776,6 @@ export default function LibraryScene() {
         />
       )}
 
-      {/* 서비스 이용 가이드 플로팅 버튼 (언제든 가이드 재열람 가능) */}
-      {!calibrating && (
-        <button
-          onClick={() => setShowGuide(true)}
-          title="서비스 이용 가이드 보기"
-          style={{
-            position: 'fixed',
-            right: 'min(16px, 2vw)',
-            bottom: 'min(128px, calc(2vh + 112px))',
-            zIndex: 19,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            borderRadius: 999,
-            border: '1px solid var(--accent-border)',
-            background: 'var(--bg)',
-            color: 'var(--text-h)',
-            fontWeight: 700,
-            fontSize: 15,
-            boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-            cursor: 'pointer',
-          }}
-        >
-          <span style={{ fontSize: 18 }}>💡</span>
-          이용 가이드
-        </button>
-      )}
-
       {/* 독서 타이머 플로팅 버튼 (우측 상단 사서 대화창 위 또는 좌측 하단) */}
       {!calibrating && (
         <button
