@@ -224,7 +224,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
                 className="guide-action-btn primary complete"
                 onClick={handleCloseModal}
               >
-                서재 시작하기 ✨
+                시작하기
               </button>
             )}
           </div>
