@@ -36,6 +36,8 @@ canvas,
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  /* '&'(U+0026) 특수기호의 폰트 왜곡을 방지하기 위해 U+0026을 제외하고 영문/숫자/기호 범위만 지정 */
+  unicode-range: U+0020-0025, U+0027-007E, U+00A0-024F;
 }
 
 @font-face {

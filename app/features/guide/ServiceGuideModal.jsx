@@ -24,6 +24,7 @@ import { dismissGuideForToday } from './guideStorage';
 export default function ServiceGuideModal({ isOpen, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
+  const [dontShowToday, setDontShowToday] = useState(false);
   const modalRef = useRef(null);
 
   const totalSlides = GUIDE_IMAGES.length;
@@ -36,10 +37,12 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
     setCurrentIndex((prev) => Math.min(totalSlides - 1, prev + 1));
   }, [totalSlides]);
 
-  const handleDismissToday = useCallback(() => {
-    dismissGuideForToday();
+  const handleCloseModal = useCallback(() => {
+    if (dontShowToday) {
+      dismissGuideForToday();
+    }
     onClose();
-  }, [onClose]);
+  }, [dontShowToday, onClose]);
 
   // 키보드 방향키 및 ESC 닫기 핸들러
   useEffect(() => {
@@ -54,13 +57,13 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
         handleNext();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        handleCloseModal();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handlePrev, handleNext, onClose]);
+  }, [isOpen, handlePrev, handleNext, handleCloseModal]);
 
   // 다음 이미지 사전 로드 (부드러운 전환)
   useEffect(() => {
@@ -99,7 +102,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
   return (
     <div
       className="guide-modal-overlay"
-      onClick={onClose}
+      onClick={handleCloseModal}
       role="dialog"
       aria-modal="true"
       aria-label="서비스 이용 가이드"
@@ -122,7 +125,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
           <button
             type="button"
             className="guide-close-icon-btn"
-            onClick={onClose}
+            onClick={handleCloseModal}
             aria-label="가이드 닫기"
           >
             ✕
@@ -185,15 +188,17 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
           ))}
         </div>
 
-        {/* 모달 하단 푸터 & 오늘 하루 보지 않기 */}
+        {/* 모달 하단 푸터 & 오늘 하루 보지 않기 체크박스 */}
         <div className="guide-modal-footer">
-          <button
-            type="button"
-            className="guide-dismiss-today-btn"
-            onClick={handleDismissToday}
-          >
-            🌙 오늘 하루 보지 않기
-          </button>
+          <label className="guide-dismiss-today-label">
+            <input
+              type="checkbox"
+              className="guide-dismiss-checkbox"
+              checked={dontShowToday}
+              onChange={(e) => setDontShowToday(e.target.checked)}
+            />
+            <span className="guide-dismiss-text">오늘 하루 보지 않기</span>
+          </label>
 
           <div className="guide-footer-actions">
             {!isLast ? (
@@ -201,7 +206,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   className="guide-action-btn secondary"
-                  onClick={onClose}
+                  onClick={handleCloseModal}
                 >
                   닫기
                 </button>
@@ -217,7 +222,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
               <button
                 type="button"
                 className="guide-action-btn primary complete"
-                onClick={onClose}
+                onClick={handleCloseModal}
               >
                 서재 시작하기 ✨
               </button>
