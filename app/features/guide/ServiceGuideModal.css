@@ -257,24 +257,65 @@
   gap: 12px;
 }
 
-.guide-dismiss-today-btn {
+.guide-dismiss-today-label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 13.5px;
-  font-weight: 600;
+  gap: 8px;
+  padding: 6px 8px;
   cursor: pointer;
+  user-select: none;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
 
-.guide-dismiss-today-btn:hover {
-  color: var(--text-h);
+.guide-dismiss-today-label:hover {
   background: var(--code-bg);
+}
+
+.guide-dismiss-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: var(--code-bg);
+  cursor: pointer;
+  outline: none;
+  display: grid;
+  place-content: center;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.guide-dismiss-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.guide-dismiss-checkbox:checked::before {
+  content: '';
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.guide-dismiss-checkbox:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-border);
+}
+
+.guide-dismiss-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.guide-dismiss-today-label:hover .guide-dismiss-text {
+  color: var(--text-h);
 }
 
 .guide-footer-actions {

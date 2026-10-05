@@ -210,10 +210,10 @@ export default function LibrarianCursor({ librarian, answer, active, thinking })
         left: 'var(--mx, 50%)',
         top: 'var(--my, 50%)',
         transform: `translate(${offsetX}px, ${offsetY}px)`,
-        // GNB 오버레이(30)와 그 드롭다운(100)보다 위에 올려, 상단 바 위에서도
-        // 사서 커서가 가려지지 않게 한다 (CLIAR-214). pointer-events:none이라 클릭을 막지 않는다.
-        // CLIAR-283: 모든 모달(1000-1100)보다 위에 표시되도록 1200으로 설정
-        zIndex: 1200,
+        // GNB 오버레이(30)와 그 드롭다운(100), 서비스 가이드 모달(10000)보다 위에 올려,
+        // 모든 레이어 위에서 사서 커서가 가려지지 않고 인터랙션을 유지하도록 20000으로 설정.
+        // pointer-events:none이라 클릭을 가로막지 않는다.
+        zIndex: 20000,
         pointerEvents: 'none',
       }}
     >
