@@ -955,7 +955,7 @@ export default function RegisterBook() {
       </form>
 
       {webcamOpen && (
-        <WebcamCaptureModal onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
+        <WebcamCaptureModal guideFrame onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
 
       {/* ISBN 촬영 가이드 팝업 (사용자 요청, 2026-09) — 책 뒷면 바코드 위치를 보여주는 예시 이미지 */}
