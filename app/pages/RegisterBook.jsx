@@ -130,7 +130,7 @@ export default function RegisterBook() {
   const [extraMeta, setExtraMeta] = useState({ publisher: null, publishedDate: null, coverUrl: null });
 
   const [totalPage, setTotalPage] = useState('');
-  const [currentPage, setCurrentPage] = useState('');
+  const [currentPage, setCurrentPage] = useState('0');
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -441,16 +441,21 @@ export default function RegisterBook() {
     author.trim() &&
     colorIdx !== null &&
     String(totalPage).trim() !== '' &&
-    String(currentPage).trim() !== '';
+    Number(totalPage) > 0;
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!allFilled || submitting || isLibraryFull) return;
     const color = presets[colorIdx];
-    const initialPage = Number(currentPage) || 0;
+    const initialPage = Number(currentPage) > 0 ? Math.floor(Number(currentPage)) : 0;
+    const safeTotalPage = Number(totalPage) > 0 ? Math.floor(Number(totalPage)) : null;
+    const cleanIsbn = isbn ? isbn.replace(/[^0-9X]/gi, '').slice(0, 13) : null;
+    const cleanAuthor = author.trim().slice(0, 100);
+    const cleanTitle = title.trim().slice(0, 200);
+
     setSubmitting(true);
     setSubmitError(null);
-    const readingStatus = toReadingStatus(deriveStatus(currentPage, totalPage));
+    const readingStatus = toReadingStatus(deriveStatus(initialPage, safeTotalPage));
 
     try {
       let bookId = ocrBookId;
@@ -462,16 +467,16 @@ export default function RegisterBook() {
          * PATCH는 전체 페이로드를 요구하므로 화면의 값을 모두 채워 보낸다.
          */
         await saveBookMeta(bookId, {
-          title,
-          author,
-          isbn: isbn || null,
+          title: cleanTitle,
+          author: cleanAuthor,
+          isbn: cleanIsbn,
           genre,
           subject: subject || null,
           displayGenre: displayGenre || null,
           publisher: extraMeta.publisher,
           publishedDate: extraMeta.publishedDate,
           coverUrl: extraMeta.coverUrl,
-          totalPages: Number(totalPage) || null,
+          totalPages: safeTotalPage,
           readingStatus,
         });
         // 색/두께는 서버가 저장하지 않는 시각 정보라 로컬에 따로 보관한다.
@@ -480,9 +485,9 @@ export default function RegisterBook() {
       } else {
         // 서버에 도서 생성 (색은 선택값, 두께는 총 페이지 수로 자동 계산 — provider가 로컬 bookVisuals에 저장)
         const created = await addBook({
-          title,
-          author,
-          isbn: isbn || null,
+          title: cleanTitle,
+          author: cleanAuthor,
+          isbn: cleanIsbn,
           publisher: extraMeta.publisher,
           publishedDate: extraMeta.publishedDate,
           coverUrl: extraMeta.coverUrl,
@@ -490,8 +495,8 @@ export default function RegisterBook() {
           spineColor: color.spine,
           coverColor: color.cover,
           thickness,
-          totalPage: Number(totalPage),
-          status: deriveStatus(currentPage, totalPage),
+          totalPage: safeTotalPage,
+          status: deriveStatus(initialPage, safeTotalPage),
           genre,
           subject: subject || null,
           displayGenre: displayGenre || null,
@@ -502,18 +507,25 @@ export default function RegisterBook() {
       // 현재 읽은 페이지가 있으면 진행도까지 반영 (생성 API엔 currentPage가 없음)
       if (bookId && initialPage > 0) {
         try {
-          await saveReadingProgress(bookId, initialPage, Number(totalPage) || null);
+          await saveReadingProgress(bookId, initialPage, safeTotalPage);
         } catch {
           // 진행도 저장 실패는 등록 자체를 막지 않는다 (서재에서 다시 수정 가능)
         }
       }
       navigate('/library');
     } catch (err) {
-      setSubmitError(
-        err?.status === 409
-          ? '이미 서재에 등록된 책이에요.'
-          : '책 등록 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.'
-      );
+      console.error('[RegisterBook] 도서 등록 실패:', err);
+      let message = '책 등록 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.';
+      if (err?.status === 409) {
+        message = '이미 서재에 등록된 책이에요.';
+      } else if (err?.status === 422) {
+        message = '도서 정보 형식에 오류가 있어요. (발행일자 또는 총 페이지 수를 확인해 주세요)';
+      } else if (err?.data?.detail && typeof err.data.detail === 'string') {
+        message = err.data.detail;
+      } else if (err?.message && typeof err.message === 'string' && !err.message.includes('object')) {
+        message = err.message;
+      }
+      setSubmitError(message);
     } finally {
       setSubmitting(false);
     }
