@@ -132,6 +132,61 @@ export function getLibraryBook(bookId) {
 }
 
 /**
+ * 날짜 문자열을 백엔드 Pydantic date 필드가 요구하는 YYYY-MM-DD 규격으로 정규화한다.
+ * 국립중앙도서관 및 알라딘 응답에서 연도만(2024), 연월만(2024-05), 비표준(2024.5.1) 등
+ * 다양한 형태로 내려오는 발행일자를 안전하게 변환하며, 유효하지 않으면 null을 반환한다.
+ */
+export function normalizeIsoDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+
+  // 1. 이미 정상적인 YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  // 2. YYYYMMDD (8자리 숫자)
+  if (/^\d{8}$/.test(trimmed)) {
+    return `${trimmed.slice(0, 4)}-${trimmed.slice(4, 6)}-${trimmed.slice(6, 8)}`;
+  }
+
+  // 3. YYYY-MM -> YYYY-MM-01
+  if (/^\d{4}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}-01`;
+  }
+
+  // 4. YYYYMM -> YYYY-MM-01
+  if (/^\d{6}$/.test(trimmed)) {
+    return `${trimmed.slice(0, 4)}-${trimmed.slice(4, 6)}-01`;
+  }
+
+  // 5. YYYY (연도만 4자리) -> YYYY-01-01
+  if (/^\d{4}$/.test(trimmed)) {
+    return `${trimmed}-01-01`;
+  }
+
+  // 6. 점(.) 또는 슬래시(/) 구분자 (예: 2024.05.15, 2024.5)
+  const parts = trimmed.match(/^(\d{4})[./-](\d{1,2})(?:[./-](\d{1,2}))?$/);
+  if (parts) {
+    const y = parts[1];
+    const m = parts[2].padStart(2, '0');
+    const d = parts[3] ? parts[3].padStart(2, '0') : '01';
+    return `${y}-${m}-${d}`;
+  }
+
+  return null;
+}
+
+/**
+ * ISBN 문자열에서 하이픈, 공백을 제거하고 최대 13자리로 정제한다.
+ * 백엔드 max_length=13 제약 위반(17자리 하이픈 ISBN 등)을 방지한다.
+ */
+export function normalizeIsbn(isbnStr) {
+  if (!isbnStr || typeof isbnStr !== 'string') return null;
+  const cleaned = isbnStr.replace(/[^0-9X]/gi, '').trim();
+  return cleaned ? cleaned.slice(0, 13) : null;
+}
+
+/**
  * 도서 등록. shelfId 미전달 시 백엔드가 기본 책장에 자동 배치한다.
  * 색상/두께 등 시각 정보는 백엔드가 저장하지 않으므로 전송하지 않는다.
  *
@@ -153,21 +208,23 @@ export function createLibraryBook({
   subject = null,
   displayGenre = null,
 }) {
+  const safeTotalPages = Number(totalPages) > 0 ? Math.floor(Number(totalPages)) : null;
+
   return authFetch('/library/books', {
     method: 'POST',
     body: {
-      title,
-      author,
-      isbn,
-      genre,
-      subject,
-      displayGenre,
-      publisher,
-      publishedDate,
-      totalPages,
-      coverUrl,
-      readingStatus,
-      shelfId,
+      title: (title || '').trim().slice(0, 200),
+      author: (author || '').trim().slice(0, 100),
+      isbn: normalizeIsbn(isbn),
+      genre: genre || 'NONE',
+      subject: subject ? String(subject).trim().slice(0, 100) : null,
+      displayGenre: displayGenre ? String(displayGenre).trim().slice(0, 100) : null,
+      publisher: publisher ? String(publisher).trim().slice(0, 100) : null,
+      publishedDate: normalizeIsoDate(publishedDate),
+      totalPages: safeTotalPages,
+      coverUrl: coverUrl ? String(coverUrl).trim() : null,
+      readingStatus: readingStatus || 'PLANNED',
+      shelfId: shelfId ?? null,
     },
   });
 }
@@ -190,9 +247,24 @@ export function updateLibraryBookMeta(bookId, meta) {
     readingStatus = 'PLANNED',
     totalPages = null,
   } = meta;
+
+  const safeTotalPages = Number(totalPages) > 0 ? Math.floor(Number(totalPages)) : null;
+
   return authFetch(`/library/books/${bookId}`, {
     method: 'PATCH',
-    body: { title, author, isbn, genre, subject, displayGenre, publisher, publishedDate, coverUrl, readingStatus, totalPages },
+    body: {
+      title: (title || '').trim().slice(0, 200),
+      author: (author || '').trim().slice(0, 100),
+      isbn: normalizeIsbn(isbn),
+      genre: genre || 'NONE',
+      subject: subject ? String(subject).trim().slice(0, 100) : null,
+      displayGenre: displayGenre ? String(displayGenre).trim().slice(0, 100) : null,
+      publisher: publisher ? String(publisher).trim().slice(0, 100) : null,
+      publishedDate: normalizeIsoDate(publishedDate),
+      coverUrl: coverUrl ? String(coverUrl).trim() : null,
+      readingStatus: readingStatus || 'PLANNED',
+      totalPages: safeTotalPages,
+    },
   });
 }
 
