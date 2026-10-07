@@ -78,12 +78,17 @@ export function BooksProvider({ children }) {
       publisher: input.publisher || null,
       publishedDate: input.publishedDate || null,
       coverUrl: input.coverUrl || null,
-      totalPages: Number(input.totalPage) || null,
-      readingStatus: bookApi.toReadingStatus(input.status),
+      totalPages: Number(input.totalPage || input.totalPages) || null,
+      currentPage: Number(input.currentPage) || 0,
+      readingStatus: input.readingStatus || bookApi.toReadingStatus(input.status),
       // 장르는 등록 화면에서 분류/선택한 값 (미지정이면 'NONE')
       genre: input.genre || 'NONE',
       subject: input.subject || null,
       displayGenre: input.displayGenre || null,
+      description: input.description || null,
+      genreSource: input.genreSource || 'KDC',
+      kdc: input.kdc || null,
+      shelfId: input.shelfId ?? null,
     });
     setVisual(created.bookId, {
       colorIdx: input.colorIdx,
