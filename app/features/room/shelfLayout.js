@@ -113,11 +113,11 @@ const STORK_CAMERA = {
   target: [7.52, -0.15, 0.67],
 };
 
-// 황새 서재 선반 배치
+// 황새 서재 선반 배치 (1~7번 선반)
 const STORK_SHELVES = [
   {
     id: 'shelf1',
-    pos: [-2.76, 1, 4.07],
+    pos: [-2.76, 1.0, 4.07],
     rotXdeg: -6,
     rotYdeg: -0.5,
     rotZdeg: -2.5,
@@ -125,11 +125,23 @@ const STORK_SHELVES = [
     depth: 0.2,
     bookHeight: 0.8,
     heightVar: 0.27,
-    capacity: 8, // 최대 8권, 9번째부터 다음 선반으로
+    capacity: 8,
   },
   {
     id: 'shelf2',
-    pos: [-2.57, 0, 3.35],
+    pos: [-2.65, 0.2, 3.65],
+    rotXdeg: -6,
+    rotYdeg: -0.5,
+    rotZdeg: -2.5,
+    width: 1.2,
+    depth: 0.25,
+    bookHeight: 0.75,
+    heightVar: 0.27,
+    capacity: 8,
+  },
+  {
+    id: 'shelf3',
+    pos: [-2.55, -0.6, 3.25],
     rotXdeg: -6,
     rotYdeg: -0.5,
     rotZdeg: -2.5,
@@ -137,7 +149,55 @@ const STORK_SHELVES = [
     depth: 0.35,
     bookHeight: 0.68,
     heightVar: 0.27,
-    capacity: 0, // 무제한 (마지막 선반)
+    capacity: 8,
+  },
+  {
+    id: 'shelf4',
+    pos: [-0.95, 0.6, 1.2],
+    rotXdeg: -10,
+    rotYdeg: 3,
+    rotZdeg: -2,
+    width: 1.1,
+    depth: 0.25,
+    bookHeight: 0.75,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf5',
+    pos: [-0.95, -0.1, 1.2],
+    rotXdeg: -10,
+    rotYdeg: 3,
+    rotZdeg: -2,
+    width: 1.1,
+    depth: 0.25,
+    bookHeight: 0.72,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf6',
+    pos: [1.75, 0.95, -0.8],
+    rotXdeg: -15,
+    rotYdeg: 8,
+    rotZdeg: -3,
+    width: 1.4,
+    depth: 0.3,
+    bookHeight: 0.85,
+    heightVar: 0.25,
+    capacity: 8,
+  },
+  {
+    id: 'shelf7',
+    pos: [1.75, 0.15, -0.8],
+    rotXdeg: -15,
+    rotYdeg: 8,
+    rotZdeg: -3,
+    width: 1.4,
+    depth: 0.3,
+    bookHeight: 0.8,
+    heightVar: 0.25,
+    capacity: 8,
   },
 ];
 
@@ -146,12 +206,12 @@ const NUDI_CAMERA = {
   fov: 24,
   position: [-8.98, 1.76, 24],
   target: [7.52, -0.15, 0.67],
-};
+  };
 
-// 누디 서재 선반 배치 (사용자 캘리브레이션 결과 반영, 2026-09)
+// 누디 서재 선반 배치 (1~5번 선반)
 const NUDI_SHELVES = [
   {
-    id: 'top',
+    id: 'shelf1',
     pos: [-1.5, 0.75, -0.12],
     rotXdeg: -19.5,
     rotYdeg: 9.9,
@@ -163,7 +223,7 @@ const NUDI_SHELVES = [
     capacity: 6,
   },
   {
-    id: 'shelf3',
+    id: 'shelf2',
     pos: [-0.08, 0.5, -0.12],
     rotXdeg: -10.5,
     rotYdeg: 2,
@@ -175,7 +235,31 @@ const NUDI_SHELVES = [
     capacity: 6,
   },
   {
-    id: 'shelf2',
+    id: 'shelf3',
+    pos: [-1.5, 0.05, -0.2],
+    rotXdeg: -10,
+    rotYdeg: 10.5,
+    rotZdeg: -4,
+    width: 1.2,
+    depth: 0.2,
+    bookHeight: 0.88,
+    heightVar: 0.25,
+    capacity: 6,
+  },
+  {
+    id: 'shelf4',
+    pos: [-0.08, -0.1, -0.2],
+    rotXdeg: -8,
+    rotYdeg: 3,
+    rotZdeg: -4,
+    width: 1.4,
+    depth: 0.24,
+    bookHeight: 0.8,
+    heightVar: 0.24,
+    capacity: 6,
+  },
+  {
+    id: 'shelf5',
     pos: [-1.5, -0.69, -0.3],
     rotXdeg: -3,
     rotYdeg: 11.5,
@@ -195,31 +279,115 @@ const GECKO_CAMERA = {
   target: [7.52, -0.13, 0.67],
 };
 
-// 게코 서재 선반 배치 (사용자 캘리브레이션 결과 반영, 2026-09)
+// 게코 서재 선반 배치 (1~9번 선반)
 const GECKO_SHELVES = [
   {
-    id: 'top',
-    pos: [-1.04, 2.92, -0.58],
+    id: 'shelf1',
+    pos: [-1.8, 2.0, 0.5],
     rotXdeg: -23.5,
     rotYdeg: 12,
     rotZdeg: -14,
-    width: 2.48,
+    width: 1.15,
     depth: 0.2,
-    bookHeight: 1.02,
-    heightVar: 0.33,
-    capacity: 12,
+    bookHeight: 0.95,
+    heightVar: 0.3,
+    capacity: 6,
   },
   {
     id: 'shelf2',
-    pos: [-1.11, 1.56, 4.61],
+    pos: [-0.7, 1.6, 1.8],
+    rotXdeg: -21,
+    rotYdeg: 10,
+    rotZdeg: -14,
+    width: 1.05,
+    depth: 0.2,
+    bookHeight: 0.85,
+    heightVar: 0.28,
+    capacity: 6,
+  },
+  {
+    id: 'shelf3',
+    pos: [0.4, 1.2, 3.2],
     rotXdeg: -19,
-    rotYdeg: 9.5,
-    rotZdeg: -15,
-    width: 1.25,
+    rotYdeg: 8,
+    rotZdeg: -14,
+    width: 1.05,
     depth: 0.2,
     bookHeight: 0.8,
-    heightVar: 0.27,
-    capacity: 8,
+    heightVar: 0.25,
+    capacity: 6,
+  },
+  {
+    id: 'shelf4',
+    pos: [-1.8, 1.0, 0.5],
+    rotXdeg: -22,
+    rotYdeg: 11,
+    rotZdeg: -14,
+    width: 1.15,
+    depth: 0.2,
+    bookHeight: 0.9,
+    heightVar: 0.28,
+    capacity: 6,
+  },
+  {
+    id: 'shelf5',
+    pos: [-0.7, 0.65, 1.8],
+    rotXdeg: -20,
+    rotYdeg: 9.5,
+    rotZdeg: -14,
+    width: 1.05,
+    depth: 0.2,
+    bookHeight: 0.82,
+    heightVar: 0.26,
+    capacity: 6,
+  },
+  {
+    id: 'shelf6',
+    pos: [0.4, 0.35, 3.2],
+    rotXdeg: -18,
+    rotYdeg: 8,
+    rotZdeg: -14,
+    width: 1.05,
+    depth: 0.2,
+    bookHeight: 0.78,
+    heightVar: 0.25,
+    capacity: 6,
+  },
+  {
+    id: 'shelf7',
+    pos: [-1.8, -0.05, 0.5],
+    rotXdeg: -20,
+    rotYdeg: 10,
+    rotZdeg: -14,
+    width: 1.15,
+    depth: 0.2,
+    bookHeight: 0.85,
+    heightVar: 0.26,
+    capacity: 6,
+  },
+  {
+    id: 'shelf8',
+    pos: [-0.7, -0.3, 1.8],
+    rotXdeg: -18,
+    rotYdeg: 9,
+    rotZdeg: -14,
+    width: 1.05,
+    depth: 0.2,
+    bookHeight: 0.8,
+    heightVar: 0.25,
+    capacity: 6,
+  },
+  {
+    id: 'shelf9',
+    pos: [0.4, -0.5, 3.2],
+    rotXdeg: -16,
+    rotYdeg: 7.5,
+    rotZdeg: -14,
+    width: 1.05,
+    depth: 0.2,
+    bookHeight: 0.75,
+    heightVar: 0.24,
+    capacity: 6,
   },
 ];
 
@@ -237,6 +405,69 @@ export const SHELVES_BY_LIBRARIAN = {
   nudi: NUDI_SHELVES,
   gecko: GECKO_SHELVES,
 };
+
+// 사서 id별 모바일 선반 오버레이 이미지 폴더명
+export const SHELVES_FOLDER_BY_LIBRARIAN = {
+  cat: 'cat_shelves',
+  stork: 'stork_shelves',
+  nudi: 'nudi_shelves',
+  gecko: 'gecko_shelves',
+};
+
+/** 사서 id에 맞는 모바일 선반 이미지 폴더명을 반환 (기본값: cat_shelves) */
+export function getShelfFolder(librarianId) {
+  return SHELVES_FOLDER_BY_LIBRARIAN[librarianId] || 'cat_shelves';
+}
+
+// 사서 id별 모바일 선반 터치 영역 좌표 (1번부터 순서대로)
+export const SHELF_TOUCH_BOUNDS_BY_LIBRARIAN = {
+  // 고양이(블루) 사서: 5개 선반
+  cat: [
+    { top: '32.5%', height: '8.5%', left: '8.0%', width: '15.0%' }, // 1번 선반 (상단)
+    { top: '40.5%', height: '8.0%', left: '8.0%', width: '15.0%' }, // 2번 선반
+    { top: '48.0%', height: '8.0%', left: '8.0%', width: '15.0%' }, // 3번 선반
+    { top: '55.5%', height: '8.0%', left: '8.0%', width: '15.0%' }, // 4번 선반
+    { top: '63.0%', height: '8.0%', left: '8.0%', width: '15.0%' }, // 5번 선반 (하단)
+  ],
+  // 황새(슈빌) 사서: 7개 선반
+  stork: [
+    { top: '28.0%', height: '15.5%', left: '1.0%', width: '12.0%' }, // 1번 선반 (좌측 상단)
+    { top: '43.5%', height: '11.0%', left: '1.0%', width: '12.0%' }, // 2번 선반 (좌측 중단)
+    { top: '54.5%', height: '13.0%', left: '1.5%', width: '12.0%' }, // 3번 선반 (좌측 하단)
+    { top: '35.0%', height: '11.0%', left: '13.5%', width: '8.0%' }, // 4번 선반 (중앙 상단)
+    { top: '45.5%', height: '8.5%', left: '13.5%', width: '8.0%' },  // 5번 선반 (중앙 하단)
+    { top: '28.5%', height: '14.0%', left: '35.5%', width: '13.0%' }, // 6번 선반 (우측 상단)
+    { top: '42.0%', height: '13.0%', left: '35.5%', width: '13.0%' }, // 7번 선반 (우측 하단)
+  ],
+  // 누디 사서: 5개 선반
+  nudi: [
+    { top: '22.0%', height: '24.0%', left: '2.5%', width: '8.5%' },  // 1번 선반 (좌측 상단)
+    { top: '30.5%', height: '17.0%', left: '9.5%', width: '10.0%' }, // 2번 선반 (우측 상단)
+    { top: '45.0%', height: '13.5%', left: '2.5%', width: '8.0%' },  // 3번 선반 (좌측 중단)
+    { top: '46.5%', height: '11.5%', left: '9.5%', width: '9.5%' },  // 4번 선반 (우측 중단)
+    { top: '58.0%', height: '13.0%', left: '2.5%', width: '8.5%' },  // 5번 선반 (좌측 하단)
+  ],
+  // 게코 사서: 9개 선반
+  gecko: [
+    { top: '21.0%', height: '18.0%', left: '9.0%', width: '12.5%' }, // 1번 선반 (1열 상단)
+    { top: '29.5%', height: '13.0%', left: '20.5%', width: '7.5%' }, // 2번 선반 (2열 상단)
+    { top: '34.5%', height: '13.0%', left: '27.0%', width: '9.5%' }, // 3번 선반 (3열 상단)
+    { top: '33.0%', height: '17.0%', left: '9.0%', width: '12.5%' }, // 4번 선반 (1열 중단)
+    { top: '39.0%', height: '13.0%', left: '20.5%', width: '7.5%' }, // 5번 선반 (2열 중단)
+    { top: '42.5%', height: '13.0%', left: '27.0%', width: '9.5%' }, // 6번 선반 (3열 중단)
+    { top: '46.0%', height: '14.0%', left: '9.0%', width: '12.5%' }, // 7번 선반 (1열 하단)
+    { top: '49.5%', height: '12.0%', left: '20.5%', width: '7.5%' }, // 8번 선반 (2열 하단)
+    { top: '52.0%', height: '11.0%', left: '27.0%', width: '9.5%' }, // 9번 선반 (3열 하단)
+  ],
+};
+
+/** 사서 id에 맞는 모바일 선반 터치 영역 배열을 반환 */
+export function getShelfTouchBounds(librarianId) {
+  return SHELF_TOUCH_BOUNDS_BY_LIBRARIAN[librarianId] || SHELF_TOUCH_BOUNDS_BY_LIBRARIAN.cat;
+}
+
+// 하위 호환용 기본 터치 좌표 (고양이 기준)
+export const SHELF_TOUCH_BOUNDS = SHELF_TOUCH_BOUNDS_BY_LIBRARIAN.cat;
 
 // 사서 id별 서재 배경 이미지 (라이트 / 다크 테마 분기 지원).
 export const BG_SRC_BY_LIBRARIAN = {
