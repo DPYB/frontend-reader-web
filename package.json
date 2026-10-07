@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "check:harness": "node scripts/check_harness.mjs",
     "preview": "vite preview",
     "prepare": "git config core.hooksPath .githooks || true"
   },

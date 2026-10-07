@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 하네스 문서 슬림화 및 롤링 아카이빙(.harness/archive/), Node.js 기반 자동 검증 체계(scripts/check_harness.mjs, npm run check:harness, CI 연동) 구축 완료
 - 월간 독서 리포트 가짜 목데이터(코스모스 등) 강제 주입 제거 및 활동 유무(hasActivity) 기반 정직한 Empty State, 게스트 공용 체험 모드 안내 띠 배너 연동 완료
 - 프론트엔드 계층형 3단계 검증 체계(Tier 1: lint, Tier 2: typecheck+build, Tier 3: 원격 CI) 및 완화된 중앙 컨벤션 연동 완료
 - 저장소 평탄화 및 `app/` 디렉터리 구조 마이그레이션
