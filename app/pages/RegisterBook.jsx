@@ -7,18 +7,17 @@ import { getColorPresets, extractDominantColorIndex, loadImage } from '../featur
 import { GENRE_DEFS, GENRE_CODES, GENRE_NONE, genreLabel, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
-import { searchBookByIsbn, normalizeBookInfo, toReadingStatus } from '../api/bookApi';
+import { searchBookByIsbn, searchBooksByKeyword, toReadingStatus } from '../api/bookApi';
 import { setVisual } from '../store/bookVisuals';
 import { ApiError } from '../api/authApi';
 import { getBookThickness } from '../features/room/bookExtractor';
 import { coverImageSrc, onFallbackCover } from '../lib/coverImage';
 import LoadingSequence from '../components/LoadingSequence';
 import WebcamCaptureModal from '../features/room/WebcamCaptureModal';
+import './RegisterBook.css';
 
 /**
  * 표지 OCR(ISBN 인식) 실패 원인을 사용자에게 구체적으로 안내한다.
- * 상태코드 규약은 SentenceCollectModal의 문장 OCR과 동일하되, 422는
- * '문장 없음'이 아니라 'ISBN을 못 찾음'으로 읽는다.
  */
 function describeCoverOcrError(err) {
   if (err instanceof ApiError) {
@@ -46,13 +45,11 @@ function deriveStatus(currentPage, totalPage) {
 
 /**
  * 장르 메인 라벨 및 세부 분류/보조 라벨을 조합하여 반환.
- * 서버에서 내려준 세부 주제(displayGenre 또는 subject)가 있을 때만 괄호로 명시.
  */
 function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
   const mainLabel = genreLabel(genreCode);
   if (!mainLabel) return '미지정';
 
-  // 1. 서버에서 내려준 완성형 displayGenre가 있는 경우
   if (displayGenre && displayGenre.trim()) {
     const trimmed = displayGenre.trim();
     if (trimmed.includes('(') || trimmed.startsWith(mainLabel)) {
@@ -61,7 +58,6 @@ function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
     return `${mainLabel} (${trimmed})`;
   }
 
-  // 2. 세부 subject가 제공된 경우 (단, 메인 라벨과 중복되지 않을 때)
   if (subject && subject.trim() && subject.trim() !== mainLabel) {
     return `${mainLabel} (${subject.trim()})`;
   }
@@ -69,36 +65,42 @@ function getGenreSubLabel(genreCode, subject = '', displayGenre = '') {
   return mainLabel;
 }
 
-// 서재 선반 배치(shelfLayout.js)가 사서당 선반 5개 x 10권 = 총 50권까지만 3D로 배치한다.
-// 그 이상 등록해도 화면에 안 보이는 책이 생기므로, 등록 자체를 여기서 막는다(사용자 요청, 2026-09).
+// 서재 선반 최대 권수
 const MAX_LIBRARY_BOOKS = 50;
+
+// 추천 검색어 태그 목록
+const POPULAR_SEARCH_KEYWORDS = ['불편한 편의점', '소년이 온다', '세이노의 가르침', '마흔에 읽는 쇼펜하우어', '트렌드 코리아', '모순'];
 
 export default function RegisterBook() {
   const { books, addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
-  // 책 색상 팔레트를 활성 사서 서재 테마에 맞춘다 (사용자 요청, 2026-09).
   const { activeId: librarianId } = useLibrarian();
   const presets = useMemo(() => getColorPresets(librarianId), [librarianId]);
 
   const uploadInputRef = useRef(null);
-  // 연속 업로드 시 늦게 끝난 이전 요청이 최신 결과를 덮어쓰지 않도록 하는 실행 번호
+  const formSectionRef = useRef(null);
   const runIdRef = useRef(0);
-  // 마지막으로 만든 미리보기 object URL (언마운트 시 해제용)
   const previewUrlRef = useRef(null);
+  const searchTimerRef = useRef(null);
 
-  // "📷 사진 촬영" 버튼 클릭 시 노트북/PC 웹캠을 띄우는 모달 표시 여부 (사용자 요청, 2026-09).
-  // 예전엔 <input type="file" capture="environment">를 썼는데, 이건 모바일 OS 카메라 앱을
-  // 열어줄 뿐 데스크톱 브라우저에서는 무시되고 파일 탐색기만 뜬다(웹 서비스라 데스크톱이
-  // 주 사용 환경). getUserMedia로 실제 웹캠 스트림을 여는 방식으로 교체했다 — 크롬은 위치
-  // 정보 요청과 동일하게 카메라 접근 시 주소창 옆에서 자동으로 권한 팝업을 띄운다.
+  // 등록 모드: 'search'(키워드 검색) | 'camera'(사진/바코드 촬영) | 'manual'(직접 입력)
+  const [activeTab, setActiveTab] = useState('search');
+
+  // ── 도서 키워드 검색 상태 ──
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchMeta, setSearchMeta] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [instantRegisteringKey, setInstantRegisteringKey] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // ── 카메라/바코드 모달 및 OCR 상태 ──
   const [webcamOpen, setWebcamOpen] = useState(false);
-  // "가이드" 버튼 클릭 시 ISBN 촬영 방법을 보여주는 예시 이미지 팝업 (사용자 요청, 2026-09)
   const [guideOpen, setGuideOpen] = useState(false);
 
-  // 업로드/촬영 이미지 최대 크기 (사용자 요청, 2026-09: 여러 사용자가 동시에 쓰는
-  // 서비스라 서버 부담을 고려해 50MB보다 훨씨 작은 5MB로 제한. 서버는 최대 50MB까지
-  // 허용하지만, 클라이언트에서 먼저 걸러 불필요한 대용량 업로드를 막는다)
   const MAX_IMAGE_SIZE_MB = 5;
   const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
@@ -107,27 +109,29 @@ export default function RegisterBook() {
   const [ocrDone, setOcrDone] = useState(false);
   const [ocrError, setOcrError] = useState('');
   const [ocrNotice, setOcrNotice] = useState('');
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(true);
   const [fromRecommendation, setFromRecommendation] = useState(false);
 
+  // ── 도서 상세 폼 상태 ──
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [colorIdx, setColorIdx] = useState(null);
-  // 장르 (CLIAR-241): backend-discovery 분류 결과를 기본값으로 채우고 사용자가 바꿀 수 있다.
+  const [colorIdx, setColorIdx] = useState(0);
   const [genre, setGenre] = useState(GENRE_NONE);
   const [genreLoading, setGenreLoading] = useState(false);
-  // 세부 장르 및 보조 라벨 정보
   const [subject, setSubject] = useState('');
   const [displayGenre, setDisplayGenre] = useState('');
 
-  // 인식한 ISBN과, /ocr/covers가 서재에 만들어 둔 도서 ID.
-  // bookId가 있으면 등록 시 새로 만들지 않고 이 책을 갱신한다(중복 등록 방지).
   const [isbn, setIsbn] = useState('');
   const [isbnSearching, setIsbnSearching] = useState(false);
   const [ocrBookId, setOcrBookId] = useState(null);
-  // 화면에서 편집하지 않지만 PATCH 시 그대로 돌려보내야 하는 조회 결과
-  // (updateLibraryBookMeta는 전체 페이로드를 요구해, 안 넘기면 null로 덮인다)
-  const [extraMeta, setExtraMeta] = useState({ publisher: null, publishedDate: null, coverUrl: null });
+  const [extraMeta, setExtraMeta] = useState({
+    publisher: null,
+    publishedDate: null,
+    coverUrl: null,
+    sideCoverUrl: null,
+    description: null,
+    genreSource: 'KDC',
+  });
 
   const [totalPage, setTotalPage] = useState('');
   const [currentPage, setCurrentPage] = useState('0');
@@ -143,13 +147,11 @@ export default function RegisterBook() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  // 이미 등록된 책을 고치는 흐름(ocrBookId)은 신규 추가가 아니라 상한에서 제외한다.
+
   const isLibraryFull = !ocrBookId && books.length >= MAX_LIBRARY_BOOKS;
 
   /**
-   * 인식/전달된 도서 정보로 장르를 자동 분류해 채운다 (CLIAR-241).
-   * 알라딘 검색은 장르를 주지 않으므로 backend-discovery의 분류 API를 쓴다.
-   * 실패하면 '미지정'으로 남기고 사용자가 직접 고르게 한다(등록은 막지 않음).
+   * 장르 자동 분류
    */
   const autoClassifyGenre = useCallback(async ({ title: t, author: a, isbn = '', rawCategory = '' }) => {
     if (!t?.trim()) return;
@@ -164,12 +166,12 @@ export default function RegisterBook() {
     }
   }, []);
 
-  // AI 도서 추천 등 외부 state로 넘어온 도서 정보 자동 채움 (CLIAR-229)
+  // AI 추천 등 외부 state로 넘어온 도서 정보 처리
   useEffect(() => {
     if (location.state?.book) {
       const { book } = location.state;
+      setActiveTab('manual');
       setTitle(book.title || '');
-      // 저자: recommended_books[i].author 사용 (쪽수 제외된 순수 저자명)
       setAuthor(book.author || '');
       setColorIdx(book.colorIdx ?? 0);
       setIsbn(book.isbn || '');
@@ -179,8 +181,10 @@ export default function RegisterBook() {
         publisher: book.publisher ?? null,
         publishedDate: book.publishedDate ?? null,
         coverUrl: book.coverUrl ?? book.cover_url ?? null,
+        sideCoverUrl: book.sideCoverUrl ?? book.side_cover_url ?? null,
+        description: book.description ?? null,
+        genreSource: book.genreSource || book.genre_source || 'KDC',
       });
-      // 총 페이지 수: recommended_books[i].page_count 사용 (정수, 확인 불가 시 null -> 수동 입력 유도)
       const parsedTotalPage =
         book.page_count != null
           ? book.page_count
@@ -192,7 +196,7 @@ export default function RegisterBook() {
       setOcrDone(true);
       setEditing(true);
       setFromRecommendation(true);
-      // 추천 응답에 장르가 있으면 검증된 장르를 최우선으로 보존하고, 없으면 제목·저자로 분류한다.
+
       if (book.genre) {
         const upper = typeof book.genre === 'string' ? book.genre.trim().toUpperCase() : '';
         const normalizedGenre = GENRE_CODES.includes(upper)
@@ -205,27 +209,162 @@ export default function RegisterBook() {
     }
   }, [location.state, autoClassifyGenre]);
 
+  // ── 도서 키워드 검색 실행 함수 ──
+  const executeSearch = useCallback(async (queryText) => {
+    const trimmed = (queryText || '').trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearchMeta(null);
+      setHasSearched(false);
+      return;
+    }
+    setIsSearching(true);
+    setSearchError(null);
+    setHasSearched(true);
+    try {
+      const data = await searchBooksByKeyword({ query: trimmed, limit: 10 });
+      setSearchResults(data.items || []);
+      setSearchMeta({
+        query: data.query,
+        total: data.total,
+        alreadyRegistered: data.alreadyRegistered,
+      });
+    } catch (err) {
+      console.error('[RegisterBook] 검색 오류:', err);
+      setSearchError('도서 검색 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // 검색어 입력 시 350ms 디바운스 적용
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearchMeta(null);
+      setHasSearched(false);
+      return;
+    }
+    searchTimerRef.current = setTimeout(() => {
+      executeSearch(trimmed);
+    }, 350);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, executeSearch]);
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    executeSearch(searchQuery);
+  };
+
+  const handleSelectKeywordChip = (chip) => {
+    setSearchQuery(chip);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    executeSearch(chip);
+  };
+
+  // ── 1. 원스톱 즉시 서재 등록 (원클릭) ──
+  const handleInstantRegister = async (item) => {
+    if (isLibraryFull) {
+      setSubmitError(`서재가 가득 찼어요. 최대 ${MAX_LIBRARY_BOOKS}권까지 등록할 수 있어요.`);
+      return;
+    }
+    const key = item.isbn || item.title;
+    setInstantRegisteringKey(key);
+    setSubmitError(null);
+
+    const safeTotalPages = Number(item.totalPages) > 0 ? Math.floor(Number(item.totalPages)) : null;
+    const thickness = getBookThickness(safeTotalPages);
+    const color = presets[0];
+
+    try {
+      await addBook({
+        title: item.title,
+        author: item.author,
+        isbn: item.isbn,
+        publisher: item.publisher,
+        publishedDate: item.publishedDate,
+        coverUrl: item.coverUrl,
+        totalPages: safeTotalPages,
+        currentPage: 0,
+        status: '시작전',
+        colorIdx: 0,
+        spineColor: color.spine,
+        coverColor: color.cover,
+        thickness,
+        genre: 'NONE',
+        description: item.description,
+        genreSource: item.genreSource || 'KDC',
+      });
+
+      // 등록 성공 피드백 및 서재로 이동
+      setToastMessage(`🎉 '${item.title}' 도서가 내 서재에 꽂혔습니다!`);
+      setTimeout(() => {
+        navigate('/library');
+      }, 700);
+    } catch (err) {
+      console.error('[RegisterBook] 원스톱 등록 실패:', err);
+      let message = '도서 등록 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.';
+      if (err?.status === 409) {
+        message = '이미 서재에 등록된 책이에요.';
+      } else if (err?.status === 422) {
+        message = '도서 정보 형식에 오류가 있어요.';
+      } else if (err?.data?.detail && typeof err.data.detail === 'string') {
+        message = err.data.detail;
+      }
+      setSubmitError(message);
+    } finally {
+      setInstantRegisteringKey(null);
+    }
+  };
+
+  // ── 2. 상세 정보 확인 후 등록 (폼에 복사) ──
+  const handleSelectBookForDetail = (item) => {
+    setTitle(item.title || '');
+    setAuthor(item.author || '');
+    setIsbn(item.isbn || '');
+    setTotalPage(item.totalPages ? String(item.totalPages) : '');
+    setCurrentPage('0');
+    setColorIdx(0);
+    setExtraMeta({
+      publisher: item.publisher ?? null,
+      publishedDate: item.publishedDate ?? null,
+      coverUrl: item.coverUrl ?? null,
+      sideCoverUrl: item.sideCoverUrl ?? null,
+      description: item.description ?? null,
+      genreSource: item.genreSource || 'KDC',
+    });
+    setOcrDone(true);
+    setEditing(true);
+    setFromRecommendation(false);
+
+    autoClassifyGenre({ title: item.title, author: item.author, isbn: item.isbn || '' });
+
+    // 폼 영역으로 자연스럽게 스크롤
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   /**
-   * 촬영/업로드한 사진으로 도서 정보를 채운다.
-   *
-   *  1) POST /ocr/covers (backend-record) — 뒷면 바코드에서 ISBN을 인식
-   *  2) 그 ISBN으로 조회한 도서 정보(backend-book /books/search 결과)를 받는다.
-   *     record가 응답의 book 필드로 이미 조회해 주므로 그걸 우선 쓰고,
-   *     없을 때만 프론트가 직접 /books/search를 호출한다.
-   *  3) 조회 결과로 제목·저자·총 페이지 수를 채우고, 없으면 OCR 후보로 폴백
-   *
-   * 책 색상은 어느 API도 주지 않으므로 업로드한 이미지의 평균색으로 고른다.
+   * 사진 업로드 / 촬영 처리
    */
   async function handleFile(file) {
     if (!file) return;
 
-    // 서버에 보내기 전에 클라이언트에서 먼저 크기를 확인한다 (5MB 제한, 사용자 요청 2026-09).
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
       setOcrError(`이미지가 너무 커요. ${MAX_IMAGE_SIZE_MB}MB 이하의 사진으로 다시 시도해 주세요.`);
       return;
     }
 
-    // 같은 파일을 다시 올릴 때도 처음부터 다시 인식되도록 이전 결과를 모두 비운다.
     const runId = ++runIdRef.current;
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current = URL.createObjectURL(file);
@@ -243,197 +382,156 @@ export default function RegisterBook() {
     setTotalPage('');
     setIsbn('');
     setOcrBookId(null);
-    setExtraMeta({ publisher: null, publishedDate: null, coverUrl: null });
+    setExtraMeta({ publisher: null, publishedDate: null, coverUrl: null, sideCoverUrl: null, description: null, genreSource: 'KDC' });
     setFromRecommendation(false);
 
-    // 색상 추출은 인식 성공 여부와 무관하게 진행 (실패 시 첫 번째 색으로 폴백)
-    // 활성 사서의 팔레트(presets) 안에서 가장 가까운 색을 고른다.
-    const colorPromise = loadImage(file)
+    loadImage(previewUrlRef.current)
       .then((img) => extractDominantColorIndex(img, presets))
-      .catch(() => 0);
+      .then((idx) => {
+        if (runIdRef.current === runId) setColorIdx(idx);
+      })
+      .catch(() => {
+        if (runIdRef.current === runId) setColorIdx(0);
+      });
 
     try {
-      const cover = await createOcrCover({ imageFile: file });
-      if (runId !== runIdRef.current) return; // 더 최신 업로드가 진행 중이면 버린다
+      const cover = await createOcrCover(file);
+      if (runIdRef.current !== runId) return;
 
-      setIsbn(cover.isbn || '');
-      setOcrBookId(cover.bookId ?? null);
+      if (cover.isbn) {
+        setIsbn(cover.isbn);
+        let found = cover.book;
 
-      // record가 이미 ISBN으로 도서 정보를 조회해 함께 내려준다.
-      let found = normalizeBookInfo(cover.book, cover.isbn || '');
-      if (cover.alreadyRegistered) {
-        setOcrNotice('이미 서재에 있는 책이에요. 등록하면 기존 책 정보가 갱신됩니다.');
-      }
-
-      // record가 못 찾았을 때만 프론트에서 한 번 더 조회한다.
-      // 이 조회가 실패해도 OCR 후보(제목/저자)로 등록을 이어갈 수 있게 한다.
-      if (!found && cover.isbn) {
-        try {
+        if (!found) {
           const searched = await searchBookByIsbn(cover.isbn);
-          if (runId !== runIdRef.current) return;
           found = searched.book;
           if (searched.bookId) setOcrBookId(searched.bookId);
           if (searched.alreadyRegistered) {
-            setOcrNotice('이미 서재에 있는 책이에요. 등록하면 기존 책 정보가 갱신됩니다.');
+            setOcrNotice('이미 서재에 등록된 도서입니다. 정보를 수정하여 저장할 수 있습니다.');
           }
-        } catch {
-          // 조회 실패는 등록을 막지 않는다. 아래에서 OCR 후보로 폴백한다.
-          if (runId !== runIdRef.current) return;
+        } else if (cover.alreadyRegistered) {
+          setOcrNotice('이미 서재에 등록된 도서입니다. 정보를 수정하여 저장할 수 있습니다.');
+        }
+
+        if (found) {
+          setTitle(found.title || '');
+          setAuthor(found.author || '');
+          setTotalPage(found.totalPages ? String(found.totalPages) : '');
+          setExtraMeta({
+            publisher: found.publisher ?? null,
+            publishedDate: found.publishedDate ?? null,
+            coverUrl: found.coverUrl ?? null,
+            sideCoverUrl: found.sideCoverUrl ?? null,
+            description: found.description ?? null,
+            genreSource: found.genreSource || 'KDC',
+          });
+          if (found.genre) {
+            setGenre(found.genre);
+            if (found.subject) setSubject(found.subject);
+            if (found.displayGenre) setDisplayGenre(found.displayGenre);
+          } else {
+            autoClassifyGenre({ title: found.title, author: found.author, isbn: cover.isbn, rawCategory: cover.raw?.category_name });
+          }
+          setOcrDone(true);
+          return;
         }
       }
 
-      if (found) {
-        setExtraMeta({
-          publisher: found.publisher ?? null,
-          publishedDate: found.publishedDate ?? null,
-          coverUrl: found.coverUrl ?? null,
-        });
-        if (found.subject) setSubject(found.subject);
-        if (found.displayGenre) setDisplayGenre(found.displayGenre);
+      if (cover.raw?.candidates?.length) {
+        const first = cover.raw.candidates[0];
+        setTitle(first.title || '');
+        setAuthor(first.author || '');
+        autoClassifyGenre({ title: first.title, author: first.author, isbn: cover.isbn || '' });
+        setOcrNotice('도서 메타데이터를 찾지 못해 OCR 텍스트로 채웠습니다. 내용을 확인해 주세요.');
+        setOcrDone(true);
+        setEditing(true);
+        return;
       }
 
-      if (!cover.isbn && !found) {
-        /*
-         * /ocr/covers는 ISBN을 못 찾아도 200에 isbn=null로 응답한다. 이때
-         * 무엇이 인식됐는지 보여 줘야 다시 찍을지 직접 입력할지 판단할 수 있다.
-         * (숫자가 아예 없으면 바코드가 안 찍힌 것, 숫자가 있는데도 실패하면
-         *  backend-record의 ISBN 추출이 걸러낸 것)
-         */
-        const recognized = cover.lines.slice(0, 3).join(' / ');
-        setOcrError(
-          `ISBN을 찾지 못했어요. 바코드 아래 13자리 숫자가 보이도록 다시 찍거나, 아래에서 직접 입력해 주세요.${recognized ? ` (인식된 텍스트: ${recognized})` : ''}`
-        );
-        console.warn('[RegisterBook] /ocr/covers 응답에 ISBN이 없습니다. 서버 원본 응답:', cover.raw);
-      }
-
-      const nextTitle = found?.title || cover.titleCandidate || '';
-      const nextAuthor = found?.author || cover.authorCandidates[0] || '';
-      setTitle(nextTitle);
-      setAuthor(nextAuthor);
-      // 알라딘이 쪽수를 주면 총 페이지 수까지 채운다 (없으면 사용자가 직접 입력)
-      if (found?.totalPages) setTotalPage(String(found.totalPages));
-
-      if (found?.genre) {
-        // 이미 서재에 있는 책은 저장된 장르를 그대로 쓴다
-        setGenre(found.genre);
-      } else {
-        // 인식된 ISBN·제목·저자로 장르를 자동 분류 (실패해도 등록은 계속 가능)
-        autoClassifyGenre({ title: nextTitle, author: nextAuthor, isbn: cover.isbn || '' });
-      }
-
-      // 자동으로 채우지 못한 값이 있으면 바로 고칠 수 있게 수정 모드로 연다.
-      if (!nextTitle || !nextAuthor || !found?.totalPages) setEditing(true);
+      setOcrNotice('인식된 정보가 없습니다. 제목과 저자를 직접 입력해 주세요.');
+      setOcrDone(true);
+      setEditing(true);
     } catch (err) {
-      if (runId !== runIdRef.current) return;
-      // 인식에 실패해도 직접 입력해 등록할 수 있도록 폼은 수정 모드로 열어 준다.
+      if (runIdRef.current !== runId) return;
       setOcrError(describeCoverOcrError(err));
+      setOcrDone(true);
       setEditing(true);
     } finally {
-      if (runId === runIdRef.current) {
-        setColorIdx(await colorPromise);
-        setOcrLoading(false);
-        setOcrDone(true);
-      }
+      if (runIdRef.current === runId) setOcrLoading(false);
     }
   }
 
-  /**
-   * 파일 선택 핸들러. 같은 파일을 연속으로 고르면 input의 value가 그대로라
-   * change 이벤트가 발생하지 않으므로, 처리 후 value를 비워 다시 고를 수 있게 한다.
-   */
   function handleInputChange(e) {
     const file = e.target.files?.[0];
+    if (file) handleFile(file);
     e.target.value = '';
-    handleFile(file);
   }
 
-  // 웹캠 모달에서 캡처된 프레임(File)을 받아 모달을 닫고 바로 OCR 요청으로 넘긴다.
   function handleWebcamCapture(file) {
     setWebcamOpen(false);
     handleFile(file);
   }
 
   /**
-   * ISBN 수동 입력 후 도서 검색.
-   * 입력된 ISBN을 정제하여 백엔드(/books/search?isbn=...)를 통해 국립중앙도서관 서지정보 및 서재 등록 여부를 조회한다.
+   * ISBN 직접 검색
    */
   const handleSearchIsbn = useCallback(async () => {
-    const raw = (isbn || '').trim();
-    const cleanIsbn = raw.replace(/[^0-9X]/gi, '');
+    const cleanIsbn = (isbn || '').replace(/[^0-9X]/gi, '').trim();
     if (!cleanIsbn || (cleanIsbn.length !== 10 && cleanIsbn.length !== 13)) {
-      setOcrError('올바른 10자리 또는 13자리 ISBN 숫자를 입력해 주세요.');
+      setOcrError('올바른 10자리 또는 13자리 ISBN을 입력해주세요.');
       return;
     }
-
     setIsbnSearching(true);
     setOcrError('');
     setOcrNotice('');
-
     try {
       const searched = await searchBookByIsbn(cleanIsbn);
       const found = searched.book;
-
       if (searched.alreadyRegistered) {
-        setOcrNotice('이미 서재에 있는 책이에요. 등록하면 기존 책 정보가 갱신됩니다.');
+        setOcrNotice('이미 서재에 등록된 도서입니다. 정보를 수정하여 저장할 수 있습니다.');
       }
       if (searched.bookId) {
         setOcrBookId(searched.bookId);
       }
-
-      if (!found) {
-        setOcrError('해당 ISBN으로 도서 정보를 찾지 못했어요. 직접 정보를 입력해 주세요.');
-        setEditing(true);
+      if (found) {
+        setTitle(found.title || '');
+        setAuthor(found.author || '');
+        setTotalPage(found.totalPages ? String(found.totalPages) : '');
+        setExtraMeta({
+          publisher: found.publisher ?? null,
+          publishedDate: found.publishedDate ?? null,
+          coverUrl: found.coverUrl ?? null,
+          sideCoverUrl: found.sideCoverUrl ?? null,
+          description: found.description ?? null,
+          genreSource: found.genreSource || 'KDC',
+        });
+        if (found.genre) {
+          setGenre(found.genre);
+          if (found.subject) setSubject(found.subject);
+          if (found.displayGenre) setDisplayGenre(found.displayGenre);
+        } else {
+          autoClassifyGenre({ title: found.title, author: found.author, isbn: cleanIsbn });
+        }
         setOcrDone(true);
-        setColorIdx((prev) => (prev === null ? 0 : prev));
-        return;
-      }
-
-      setIsbn(found.isbn || cleanIsbn);
-      const nextTitle = found.title || '';
-      const nextAuthor = found.author || '';
-      setTitle(nextTitle);
-      setAuthor(nextAuthor);
-      if (found.totalPages) setTotalPage(String(found.totalPages));
-      setColorIdx((prev) => (prev === null ? 0 : prev));
-
-      setExtraMeta({
-        publisher: found.publisher ?? null,
-        publishedDate: found.publishedDate ?? null,
-        coverUrl: found.coverUrl ?? null,
-      });
-
-      if (found.subject) setSubject(found.subject);
-      if (found.displayGenre) setDisplayGenre(found.displayGenre);
-
-      if (found.genre) {
-        setGenre(found.genre);
       } else {
-        autoClassifyGenre({ title: nextTitle, author: nextAuthor, isbn: found.isbn || cleanIsbn });
-      }
-
-      setOcrDone(true);
-      if (!nextTitle || !nextAuthor || !found.totalPages) {
+        setOcrNotice('국립중앙도서관에서 도서 정보를 찾지 못했습니다. 제목과 저자를 직접 입력해주세요.');
+        setOcrDone(true);
         setEditing(true);
       }
     } catch (err) {
-      setOcrError(describeCoverOcrError(err));
-      setEditing(true);
-      setOcrDone(true);
-      setColorIdx((prev) => (prev === null ? 0 : prev));
+      console.error('[RegisterBook] ISBN 검색 실패:', err);
+      setOcrError('도서 정보 조회에 실패했습니다. 다시 시도하거나 직접 입력해주세요.');
     } finally {
       setIsbnSearching(false);
     }
   }, [isbn, autoClassifyGenre]);
 
-  // 미리보기로 만든 object URL은 화면을 떠날 때 정리한다.
-  // (StrictMode의 이펙트 두 번 실행에 사용 중인 URL이 해제되지 않도록 ref로 들고 있는다)
   useEffect(() => {
     return () => {
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
   }, []);
 
-  // 두께는 더 이상 사용자가 고르지 않고 총 페이지 수로 자동 계산한다 (CLIAR-247)
   const thickness = getBookThickness(Number(totalPage) || null);
 
   const allFilled =
@@ -461,11 +559,6 @@ export default function RegisterBook() {
       let bookId = ocrBookId;
 
       if (bookId) {
-        /*
-         * /ocr/covers가 이미 서재에 등록해 둔 책이다. 여기서 또 생성하면 같은 책이
-         * 두 권 꽂히므로, 사용자가 확인·수정한 값으로 그 책을 갱신한다.
-         * PATCH는 전체 페이로드를 요구하므로 화면의 값을 모두 채워 보낸다.
-         */
         await saveBookMeta(bookId, {
           title: cleanTitle,
           author: cleanAuthor,
@@ -476,14 +569,14 @@ export default function RegisterBook() {
           publisher: extraMeta.publisher,
           publishedDate: extraMeta.publishedDate,
           coverUrl: extraMeta.coverUrl,
+          description: extraMeta.description,
+          genreSource: extraMeta.genreSource || 'KDC',
           totalPages: safeTotalPage,
           readingStatus,
         });
-        // 색/두께는 서버가 저장하지 않는 시각 정보라 로컬에 따로 보관한다.
         setVisual(bookId, { colorIdx, spineColor: color.spine, coverColor: color.cover, thickness });
         await reload();
       } else {
-        // 서버에 도서 생성 (색은 선택값, 두께는 총 페이지 수로 자동 계산 — provider가 로컬 bookVisuals에 저장)
         const created = await addBook({
           title: cleanTitle,
           author: cleanAuthor,
@@ -500,16 +593,17 @@ export default function RegisterBook() {
           genre,
           subject: subject || null,
           displayGenre: displayGenre || null,
+          description: extraMeta.description,
+          genreSource: extraMeta.genreSource || 'KDC',
         });
         bookId = created?.bookId ?? null;
       }
 
-      // 현재 읽은 페이지가 있으면 진행도까지 반영 (생성 API엔 currentPage가 없음)
       if (bookId && initialPage > 0) {
         try {
           await saveReadingProgress(bookId, initialPage, safeTotalPage);
         } catch {
-          // 진행도 저장 실패는 등록 자체를 막지 않는다 (서재에서 다시 수정 가능)
+          // 무시
         }
       }
       navigate('/library');
@@ -531,14 +625,19 @@ export default function RegisterBook() {
     }
   }
 
-  const fieldStyle = { padding: 8, fontSize: 19, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' };
-  // 표지 아래 인식 정보(제목·저자·장르)용 축소 스타일
-  const compactFieldStyle = { ...fieldStyle, padding: '5px 8px', fontSize: 18 };
-  const compactViewStyle = { fontSize: 18, color: 'var(--text-h)', lineHeight: 1.4, wordBreak: 'break-word' };
+  const fieldStyle = { padding: 8, fontSize: 18, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' };
+  const compactFieldStyle = { ...fieldStyle, padding: '6px 10px', fontSize: 16 };
+  const compactViewStyle = { fontSize: 17, color: 'var(--text-h)', lineHeight: 1.4, wordBreak: 'break-word' };
 
   return (
-    <div style={{ width: '100%', maxWidth: 1080, margin: '0 auto', padding: isMobile ? '20px 16px 100px' : '36px 20px 80px', textAlign: 'left', boxSizing: 'border-box' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: 16 }}>책 등록</h2>
+    <div className="rb-container">
+      {toastMessage && (
+        <div className="rb-success-toast">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      <h2 className="rb-title">책 등록</h2>
 
       {fromRecommendation && (
         <div
@@ -551,7 +650,7 @@ export default function RegisterBook() {
             borderRadius: 10,
             padding: '10px 16px',
             marginBottom: 20,
-            fontSize: 18,
+            fontSize: 16,
             color: 'var(--text-h)',
           }}
         >
@@ -566,411 +665,632 @@ export default function RegisterBook() {
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px minmax(0, 1fr)', gap: isMobile ? 24 : 34, alignItems: 'start', width: '100%' }}
-      >
-        {/*
-          왼쪽: ISBN 바코드 촬영/업로드
-          사진은 backend-record의 POST /ocr/covers로 올라가 ISBN이 인식되고,
-          backend-book이 알라딘에서 조회한 제목·저자·쪽수가 아래 인식 결과에 채워진다.
-        */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                padding: '3px 10px',
-                borderRadius: 999,
-                border: '1px solid var(--accent-border)',
-                background: 'var(--accent-bg)',
-                color: 'var(--accent)',
-                cursor: 'pointer',
-              }}
-            >
-              🐾 가이드
-            </button>
-          </div>
-          <span style={{ fontSize: 16, color: 'var(--text)' }}>
-            책 뒷면이나 표지 안쪽 바코드 아래에 있는 13자리 ISBN 숫자를 촬영해주세요.
-            <br />
-            예: ISBN 979-11-6479-434-8
-          </span>
+      {/* ── 등록 방식 탭 선택 ── */}
+      <div className="rb-mode-tabs" role="tablist">
+        <button
+          type="button"
+          className={`rb-mode-tab ${activeTab === 'search' ? 'active' : ''}`}
+          onClick={() => setActiveTab('search')}
+          role="tab"
+          aria-selected={activeTab === 'search'}
+        >
+          🔍 도서 검색
+        </button>
+        <button
+          type="button"
+          className={`rb-mode-tab ${activeTab === 'camera' ? 'active' : ''}`}
+          onClick={() => setActiveTab('camera')}
+          role="tab"
+          aria-selected={activeTab === 'camera'}
+        >
+          📷 사진·ISBN 바코드
+        </button>
+        <button
+          type="button"
+          className={`rb-mode-tab ${activeTab === 'manual' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('manual');
+            setOcrDone(true);
+            setEditing(true);
+          }}
+          role="tab"
+          aria-selected={activeTab === 'manual'}
+        >
+          ✍️ 직접 입력
+        </button>
+      </div>
 
-          <input
-            ref={uploadInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={handleInputChange}
-          />
-
-          <button
-            type="button"
-            onClick={() => setWebcamOpen(true)}
-            style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer' }}
-          >
-            📷 사진 촬영
-          </button>
-          <button
-            type="button"
-            onClick={() => uploadInputRef.current?.click()}
-            style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer' }}
-          >
-            🖼️ 이미지 업로드
-          </button>
-
-          {previewUrl && (
-            <div
-              style={{
-                marginTop: 8,
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                overflow: 'hidden',
-                aspectRatio: '3/4',
-                background: '#000',
-              }}
-            >
-              <img src={previewUrl} alt="표지 미리보기" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          )}
-
-          {ocrLoading && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 12px',
-                background: 'var(--code-bg)',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                fontSize: 17,
-                color: 'var(--text)',
-              }}
-            >
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  border: '2px solid transparent',
-                  borderTop: '2px solid var(--accent)',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-              ISBN 인식 중입니다...
-            </div>
-          )}
-          {ocrError && <span style={{ fontSize: 17, color: '#e05a4e' }}>{ocrError}</span>}
-          {ocrNotice && <span style={{ fontSize: 17, color: 'var(--text-h)' }}>{ocrNotice}</span>}
-
-          {/*
-           * ISBN 수동 입력란 (사용자 요청, 2026-09) — 바코드 인식이 잘 안 되는 경우를
-           * 대비해 항상 노출한다. 인식된 값이 있으면 채워서 보여주고, 사용자가 직접
-           * 고치거나 처음부터 입력할 수 있다. 등록 시 이 값이 그대로 전송된다(state
-           * `isbn`을 그대로 재사용).
-           */}
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 15, color: 'var(--text)' }}>ISBN 직접 입력 (인식이 잘 안 될 때)</span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="text"
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearchIsbn();
-                  }
-                }}
-                placeholder="예: 9791164794348"
-                style={{ flex: 1, minWidth: 0, padding: '7px 8px', fontSize: 16, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
-              />
+      {/* ─────────────────────────────────────────────────────────────
+          1. 키워드 검색 모드 (YES24 기반 검색 + 원스톱 서재 등록)
+          ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'search' && (
+        <div className="rb-search-section">
+          <form className="rb-search-bar-wrap" onSubmit={handleSearchSubmit}>
+            <span className="rb-search-icon">🔍</span>
+            <input
+              type="text"
+              className="rb-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="도서명이나 저자명을 검색해보세요 (예: 불편한 편의점, 한강, 세이노)"
+              autoFocus
+            />
+            {searchQuery && (
               <button
                 type="button"
-                onClick={handleSearchIsbn}
-                disabled={isbnSearching || ocrLoading}
-                style={{
-                  padding: '7px 10px',
-                  fontSize: 15,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  borderRadius: 6,
-                  border: '1px solid var(--accent-border)',
-                  background: 'var(--accent-bg)',
-                  color: 'var(--text-h)',
-                  cursor: (isbnSearching || ocrLoading) ? 'not-allowed' : 'pointer',
-                  opacity: (isbnSearching || ocrLoading) ? 0.6 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
+                className="rb-search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                title="지우기"
               >
-                {isbnSearching ? (
-                  <>
-                    <div
-                      style={{
-                        width: 12,
-                        height: 12,
-                        border: '1.5px solid transparent',
-                        borderTop: '1.5px solid var(--accent)',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                      }}
-                    />
-                    검색
-                  </>
-                ) : (
-                  '검색'
-                )}
-              </button>
-            </div>
-          </label>
-        </div>
-
-        {/*
-          오른쪽: 인식 결과 + 수정 (사용자 요청, 2026-09: 기존 3단 레이아웃에서 표지
-          이미지가 커서 제목·저자·장르·책 색상이 아래로 밀리는 문제 해결).
-          표지를 작게 고정폭으로 왼쪽에 두고 정보를 옆에 나란히 배치해, 표지 크기와
-          무관하게 항목들이 항상 한눈에 보이게 했다. '읽기 기록' 컬럼은 없애고
-          그 안의 총 페이지 수·현재 읽은 페이지 입력을 이 섹션 안, 책 색상 다음
-          순서로 옮겼다.
-        */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600 }}>인식 결과</span>
-            {ocrDone && (
-              <button
-                type="button"
-                onClick={() => setEditing((v) => !v)}
-                style={{
-                  fontSize: 16,
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  border: '1px solid var(--accent-border)',
-                  background: editing ? 'var(--accent)' : 'var(--accent-bg)',
-                  color: editing ? '#fff' : 'var(--text-h)',
-                  cursor: 'pointer',
-                }}
-              >
-                {editing ? '수정 완료' : '수정'}
+                ✕
               </button>
             )}
+            <button
+              type="submit"
+              className="rb-search-submit-btn"
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              {isSearching ? <span className="rb-spinner" /> : '검색'}
+            </button>
+          </form>
+
+          {/* 추천 키워드 칩스 */}
+          <div className="rb-search-chips">
+            <span>추천:</span>
+            {POPULAR_SEARCH_KEYWORDS.map((kw) => (
+              <button
+                key={kw}
+                type="button"
+                className="rb-chip-btn"
+                onClick={() => handleSelectKeywordChip(kw)}
+              >
+                {kw}
+              </button>
+            ))}
           </div>
 
-          {ocrLoading ? (
-            <LoadingSequence label="잠시만 기다려주세요..." />
-          ) : !ocrDone ? (
-            <p style={{ color: 'var(--text)', fontSize: 18 }}>
-              왼쪽에서 ISBN 바코드 번호를 촬영하거나 업로드하면 제목·저자를 자동으로 인식합니다.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 20, alignItems: isMobile ? 'center' : 'flex-start' }}>
-              {/* 책 표지 — 고정폭으로 작게 두어 옆의 정보 항목들이 밀리지 않게 한다 */}
-              <img
-                src={coverImageSrc(extraMeta.coverUrl)}
-                alt={title ? `${title} 표지` : '책 표지'}
-                style={{
-                  width: isMobile ? 120 : 130,
-                  flexShrink: 0,
-                  height: 'auto',
-                  display: 'block',
-                  background: '#fff',
-                  borderRadius: 6,
-                  border: '1px solid var(--border)',
-                }}
-                onError={onFallbackCover}
-              />
+          {searchError && (
+            <div style={{ color: '#e05a4e', fontSize: 15, padding: '4px 8px' }}>
+              {searchError}
+            </div>
+          )}
 
-              {/*
-               * 표지 옆 인식 정보를 순서대로 나열: 제목 → 저자 → 장르 → 책 색상 →
-               * 총 페이지 수 → 현재 읽은 페이지 (사용자 요청, 2026-09).
-               */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
-                {[
-                  {
-                    key: 'title',
-                    label: '제목',
-                    node: editing ? (
-                      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="책 제목" style={compactFieldStyle} />
-                    ) : (
-                      <div style={compactViewStyle}>{title || '(인식된 제목 없음)'}</div>
-                    ),
-                  },
-                  {
-                    key: 'author',
-                    label: '저자',
-                    node: editing ? (
-                      <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="저자명" style={compactFieldStyle} />
-                    ) : (
-                      <div style={compactViewStyle}>{author || '(인식된 저자 없음)'}</div>
-                    ),
-                  },
-                  {
-                    key: 'genre',
-                    // CLIAR-241: 자동 분류 결과를 기본값으로, 수정 모드에서 변경 가능
-                    label: genreLoading ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div
-                          style={{
-                            width: 12,
-                            height: 12,
-                            border: '1.5px solid transparent',
-                            borderTop: '1.5px solid var(--accent)',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite',
-                          }}
-                        />
-                        장르 (분류 중...)
-                      </span>
-                    ) : '장르',
-                    node: editing ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <select value={genre} onChange={(e) => setGenre(e.target.value)} style={compactFieldStyle}>
-                          <option value={GENRE_NONE}>미지정</option>
-                          {GENRE_DEFS.map((g) => (
-                            <option key={g.code} value={g.code}>
-                              {g.label}
-                            </option>
-                          ))}
-                        </select>
-                        {(subject || displayGenre) && (
-                          <span style={{ fontSize: 14, color: 'var(--accent)', paddingLeft: 2 }}>
-                            세부 분야: {displayGenre || subject}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={compactViewStyle}>{getGenreSubLabel(genre, subject, displayGenre)}</div>
-                    ),
-                  },
-                ].map(({ key, label, node }) => (
-                  <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 16, color: 'var(--text)' }}>{label}</span>
-                    {node}
-                  </label>
-                ))}
+          {/* 검색 결과 목록 */}
+          {searchMeta && (
+            <div className="rb-search-meta">
+              <span>
+                ✨ <strong className="rb-search-meta-highlight">'{searchMeta.query}'</strong> 검색 결과 (총 {searchMeta.total}건)
+              </span>
+              <span style={{ fontSize: 13, opacity: 0.8 }}>YES24 서지정보</span>
+            </div>
+          )}
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 16, color: 'var(--text)' }}>책 색상</span>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {presets.map((p, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        disabled={!editing}
-                        onClick={() => editing && setColorIdx(i)}
-                        title={`색상 ${i + 1}`}
-                        style={{
-                          width: 36,
-                          height: 50,
-                          borderRadius: 4,
-                          border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
-                          background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
-                          cursor: editing ? 'pointer' : 'default',
-                          opacity: editing ? 1 : 0.85,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </label>
+          {isSearching && searchResults.length === 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <LoadingSequence label="도서 정보를 검색하고 있습니다..." />
+            </div>
+          )}
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 16, color: 'var(--text)' }}>총 페이지 수</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={totalPage}
-                    onChange={(e) => setTotalPage(e.target.value)}
-                    placeholder="예: 320"
-                    style={compactFieldStyle}
-                  />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 16, color: 'var(--text)' }}>현재 읽은 페이지 📖</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={currentPage}
-                    onChange={(e) => setCurrentPage(e.target.value)}
-                    placeholder="예: 0"
-                    style={compactFieldStyle}
-                  />
-                </label>
-
-                {totalPage && currentPage !== '' && (
-                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
-                    진행 상태: {deriveStatus(currentPage, totalPage)}
-                  </span>
-                )}
-
-                {/* 두께는 총 페이지 수로 자동 계산되므로 별도 입력 없이 안내만 표시 (CLIAR-247) */}
-                {String(totalPage).trim() !== '' && (
-                  <span style={{ fontSize: 16, color: 'var(--text)' }}>
-                    책 두께는 총 페이지 수에 맞춰 자동으로 정해져요.
-                  </span>
-                )}
+          {hasSearched && !isSearching && searchResults.length === 0 && !searchError && (
+            <div className="rb-search-empty">
+              <span className="rb-search-empty-icon">📚</span>
+              <strong>'{searchQuery}'에 대한 검색 결과를 찾지 못했습니다.</strong>
+              <span style={{ fontSize: 14 }}>도서명이나 저자의 오타를 확인하시거나 사진/바코드로 등록해보세요.</span>
+              <div className="rb-search-empty-actions">
+                <button
+                  type="button"
+                  className="rb-btn-select"
+                  onClick={() => setActiveTab('camera')}
+                >
+                  📷 사진 촬영으로 등록
+                </button>
+                <button
+                  type="button"
+                  className="rb-btn-select"
+                  onClick={() => {
+                    setActiveTab('manual');
+                    setOcrDone(true);
+                    setEditing(true);
+                  }}
+                >
+                  ✍️ 직접 입력하기
+                </button>
               </div>
             </div>
           )}
-        </div>
 
-        {/* 완료 버튼 */}
-        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          {isLibraryFull && (
-            <span style={{ color: '#e05a4e', fontSize: 17 }}>
-              서재 선반이 가득 찼어요. 최대 {MAX_LIBRARY_BOOKS}권까지 등록할 수 있어요.
-            </span>
+          {searchResults.length > 0 && (
+            <div className="rb-search-grid">
+              {searchResults.map((item, idx) => {
+                const key = item.isbn || `${item.title}-${idx}`;
+                const isInstantRegistering = instantRegisteringKey === (item.isbn || item.title);
+
+                return (
+                  <div key={key} className="rb-book-card">
+                    <div className="rb-card-top">
+                      <div className="rb-card-cover-box">
+                        <img
+                          src={coverImageSrc(item.coverUrl)}
+                          alt={item.title}
+                          className="rb-card-cover-img"
+                          onError={onFallbackCover}
+                          loading="lazy"
+                        />
+                        {item.sideCoverUrl && (
+                          <span className="rb-card-side-tag" title="책등 이미지 지원">책등</span>
+                        )}
+                      </div>
+
+                      <div className="rb-card-content">
+                        <div className="rb-card-title-row">
+                          <h4 className="rb-card-title" title={item.title}>{item.title}</h4>
+                          {typeof item.starScore === 'number' && item.starScore > 0 && (
+                            <span className="rb-card-star">★ {item.starScore.toFixed(1)}</span>
+                          )}
+                        </div>
+
+                        <div className="rb-card-meta">
+                          {item.author && <span>{item.author}</span>}
+                          {item.publisher && <span> · {item.publisher}</span>}
+                        </div>
+
+                        <div className="rb-card-badges">
+                          {item.totalPages && (
+                            <span className="rb-card-page-badge">📖 {item.totalPages}쪽</span>
+                          )}
+                          {item.publishedDate && (
+                            <span className="rb-card-page-badge">📅 {item.publishedDate.slice(0, 10)}</span>
+                          )}
+                        </div>
+
+                        {item.description && (
+                          <p className="rb-card-desc" title={item.description}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rb-card-actions">
+                      {item.isRegistered ? (
+                        <div className="rb-btn-registered">
+                          ✓ 내 서재에 있음
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="rb-btn-instant"
+                            onClick={() => handleInstantRegister(item)}
+                            disabled={isInstantRegistering || submitting || isLibraryFull}
+                            title="한 번의 클릭으로 기본 서재에 즉시 추가합니다"
+                          >
+                            {isInstantRegistering ? (
+                              <>
+                                <span className="rb-spinner" />
+                                꽂는 중...
+                              </>
+                            ) : (
+                              '📥 바로 서재에 담기'
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="rb-btn-select"
+                            onClick={() => handleSelectBookForDetail(item)}
+                            title="책 색상, 독서 상태, 현재 페이지 등을 직접 설정하여 등록합니다"
+                          >
+                            ✏️ 정보 확인
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
-          {submitError && (
-            <span style={{ color: '#e05a4e', fontSize: 17 }}>{submitError}</span>
-          )}
-          <button
-            type="submit"
-            disabled={!allFilled || submitting || isLibraryFull}
-            style={{
-              padding: '10px 32px',
-              fontSize: 20,
-              fontWeight: 700,
-              borderRadius: 8,
-              border: 'none',
-              background: allFilled && !submitting && !isLibraryFull ? 'var(--accent)' : 'var(--border)',
-              color: allFilled && !submitting && !isLibraryFull ? '#fff' : 'var(--text)',
-              cursor: allFilled && !submitting && !isLibraryFull ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            {submitting && (
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  border: '2px solid transparent',
-                  borderTop: '2px solid currentColor',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-            )}
-            {submitting ? '등록 중...' : '등록하고 서재에 꽂기'}
-          </button>
         </div>
-      </form>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. 사진 / 바코드 촬영 모드 및 상세 입력 폼
+          ───────────────────────────────────────────────────────────── */}
+      <div ref={formSectionRef} style={{ marginTop: activeTab === 'search' && searchResults.length > 0 ? 40 : 0 }}>
+        {(activeTab === 'search' && (ocrDone || title)) && (
+          <div style={{ borderTop: '2px dashed var(--border)', paddingTop: 28, marginBottom: 20 }}>
+            <h3 style={{ fontSize: 20, margin: '0 0 16px', color: 'var(--text-h)' }}>
+              📝 선택한 도서 상세 설정 및 등록
+            </h3>
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile || activeTab === 'manual' ? '1fr' : '220px minmax(0, 1fr)',
+            gap: isMobile ? 24 : 34,
+            alignItems: 'start',
+            width: '100%',
+          }}
+        >
+          {/* 왼쪽 컬럼: 사진 촬영 및 바코드 업로드 (activeTab === 'camera'일 때만 노출) */}
+          {activeTab === 'camera' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600 }}>ISBN 촬영</span>
+                <button
+                  type="button"
+                  onClick={() => setGuideOpen(true)}
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    border: '1px solid var(--accent-border)',
+                    background: 'var(--accent-bg)',
+                    color: 'var(--accent)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🐾 가이드
+                </button>
+              </div>
+              <span style={{ fontSize: 15, color: 'var(--text)' }}>
+                책 뒷면이나 표지 안쪽 바코드 아래 13자리 ISBN 숫자를 촬영해주세요.
+              </span>
+
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleInputChange}
+              />
+
+              <button
+                type="button"
+                onClick={() => setWebcamOpen(true)}
+                style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer', fontWeight: 600 }}
+              >
+                📷 사진 촬영
+              </button>
+              <button
+                type="button"
+                onClick={() => uploadInputRef.current?.click()}
+                style={{ padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer', fontWeight: 600 }}
+              >
+                🖼️ 이미지 업로드
+              </button>
+
+              {previewUrl && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    aspectRatio: '3/4',
+                    background: '#000',
+                  }}
+                >
+                  <img src={previewUrl} alt="표지 미리보기" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+
+              {ocrLoading && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 12px',
+                    background: 'var(--code-bg)',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 15,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <div className="rb-spinner" style={{ color: 'var(--accent)' }} />
+                  ISBN 인식 중입니다...
+                </div>
+              )}
+              {ocrError && <span style={{ fontSize: 15, color: '#e05a4e' }}>{ocrError}</span>}
+              {ocrNotice && <span style={{ fontSize: 15, color: 'var(--text-h)' }}>{ocrNotice}</span>}
+
+              {/* ISBN 직접 검색 입력란 */}
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                <span style={{ fontSize: 14, color: 'var(--text)' }}>ISBN 직접 입력</span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearchIsbn();
+                      }
+                    }}
+                    placeholder="예: 9791164794348"
+                    style={{ flex: 1, minWidth: 0, padding: '7px 8px', fontSize: 15, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchIsbn}
+                    disabled={isbnSearching || ocrLoading}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      borderRadius: 6,
+                      border: '1px solid var(--accent-border)',
+                      background: 'var(--accent-bg)',
+                      color: 'var(--text-h)',
+                      cursor: (isbnSearching || ocrLoading) ? 'not-allowed' : 'pointer',
+                      opacity: (isbnSearching || ocrLoading) ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    {isbnSearching ? <span className="rb-spinner" /> : '조회'}
+                  </button>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {/* 오른쪽/중앙 폼 영역: 인식 결과 및 직접 수정 */}
+          {(activeTab !== 'search' || (activeTab === 'search' && (ocrDone || title))) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700, fontSize: 17 }}>
+                  {activeTab === 'manual' ? '도서 정보 직접 입력' : '도서 정보 확인 및 수정'}
+                </span>
+                {ocrDone && activeTab === 'camera' && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing((v) => !v)}
+                    style={{
+                      fontSize: 15,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid var(--accent-border)',
+                      background: editing ? 'var(--accent)' : 'var(--accent-bg)',
+                      color: editing ? '#fff' : 'var(--text-h)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {editing ? '수정 완료' : '수정'}
+                  </button>
+                )}
+              </div>
+
+              {ocrLoading ? (
+                <LoadingSequence label="잠시만 기다려주세요..." />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 20, alignItems: isMobile ? 'center' : 'flex-start' }}>
+                  {/* 책 표지 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <img
+                      src={coverImageSrc(extraMeta.coverUrl)}
+                      alt={title ? `${title} 표지` : '책 표지'}
+                      style={{
+                        width: isMobile ? 120 : 130,
+                        height: 180,
+                        objectFit: 'cover',
+                        display: 'block',
+                        background: '#1a1a20',
+                        borderRadius: 6,
+                        border: '1px solid var(--border)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                      }}
+                      onError={onFallbackCover}
+                    />
+                    {extraMeta.sideCoverUrl && (
+                      <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>
+                        ✨ YES24 고화질 표지 적용됨
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 표지 옆 입력 필드 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minWidth: 0, width: '100%' }}>
+                    {[
+                      {
+                        key: 'title',
+                        label: '제목 *',
+                        node: editing ? (
+                          <input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="책 제목을 입력해주세요"
+                            style={compactFieldStyle}
+                            required
+                          />
+                        ) : (
+                          <div style={compactViewStyle}>{title || '(입력된 제목 없음)'}</div>
+                        ),
+                      },
+                      {
+                        key: 'author',
+                        label: '저자 *',
+                        node: editing ? (
+                          <input
+                            value={author}
+                            onChange={(e) => setAuthor(e.target.value)}
+                            placeholder="저자명을 입력해주세요"
+                            style={compactFieldStyle}
+                            required
+                          />
+                        ) : (
+                          <div style={compactViewStyle}>{author || '(입력된 저자 없음)'}</div>
+                        ),
+                      },
+                      {
+                        key: 'isbn',
+                        label: 'ISBN',
+                        node: editing ? (
+                          <input
+                            value={isbn}
+                            onChange={(e) => setIsbn(e.target.value)}
+                            placeholder="13자리 ISBN (선택)"
+                            style={compactFieldStyle}
+                          />
+                        ) : (
+                          <div style={compactViewStyle}>{isbn || '(미입력)'}</div>
+                        ),
+                      },
+                      {
+                        key: 'genre',
+                        label: genreLoading ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span className="rb-spinner" style={{ width: 11, height: 11, color: 'var(--accent)' }} />
+                            장르 (분류 중...)
+                          </span>
+                        ) : '장르',
+                        node: editing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <select value={genre} onChange={(e) => setGenre(e.target.value)} style={compactFieldStyle}>
+                              <option value={GENRE_NONE}>미지정</option>
+                              {GENRE_DEFS.map((g) => (
+                                <option key={g.code} value={g.code}>
+                                  {g.label}
+                                </option>
+                              ))}
+                            </select>
+                            {(subject || displayGenre) && (
+                              <span style={{ fontSize: 13, color: 'var(--accent)', paddingLeft: 2 }}>
+                                세부 분야: {displayGenre || subject}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={compactViewStyle}>{getGenreSubLabel(genre, subject, displayGenre)}</div>
+                        ),
+                      },
+                    ].map(({ key, label, node }) => (
+                      <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>{label}</span>
+                        {node}
+                      </label>
+                    ))}
+
+                    {/* 책 색상 팔레트 */}
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>책등 및 표지 색상</span>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {presets.map((p, i) => (
+                          <button
+                            type="button"
+                            key={i}
+                            disabled={!editing}
+                            onClick={() => editing && setColorIdx(i)}
+                            title={`색상 ${i + 1}`}
+                            style={{
+                              width: 38,
+                              height: 48,
+                              borderRadius: 6,
+                              border: colorIdx === i ? '3px solid var(--accent)' : '1px solid var(--border)',
+                              background: `linear-gradient(90deg, ${p.spine} 0 40%, ${p.cover} 40% 100%)`,
+                              cursor: editing ? 'pointer' : 'default',
+                              opacity: editing ? 1 : 0.85,
+                              boxShadow: colorIdx === i ? '0 0 8px var(--accent)' : 'none',
+                              transition: 'transform 0.15s ease',
+                              transform: colorIdx === i ? 'scale(1.05)' : 'none',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </label>
+
+                    {/* 총 페이지 수 & 현재 읽은 페이지 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>총 쪽수 (페이지) *</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={totalPage}
+                          onChange={(e) => setTotalPage(e.target.value)}
+                          placeholder="예: 320"
+                          style={compactFieldStyle}
+                          required
+                        />
+                      </label>
+
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>현재 읽은 쪽수 📖</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={currentPage}
+                          onChange={(e) => setCurrentPage(e.target.value)}
+                          placeholder="예: 0"
+                          style={compactFieldStyle}
+                        />
+                      </label>
+                    </div>
+
+                    {totalPage && (
+                      <span style={{ fontSize: 14, color: 'var(--text)', opacity: 0.9 }}>
+                        독서 상태: <strong>{deriveStatus(currentPage, totalPage)}</strong> · 두께: {thickness} (자동 계산)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 최종 등록 버튼 */}
+          {(activeTab !== 'search' || (activeTab === 'search' && (ocrDone || title))) && (
+            <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              {isLibraryFull && (
+                <span style={{ color: '#e05a4e', fontSize: 16 }}>
+                  서재 선반이 가득 찼어요. 최대 {MAX_LIBRARY_BOOKS}권까지 등록할 수 있어요.
+                </span>
+              )}
+              {submitError && (
+                <span style={{ color: '#e05a4e', fontSize: 16 }}>{submitError}</span>
+              )}
+              <button
+                type="submit"
+                disabled={!allFilled || submitting || isLibraryFull}
+                style={{
+                  padding: '12px 36px',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  border: 'none',
+                  background: allFilled && !submitting && !isLibraryFull ? 'var(--accent)' : 'var(--border)',
+                  color: allFilled && !submitting && !isLibraryFull ? '#fff' : 'var(--text)',
+                  cursor: allFilled && !submitting && !isLibraryFull ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: allFilled && !submitting && !isLibraryFull ? '0 4px 16px rgba(0,0,0,0.2)' : 'none',
+                  transition: 'opacity 0.2s ease, transform 0.1s ease',
+                }}
+              >
+                {submitting && <span className="rb-spinner" style={{ color: '#fff' }} />}
+                {submitting ? '등록 중...' : '내 서재에 꽂기'}
+              </button>
+            </div>
+          )}
+        </form>
+      </div>
 
       {webcamOpen && (
         <WebcamCaptureModal guideFrame onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
       )}
 
-      {/* ISBN 촬영 가이드 팝업 (사용자 요청, 2026-09) — 책 뒷면 바코드 위치를 보여주는 예시 이미지 */}
       {guideOpen &&
         createPortal(
           <div
@@ -988,7 +1308,7 @@ export default function RegisterBook() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <h3 style={{ margin: 0, fontSize: 20 }}>📷 ISBN 촬영 가이드</h3>
+                <h3 style={{ margin: 0, fontSize: 19 }}>📷 ISBN 촬영 가이드</h3>
                 <button
                   onClick={() => setGuideOpen(false)}
                   style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}
@@ -1001,12 +1321,7 @@ export default function RegisterBook() {
                 alt="책 뒷면 바코드 아래 ISBN 숫자를 촬영하는 예시"
                 style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid var(--border)' }}
               />
-              {/*
-               * 업로드 제약 안내 (사용자 요청, 2026-09). 서버(recordApi.js)는 최대 50MB까지
-               * 허용하지만, 여러 사용자가 동시에 쓰는 서비스라 서버 부담을 줄이기 위해
-               * 클라이언트 기준을 5MB로 더 낮게 잡았다(handleFile에서 실제로 검증).
-               */}
-              <span style={{ display: 'block', marginTop: 10, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, textAlign: 'center' }}>
+              <span style={{ display: 'block', marginTop: 10, fontSize: 13, color: 'var(--text)', lineHeight: 1.4, textAlign: 'center' }}>
                 업로드 가능한 이미지 최대 크기: {MAX_IMAGE_SIZE_MB}MB / 지원 파일 형식: JPG, PNG
               </span>
             </div>

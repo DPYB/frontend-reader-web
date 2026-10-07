@@ -77,10 +77,7 @@ export async function listLibraryBooks() {
  *
  * GET /api/v1/books/search?isbn=... → { alreadyRegistered, libraryBook, book }
  *  - alreadyRegistered=true : 이미 내 서재에 있는 책. libraryBook(LibraryBookDetailResponse)이 온다.
- *  - alreadyRegistered=false: 알라딘 조회 결과 book(ExternalBook). 어디에도 없으면 book도 null.
- *
- * 두 DTO 모두 title/author/isbn/publisher/totalPages/coverUrl을 갖고 있어 하나로 합쳐
- * 돌려준다(장르·bookId는 서재 도서에만 있다).
+ *  - alreadyRegistered=false: 국립중앙도서관/YES24 조회 결과 book(ExternalBook). 어디에도 없으면 book도 null.
  *
  * @param {string} isbn - 하이픈 없는 ISBN 문자열
  * @returns {Promise<{alreadyRegistered: boolean, bookId: any, book: object|null}>}
@@ -92,6 +89,50 @@ export async function searchBookByIsbn(isbn) {
     alreadyRegistered: Boolean(res?.alreadyRegistered),
     bookId: res?.libraryBook?.bookId ?? null,
     book: normalizeBookInfo(res?.libraryBook ?? res?.book, isbn),
+  };
+}
+
+/**
+ * YES24 기반 도서 키워드 검색 API.
+ * 사용자가 입력한 검색어(제목, 저자 등)로 YES24 단행본 도서 목록 및 서재 등록 여부를 조회한다.
+ *
+ * GET /api/v1/books/search?query=...&limit=10
+ *
+ * @param {object} params
+ * @param {string} params.query - 검색 키워드 또는 도서명 (필수)
+ * @param {number} [params.limit=10] - 최대 반환 도서 수 (1~20)
+ * @returns {Promise<{query: string, total: number, alreadyRegistered: boolean, items: Array}>}
+ */
+export async function searchBooksByKeyword({ query, limit = 10 }) {
+  if (!query || typeof query !== 'string' || !query.trim()) {
+    return { query: '', total: 0, alreadyRegistered: false, items: [] };
+  }
+  const cleanQuery = query.trim();
+  const safeLimit = Math.max(1, Math.min(20, limit || 10));
+  const res = await authFetch(`/books/search?query=${encodeURIComponent(cleanQuery)}&limit=${safeLimit}`);
+
+  const rawItems = Array.isArray(res?.items) ? res.items : (Array.isArray(res?.books) ? res.books : []);
+
+  const items = rawItems.map((it) => ({
+    isbn: it.isbn ? String(it.isbn).trim() : null,
+    title: (it.title || '').trim(),
+    author: (it.author || '').trim(),
+    publisher: it.publisher ? String(it.publisher).trim() : null,
+    publishedDate: it.publishedDate || it.published_date || null,
+    coverUrl: it.coverUrl || it.cover_url || null,
+    sideCoverUrl: it.sideCoverUrl || it.side_cover_url || null,
+    totalPages: it.totalPages ?? it.total_pages ?? null,
+    description: it.description ? String(it.description).trim() : null,
+    genreSource: it.genreSource || it.genre_source || 'KDC',
+    isRegistered: Boolean(it.isRegistered ?? it.is_registered),
+    starScore: typeof it.starScore === 'number' ? it.starScore : (typeof it.star_score === 'number' ? it.star_score : null),
+  }));
+
+  return {
+    query: res?.query || cleanQuery,
+    total: typeof res?.total === 'number' ? res.total : items.length,
+    alreadyRegistered: Boolean(res?.alreadyRegistered ?? res?.already_registered),
+    items,
   };
 }
 
@@ -114,10 +155,13 @@ export function normalizeBookInfo(found, fallbackIsbn = '') {
     author: found.author ?? '',
     isbn: found.isbn ?? fallbackIsbn,
     publisher: found.publisher ?? null,
-    publishedDate: found.publishedDate ?? null,
-    totalPages: found.totalPages ?? null,
-    coverUrl: found.coverUrl ?? null,
-    // 서재에 있는 책이면 저장된 장르를 그대로 쓸 수 있다 (알라딘 결과엔 없음).
+    publishedDate: found.publishedDate ?? found.published_date ?? null,
+    totalPages: found.totalPages ?? found.total_pages ?? null,
+    coverUrl: found.coverUrl ?? found.cover_url ?? null,
+    sideCoverUrl: found.sideCoverUrl ?? found.side_cover_url ?? null,
+    description: found.description ?? null,
+    genreSource: found.genreSource ?? found.genre_source ?? 'KDC',
+    // 서재에 있는 책이면 저장된 장르를 그대로 쓸 수 있다.
     genre: found.genre ?? null,
     subject: found.subject ?? null,
     displayGenre: found.displayGenre ?? found.display_genre ?? null,
@@ -191,8 +235,6 @@ export function normalizeIsbn(isbnStr) {
  * 색상/두께 등 시각 정보는 백엔드가 저장하지 않으므로 전송하지 않는다.
  *
  * genre는 선택 필드로, 미전달 시 'NONE'(미지정)으로 저장된다 (CLIAR-241).
- * 알라딘 검색은 장르를 주지 않으므로 값은 backend-discovery의 분류 API
- * (genreApi.classifyGenre) 결과나 사용자가 고른 값을 넘긴다.
  */
 export function createLibraryBook({
   title,
@@ -202,13 +244,18 @@ export function createLibraryBook({
   publishedDate = null,
   coverUrl = null,
   totalPages = null,
+  currentPage = 0,
   readingStatus = 'PLANNED',
   genre = 'NONE',
   shelfId = null,
   subject = null,
   displayGenre = null,
+  description = null,
+  genreSource = 'KDC',
+  kdc = null,
 }) {
   const safeTotalPages = Number(totalPages) > 0 ? Math.floor(Number(totalPages)) : null;
+  const safeCurrentPage = Number(currentPage) > 0 ? Math.floor(Number(currentPage)) : 0;
 
   return authFetch('/library/books', {
     method: 'POST',
@@ -217,12 +264,16 @@ export function createLibraryBook({
       author: (author || '').trim().slice(0, 100),
       isbn: normalizeIsbn(isbn),
       genre: genre || 'NONE',
+      kdc: kdc ? String(kdc).trim().slice(0, 20) : null,
       subject: subject ? String(subject).trim().slice(0, 100) : null,
       displayGenre: displayGenre ? String(displayGenre).trim().slice(0, 100) : null,
       publisher: publisher ? String(publisher).trim().slice(0, 100) : null,
       publishedDate: normalizeIsoDate(publishedDate),
       totalPages: safeTotalPages,
+      currentPage: safeCurrentPage,
       coverUrl: coverUrl ? String(coverUrl).trim() : null,
+      description: description ? String(description).trim() : null,
+      genreSource: genreSource || 'KDC',
       readingStatus: readingStatus || 'PLANNED',
       shelfId: shelfId ?? null,
     },
@@ -246,9 +297,13 @@ export function updateLibraryBookMeta(bookId, meta) {
     coverUrl = null,
     readingStatus = 'PLANNED',
     totalPages = null,
+    currentPage = 0,
+    description = null,
+    genreSource = 'KDC',
   } = meta;
 
   const safeTotalPages = Number(totalPages) > 0 ? Math.floor(Number(totalPages)) : null;
+  const safeCurrentPage = Number(currentPage) > 0 ? Math.floor(Number(currentPage)) : 0;
 
   return authFetch(`/library/books/${bookId}`, {
     method: 'PATCH',
@@ -262,8 +317,11 @@ export function updateLibraryBookMeta(bookId, meta) {
       publisher: publisher ? String(publisher).trim().slice(0, 100) : null,
       publishedDate: normalizeIsoDate(publishedDate),
       coverUrl: coverUrl ? String(coverUrl).trim() : null,
+      description: description ? String(description).trim() : null,
+      genreSource: genreSource || 'KDC',
       readingStatus: readingStatus || 'PLANNED',
       totalPages: safeTotalPages,
+      currentPage: safeCurrentPage,
     },
   });
 }
