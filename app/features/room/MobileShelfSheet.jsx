@@ -31,6 +31,7 @@ function getExpandedHeight() {
 
 export default function MobileShelfSheet({
     activeShelfIdx,
+    totalShelves = 5,
     onSelectShelf,
     onClose,
     placements = [],
@@ -144,8 +145,11 @@ export default function MobileShelfSheet({
         }
     }, [isExpanded, onClose]);
 
-    // 5개 선반 목록
-    const shelves = [0, 1, 2, 3, 4];
+    // 선반 목록 (1번부터 totalShelves번까지)
+    const shelves = useMemo(
+        () => Array.from({ length: totalShelves }, (_, i) => i),
+        [totalShelves]
+    );
 
     // 현재 선택된 선반에 담긴 책 목록 (placements에서 shelfIndex matching, 없으면 순서 분배 fallback)
     const shelfBooks = useMemo(() => {
@@ -155,11 +159,11 @@ export default function MobileShelfSheet({
         const fromPlacements = placements.filter((b) => b.shelfIndex === activeShelfIdx);
         if (fromPlacements.length > 0) return fromPlacements;
 
-        // 2) fallback: allBooks를 10권씩 선반에 나누어 배분
-        const chunkSize = 10;
+        // 2) fallback: allBooks를 균등하게 선반에 나누어 배분
+        const chunkSize = Math.max(1, Math.ceil(allBooks.length / Math.max(1, totalShelves)));
         const start = activeShelfIdx * chunkSize;
         return allBooks.slice(start, start + chunkSize);
-    }, [activeShelfIdx, placements, allBooks]);
+    }, [activeShelfIdx, placements, allBooks, totalShelves]);
 
     if (activeShelfIdx === null || activeShelfIdx === undefined) return null;
 

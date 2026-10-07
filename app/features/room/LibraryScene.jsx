@@ -21,21 +21,14 @@ import {
   getDefaultShelves,
   placeBooks,
   makePreviewBooks,
+  getShelfFolder,
+  getShelfTouchBounds,
 } from './shelfLayout';
 import { getColorPresets } from '../register/ocrUtils';
 import { getColorIndex } from './bookExtractor';
 
 const isDev = import.meta.env.DEV;
 const CALIB_KEY_PREFIX = 'myReadingRoom.calibration';
-
-// 모바일 5개 선반 터치 좌표 (cat_shelves 1.png~5.png 기반)
-const SHELF_TOUCH_BOUNDS = [
-  { top: '32.5%', height: '9.5%' }, // 1번 선반 (상단)
-  { top: '40.5%', height: '8.5%' }, // 2번 선반
-  { top: '48.0%', height: '8.5%' }, // 3번 선반
-  { top: '55.8%', height: '8.5%' }, // 4번 선반
-  { top: '63.5%', height: '8.5%' }, // 5번 선반 (하단)
-];
 
 function getCalibKey(librarianId) {
   return `${CALIB_KEY_PREFIX}.${librarianId}`;
@@ -398,6 +391,9 @@ export default function LibraryScene() {
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];
 
+  const currentShelfBounds = useMemo(() => getShelfTouchBounds(librarianId), [librarianId]);
+  const shelfFolder = useMemo(() => getShelfFolder(librarianId), [librarianId]);
+
   return (
     <div
       ref={sceneRef}
@@ -520,13 +516,13 @@ export default function LibraryScene() {
           </>
         )}
 
-        {/* 모바일 5개 선반 터치 영역 & 선택 시 cat_shelves 오버레이 이미지 */}
+        {/* 모바일 사서별 선반 터치 영역 & 선택 시 사서별 선반 오버레이 이미지 */}
         {isMobile && !calibrating && (
           <>
-            {/* 선택된 선반 하이라이트 오버레이 (cat 서재 cat_shelves/1.png~5.png 이미지) */}
-            {activeMobileShelfIdx !== null && (
+            {/* 선택된 선반 하이라이트 오버레이 (cat_shelves / stork_shelves / nudi_shelves / gecko_shelves / 1.png~N.png 이미지) */}
+            {activeMobileShelfIdx !== null && activeMobileShelfIdx < currentShelfBounds.length && (
               <img
-                src={`/cat_shelves/${activeMobileShelfIdx + 1}.png`}
+                src={`/${shelfFolder}/${activeMobileShelfIdx + 1}.png`}
                 alt={`선반 ${activeMobileShelfIdx + 1} 하이라이트`}
                 style={{
                   position: 'absolute',
@@ -541,9 +537,9 @@ export default function LibraryScene() {
               />
             )}
 
-            {/* 5개 선반 터치 오버레이 레이어 */}
+            {/* 선반 터치 오버레이 레이어 */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto', zIndex: 7 }}>
-              {SHELF_TOUCH_BOUNDS.map((bound, i) => (
+              {currentShelfBounds.map((bound, i) => (
                 <div
                   key={i}
                   onClick={() => {
@@ -554,11 +550,12 @@ export default function LibraryScene() {
                     position: 'absolute',
                     top: bound.top,
                     height: bound.height,
-                    left: '0%',
-                    width: '100%',
+                    left: bound.left ?? '0%',
+                    width: bound.width ?? '100%',
                     cursor: 'pointer',
                     backgroundColor: activeMobileShelfIdx === i ? 'rgba(255, 154, 60, 0.12)' : 'transparent',
                     transition: 'background-color 0.2s ease',
+                    borderRadius: 6,
                   }}
                 />
               ))}
@@ -854,6 +851,7 @@ export default function LibraryScene() {
       {isMobile && activeMobileShelfIdx !== null && (
         <MobileShelfSheet
           activeShelfIdx={activeMobileShelfIdx}
+          totalShelves={currentShelfBounds.length}
           onSelectShelf={(idx) => {
             setLastActiveShelfIdx(idx);
             setActiveMobileShelfIdx(idx);
