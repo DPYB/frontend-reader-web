@@ -79,15 +79,6 @@ function LogoutIcon() {
     );
 }
 
-function MenuIcon() {
-    return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="18" x2="20" y2="18" />
-        </svg>
-    );
-}
 
 function CloseIcon() {
     return (
@@ -174,20 +165,31 @@ export default function Gnb() {
         setExpandedSubmenu((prev) => (prev === key ? null : key));
     };
 
+    const handleBrandClick = (e) => {
+        // 모바일 화면(<= 768px)에서는 로고 클릭 시 좌측 드로어 메뉴를 토글
+        if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+            e.preventDefault();
+            setShowMobileNavMenu((prev) => !prev);
+        } else {
+            setShowMobileNavMenu(false);
+        }
+    };
+
     return (
         <>
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
                 <div className="gnb-left-wrap" ref={navWrapRef}>
                     <NavLink
                         to="/library"
-                        className="gnb-left"
-                        onClick={() => setShowMobileNavMenu(false)}
-                        aria-label="내 서재로 이동"
+                        className={`gnb-left${showMobileNavMenu ? ' active' : ''}`}
+                        onClick={handleBrandClick}
+                        aria-label="메뉴 열기 및 내 서재로 이동"
+                        aria-expanded={showMobileNavMenu}
                     >
                         <span className="gnb-logo-wrap">
-                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={57} height={57} decoding="async" />
+                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={85} height={85} decoding="async" />
                         </span>
-                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={240} height={60} decoding="async" />
+                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={340} height={85} decoding="async" />
                         <span className="gnb-beta-badge gnb-beta-badge--desktop">
                             BETA
                         </span>
@@ -207,16 +209,6 @@ export default function Gnb() {
                     <span className="gnb-beta-badge gnb-beta-badge--mobile">
                         BETA
                     </span>
-
-                    {/* 모바일 상단 우측: 전체 메뉴 열기 햄버거 버튼 */}
-                    <button
-                        className="gnb-mobile-menu-trigger-btn"
-                        onClick={() => setShowMobileNavMenu((prev) => !prev)}
-                        aria-label="전체 메뉴 열기"
-                        title="전체 메뉴 열기"
-                    >
-                        <MenuIcon />
-                    </button>
 
                     {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
@@ -331,9 +323,9 @@ export default function Gnb() {
                         <div className="gnb-fullscreen-nav-header">
                             <div className="gnb-fullscreen-nav-brand" onClick={() => goTo('/library')}>
                                 <span className="gnb-logo-wrap">
-                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={48} height={48} decoding="async" />
+                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={72} height={72} decoding="async" />
                                 </span>
-                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={200} height={48} decoding="async" />
+                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={280} height={72} decoding="async" />
                                 <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
