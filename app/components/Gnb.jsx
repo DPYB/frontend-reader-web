@@ -95,6 +95,8 @@ export default function Gnb() {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const profileWrapRef = useRef(null);
+    const [showMobileNavMenu, setShowMobileNavMenu] = useState(false);
+    const navWrapRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -105,6 +107,7 @@ export default function Gnb() {
         if (loggingOut) return;
         setLoggingOut(true);
         setShowProfileMenu(false);
+        setShowMobileNavMenu(false);
         try {
             // backend-auth 로그아웃 (Refresh Token revoke + 쿠키 삭제) 후 메모리 토큰 제거
             await logout();
@@ -117,23 +120,28 @@ export default function Gnb() {
 
     const goTo = useCallback((path) => {
         setShowProfileMenu(false);
+        setShowMobileNavMenu(false);
         navigate(path);
     }, [navigate]);
 
-    // 외부 클릭 시 프로필 메뉴 닫기
+    // 외부 클릭 시 프로필/모바일 메뉴 닫기
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (profileWrapRef.current && !profileWrapRef.current.contains(e.target)) {
                 setShowProfileMenu(false);
             }
+            if (navWrapRef.current && !navWrapRef.current.contains(e.target)) {
+                setShowMobileNavMenu(false);
+            }
         };
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
                 setShowProfileMenu(false);
+                setShowMobileNavMenu(false);
             }
         };
 
-        if (showProfileMenu) {
+        if (showProfileMenu || showMobileNavMenu) {
             document.addEventListener('mousedown', handleClickOutside);
             document.addEventListener('keydown', handleKeyDown);
         }
@@ -141,27 +149,128 @@ export default function Gnb() {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [showProfileMenu]);
+    }, [showProfileMenu, showMobileNavMenu]);
 
-    // 페이지 변경 시 프로필 메뉴 닫기
+    // 페이지 변경 시 메뉴 닫기
     useEffect(() => {
         setShowProfileMenu(false);
+        setShowMobileNavMenu(false);
     }, [location.pathname]);
+
+    const handleLogoClick = (e) => {
+        if (window.innerWidth <= 768) {
+            e.preventDefault();
+            setShowMobileNavMenu((prev) => !prev);
+        }
+    };
 
     return (
         <>
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
-                <NavLink to="/library" className="gnb-left" aria-label="내 서재로 이동">
-                    <span className="gnb-logo-wrap">
-                        <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={32} height={32} decoding="async" />
-                    </span>
-                    <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={40} decoding="async" />
-                    <span className="gnb-beta-badge gnb-beta-badge--desktop">
-                        BETA
-                    </span>
-                </NavLink>
+                <div className="gnb-left-wrap" ref={navWrapRef}>
+                    <NavLink
+                        to="/library"
+                        className={`gnb-left${showMobileNavMenu ? ' active' : ''}`}
+                        onClick={handleLogoClick}
+                        aria-label={window.innerWidth <= 768 ? '메인 네비게이션 메뉴 열기' : '내 서재로 이동'}
+                        aria-expanded={showMobileNavMenu}
+                    >
+                        <span className="gnb-logo-wrap">
+                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={32} height={32} decoding="async" />
+                        </span>
+                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={40} decoding="async" />
+                        <span className="gnb-beta-badge gnb-beta-badge--desktop">
+                            BETA
+                        </span>
+                        <span className="gnb-mobile-nav-arrow" aria-hidden="true">
+                            {showMobileNavMenu ? '▴' : '▾'}
+                        </span>
+                    </NavLink>
 
-                {/* 데스크톱 상단 중앙 메뉴 (모바일에서는 하단 탭바) */}
+                    {/* 모바일 상단 로고 클릭 시 나타나는 메인 네비게이션 드롭다운 메뉴 */}
+                    {showMobileNavMenu && (
+                        <>
+                            <div
+                                className="gnb-mobile-nav-backdrop"
+                                onClick={() => setShowMobileNavMenu(false)}
+                                aria-hidden="true"
+                            />
+                            <div className="gnb-mobile-nav-dropdown" role="menu" aria-label="메인 메뉴">
+                                <div className="gnb-mobile-nav-header">
+                                    <span className="gnb-mobile-nav-title">메뉴 바로가기</span>
+                                    <button
+                                        type="button"
+                                        className="gnb-mobile-nav-close"
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                        aria-label="메뉴 닫기"
+                                    >
+                                        <CloseIcon />
+                                    </button>
+                                </div>
+                                <div className="gnb-mobile-nav-list">
+                                    <NavLink
+                                        to="/library"
+                                        className={({ isActive }) => `gnb-mobile-nav-item${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                        role="menuitem"
+                                    >
+                                        <span className="gnb-mobile-nav-icon">
+                                            <LibraryIcon />
+                                        </span>
+                                        <div className="gnb-mobile-nav-text">
+                                            <strong>내 서재</strong>
+                                            <span>3D 서재 및 도서 탐색</span>
+                                        </div>
+                                    </NavLink>
+                                    <NavLink
+                                        to="/register"
+                                        className={({ isActive }) => `gnb-mobile-nav-item${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                        role="menuitem"
+                                    >
+                                        <span className="gnb-mobile-nav-icon">
+                                            <RegisterIcon />
+                                        </span>
+                                        <div className="gnb-mobile-nav-text">
+                                            <strong>책 등록</strong>
+                                            <span>직접 입력 &amp; 검색 등록</span>
+                                        </div>
+                                    </NavLink>
+                                    <NavLink
+                                        to="/reports"
+                                        className={({ isActive }) => `gnb-mobile-nav-item${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                        role="menuitem"
+                                    >
+                                        <span className="gnb-mobile-nav-icon">
+                                            <ReportIcon />
+                                        </span>
+                                        <div className="gnb-mobile-nav-text">
+                                            <strong>독서 리포트</strong>
+                                            <span>월간 통계 &amp; AI 분석</span>
+                                        </div>
+                                    </NavLink>
+                                    <NavLink
+                                        to="/mypage"
+                                        className={({ isActive }) => `gnb-mobile-nav-item${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                        role="menuitem"
+                                    >
+                                        <span className="gnb-mobile-nav-icon">
+                                            <UserIcon />
+                                        </span>
+                                        <div className="gnb-mobile-nav-text">
+                                            <strong>마이페이지</strong>
+                                            <span>독서 캘린더 &amp; 설정</span>
+                                        </div>
+                                    </NavLink>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* 데스크톱 상단 중앙 메뉴 */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
                     <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>내 서재</NavLink>
                     <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>책 등록</NavLink>
@@ -291,53 +400,6 @@ export default function Gnb() {
                     </div>
                 </div>
             </header>
-
-            {/* 모바일 하단 고정 네비게이션 탭바 */}
-            <nav className="gnb-mobile-bottom-bar" aria-label="모바일 하단 내비게이션">
-                <NavLink
-                    to="/library"
-                    className={({ isActive }) => `gnb-mobile-tab${isActive ? ' on' : ''}`}
-                    aria-label="내 서재"
-                >
-                    <span className="gnb-mobile-tab-icon">
-                        <LibraryIcon />
-                    </span>
-                    <span className="gnb-mobile-tab-label">내 서재</span>
-                </NavLink>
-
-                <NavLink
-                    to="/register"
-                    className={({ isActive }) => `gnb-mobile-tab${isActive ? ' on' : ''}`}
-                    aria-label="책 등록"
-                >
-                    <span className="gnb-mobile-tab-icon">
-                        <RegisterIcon />
-                    </span>
-                    <span className="gnb-mobile-tab-label">책 등록</span>
-                </NavLink>
-
-                <NavLink
-                    to="/reports"
-                    className={({ isActive }) => `gnb-mobile-tab${isActive ? ' on' : ''}`}
-                    aria-label="독서 리포트"
-                >
-                    <span className="gnb-mobile-tab-icon">
-                        <ReportIcon />
-                    </span>
-                    <span className="gnb-mobile-tab-label">독서 리포트</span>
-                </NavLink>
-
-                <NavLink
-                    to="/mypage"
-                    className={({ isActive }) => `gnb-mobile-tab${isActive ? ' on' : ''}`}
-                    aria-label="마이페이지"
-                >
-                    <span className="gnb-mobile-tab-icon">
-                        <UserIcon />
-                    </span>
-                    <span className="gnb-mobile-tab-label">마이페이지</span>
-                </NavLink>
-            </nav>
         </>
     );
 }

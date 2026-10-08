@@ -144,6 +144,10 @@
     display: none;
 }
 
+.gnb-mobile-nav-arrow {
+    display: none;
+}
+
 .gnb-mobile-theme-btn,
 .gnb-mobile-logout-btn {
     display: none;
@@ -557,22 +561,12 @@
     border-radius: 8px;
 }
 
-/* --------------------------------------------------------------------------
-   Mobile Bottom Navigation Tab Bar (Default Hidden on Desktop)
-   -------------------------------------------------------------------------- */
-.gnb-mobile-bottom-bar {
-    display: none;
-}
-
-/* --------------------------------------------------------------------------
-   A11y & Focus Visible
-   -------------------------------------------------------------------------- */
 .gnb-menu a:focus-visible,
 .gnb-theme button:focus-visible,
 .gnb-logout-btn:focus-visible,
 .gnb-profile-btn:focus-visible,
 .gnb-sheet-btn:focus-visible,
-.gnb-mobile-tab:focus-visible {
+.gnb-mobile-nav-item:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
@@ -757,120 +751,208 @@
         transform: scale(0.92);
     }
 
-
-
     /* ----------------------------------------------------------------------
-       모바일 하단 네비게이션 탭바 (Mobile Bottom Tab Bar)
+       모바일 상단 로고 드롭다운 네비게이션 메뉴 (Mobile Top Nav Dropdown)
        ---------------------------------------------------------------------- */
-    .gnb-mobile-bottom-bar {
+    .gnb-left-wrap {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-around;
+    }
+
+    .gnb-mobile-nav-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: var(--accent);
+        margin-left: 2px;
+        transition: transform 0.2s ease;
+    }
+
+    .gnb-left.active .gnb-mobile-nav-arrow {
+        transform: scale(1.15);
+    }
+
+    .gnb-mobile-nav-backdrop {
+        display: block;
         position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 110;
+        animation: gnbFadeIn 0.2s ease;
+    }
+
+    .gnb-mobile-nav-dropdown {
+        position: fixed;
+        top: calc(54px + env(safe-area-inset-top, 0px));
+        left: 12px;
+        width: min(280px, calc(100vw - 24px));
         background: var(--bg);
-        border-top: 1px solid var(--border);
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
-        z-index: 90;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 8px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+        z-index: 111;
+        animation: gnbDropdownSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
     }
 
     @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
         /* 블루 (고양이: 오렌지/그린) */
-        .gnb-mobile-bottom-bar {
-            background: rgba(21, 12, 4, 0.9);
+        .gnb-mobile-nav-dropdown {
+            background: rgba(21, 12, 4, 0.94);
         }
-        [data-theme='light'] .gnb-mobile-bottom-bar {
-            background: rgba(245, 212, 166, 0.94);
+        [data-theme='light'] .gnb-mobile-nav-dropdown {
+            background: rgba(245, 212, 166, 0.96);
         }
 
         /* 슈빌 (스토크: 연보라/찐보라) */
-        [data-librarian='stork'] .gnb-mobile-bottom-bar {
-            background: rgba(34, 30, 64, 0.92);
+        [data-librarian='stork'] .gnb-mobile-nav-dropdown {
+            background: rgba(34, 30, 64, 0.94);
         }
-        [data-theme='light'][data-librarian='stork'] .gnb-mobile-bottom-bar {
-            background: rgba(206, 192, 237, 0.94);
+        [data-theme='light'][data-librarian='stork'] .gnb-mobile-nav-dropdown {
+            background: rgba(206, 192, 237, 0.96);
         }
 
         /* 누디 (산호/청록) */
-        [data-librarian='nudi'] .gnb-mobile-bottom-bar {
-            background: rgba(15, 38, 36, 0.92);
+        [data-librarian='nudi'] .gnb-mobile-nav-dropdown {
+            background: rgba(15, 38, 36, 0.94);
         }
-        [data-theme='light'][data-librarian='nudi'] .gnb-mobile-bottom-bar {
-            background: rgba(191, 232, 224, 0.94);
+        [data-theme='light'][data-librarian='nudi'] .gnb-mobile-nav-dropdown {
+            background: rgba(191, 232, 224, 0.96);
         }
 
         /* 게코 (그레이/마젠타 핑크) */
-        [data-librarian='gecko'] .gnb-mobile-bottom-bar {
-            background: rgba(28, 26, 28, 0.92);
+        [data-librarian='gecko'] .gnb-mobile-nav-dropdown {
+            background: rgba(28, 26, 28, 0.94);
         }
-        [data-theme='light'][data-librarian='gecko'] .gnb-mobile-bottom-bar {
-            background: rgba(228, 224, 226, 0.94);
+        [data-theme='light'][data-librarian='gecko'] .gnb-mobile-nav-dropdown {
+            background: rgba(228, 224, 226, 0.96);
         }
     }
 
-    .gnb-mobile-tab {
+    @keyframes gnbDropdownSlideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .gnb-mobile-nav-header {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 3px;
-        flex: 1;
-        height: 100%;
-        text-decoration: none;
-        color: var(--text);
-        opacity: 0.75;
-        font-size: 12px;
-        font-weight: 600;
-        transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
-        position: relative;
-        -webkit-tap-highlight-color: transparent;
+        justify-content: space-between;
+        padding: 4px 8px 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 6px;
     }
 
-    .gnb-mobile-tab-icon {
+    .gnb-mobile-nav-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-h);
+        letter-spacing: -0.2px;
+    }
+
+    .gnb-mobile-nav-close {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 26px;
         height: 26px;
-        transition: transform 0.15s ease;
+        border: none;
+        border-radius: 50%;
+        background: var(--code-bg);
+        color: var(--text);
+        cursor: pointer;
+        padding: 0;
     }
 
-    .gnb-mobile-tab-label {
-        font-size: 12px;
-        line-height: 1;
-        letter-spacing: -0.2px;
+    .gnb-mobile-nav-close:active {
+        transform: scale(0.92);
     }
 
-    .gnb-mobile-tab:active {
-        transform: scale(0.94);
+    .gnb-mobile-nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
-    .gnb-mobile-tab.on {
+    .gnb-mobile-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text);
+        text-decoration: none;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .gnb-mobile-nav-item:active {
+        transform: scale(0.97);
+        background: var(--code-bg);
+    }
+
+    .gnb-mobile-nav-item.on {
+        background: var(--accent-bg);
+        border-color: var(--accent-border, var(--accent));
         color: var(--accent);
-        opacity: 1;
     }
 
-    .gnb-mobile-tab.on .gnb-mobile-tab-icon {
-        transform: scale(1.1);
+    .gnb-mobile-nav-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: var(--text);
+        flex-shrink: 0;
+        transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .gnb-mobile-tab.on::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 28px;
-        height: 3px;
-        border-radius: 0 0 3px 3px;
+    .gnb-mobile-nav-item.on .gnb-mobile-nav-icon {
         background: var(--accent);
-        box-shadow: 0 1px 6px var(--accent);
+        color: #fff;
+    }
+
+    .gnb-mobile-nav-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    .gnb-mobile-nav-text strong {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-h);
+    }
+
+    .gnb-mobile-nav-item.on .gnb-mobile-nav-text strong {
+        color: var(--accent);
+    }
+
+    .gnb-mobile-nav-text span {
+        font-size: 11px;
+        color: var(--text);
+        opacity: 0.75;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
@@ -883,13 +965,15 @@
     .gnb-logout-btn,
     .gnb-profile-btn,
     .gnb-sheet-btn,
-    .gnb-mobile-tab {
+    .gnb-mobile-nav-item {
         transition: none !important;
         animation: none !important;
     }
 
     .gnb-profile-sheet,
-    .gnb-profile-backdrop {
+    .gnb-profile-backdrop,
+    .gnb-mobile-nav-dropdown,
+    .gnb-mobile-nav-backdrop {
         animation: none !important;
     }
 }

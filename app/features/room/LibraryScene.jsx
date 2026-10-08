@@ -733,6 +733,7 @@ export default function LibraryScene() {
           answer={chatAnswer}
           onAnswer={setChatAnswer}
           onLoadingChange={setChatLoading}
+          onOpenTimer={() => setShowTimer(true)}
           onOpenDetail={(bookOrId) => {
             if (typeof bookOrId === 'object' && bookOrId !== null) {
               const bookId = bookOrId.book_id ?? bookOrId.bookId ?? bookOrId.id;
@@ -773,8 +774,8 @@ export default function LibraryScene() {
         />
       )}
 
-      {/* 독서 타이머 플로팅 버튼 (우측 상단 사서 대화창 위 또는 좌측 하단) */}
-      {!calibrating && (
+      {/* 데스크톱 전용 독서 타이머 플로팅 버튼 (모바일은 사서 플로팅 미니 메뉴에 포함) */}
+      {!calibrating && !isMobile && (
         <button
           onClick={() => setShowTimer(true)}
           title="독서 집중 타이머 시작"

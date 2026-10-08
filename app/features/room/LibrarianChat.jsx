@@ -124,8 +124,9 @@ function getRecommendationLoadingMessage(librarianId) {
  * @param {(bookOrId)=>void} [onOpenDetail] - 서재 도서 상세 보기(책 열기) 모달 열기 핸들러
  * @param {(loading:boolean)=>void} [onLoadingChange] - 답변 대기(thinking) 상태 변경 알림
  *   (사서 커서가 답변 대기 중 이미지로 전환하는 데 사용)
+ * @param {()=>void} [onOpenTimer] - 모바일 미니 메뉴에서 독서 타이머 모달 열기 핸들러
  */
-export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange }) {
+export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange, onOpenTimer }) {
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const navigate = useNavigate();
@@ -140,7 +141,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   // 모바일 뷰포트 (<= 768px) 감지
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
-  // 모바일 사서 플로팅 버튼 클릭 시 미니 메뉴(사서 변경 / 사서와 대화하기) 팝업 상태
+  // 모바일 사서 플로팅 버튼 클릭 시 미니 메뉴(사서 변경 / 사서와 대화하기 / 독서 타이머) 팝업 상태
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // 모바일 FAB 위치 상태 (x, y)
@@ -152,7 +153,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     const minX = 12;
     const maxX = Math.max(minX, window.innerWidth - btnSize - 12);
     const minY = 60; // 상단 GNB 아래
-    const maxY = Math.max(minY, window.innerHeight - btnSize - 74); // 하단 메뉴바 위
+    const maxY = Math.max(minY, window.innerHeight - btnSize - 16);
     return {
       x: Math.min(Math.max(x, minX), maxX),
       y: Math.min(Math.max(y, minY), maxY),
@@ -166,8 +167,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       if (mobile) {
         setFabPos((prev) => {
           if (prev) return getClampPos(prev.x, prev.y);
-          // 독서 타이머 버튼 위로 뜨도록 초기 Y 위치 설정
-          return getClampPos(window.innerWidth - 68, window.innerHeight - 190);
+          // 우측 하단 여유 공간에 초기 위치 설정
+          return getClampPos(window.innerWidth - 68, window.innerHeight - 80);
         });
       }
     };
@@ -1057,7 +1058,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
               />
             </button>
 
-            {/* 사서 탭 시 노출되는 2가지 미니 메뉴 (사서 프로필 & 변경, 사서와 대화하기) */}
+            {/* 사서 탭 시 노출되는 3가지 미니 메뉴 (사서 프로필 & 변경, 사서와 대화하기, 독서 타이머) */}
             {showMobileMenu && (
               <div
                 className={`lc-mobile-mini-menu ${isNearRight ? 'align-right' : 'align-left'}`}
@@ -1096,6 +1097,21 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                   <div className="lc-mobile-menu-item-text">
                     <strong>사서와 대화하기</strong>
                     <span>도서 추천·검색·독서 토론</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="lc-mobile-menu-item"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    if (onOpenTimer) onOpenTimer();
+                  }}
+                  role="menuitem"
+                >
+                  <span className="lc-mobile-menu-item-icon">⏱️</span>
+                  <div className="lc-mobile-menu-item-text">
+                    <strong>독서 타이머</strong>
+                    <span>독서 시간 측정 <span className="lc-ampersand">&amp;</span> 집중 기록</span>
                   </div>
                 </button>
               </div>
@@ -1142,14 +1158,14 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const panelStyle = isMobile
     ? {
         position: 'fixed',
-        bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
+        bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
         left: 10,
         right: 10,
         maxWidth: 440,
         margin: '0 auto',
         zIndex: 120,
-        maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px))',
-        minHeight: 'min(360px, calc(100dvh - 150px))',
+        maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 24px - env(safe-area-inset-bottom, 0px))',
+        minHeight: 'min(360px, calc(100dvh - 120px))',
         background: 'var(--bubble-bg)',
         border: '1px solid var(--border)',
         borderRadius: 16,
