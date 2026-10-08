@@ -9,7 +9,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 24px;
-    min-height: 118px;
+    min-height: 70px;
     box-sizing: border-box;
     border-bottom: 1px solid var(--border);
     position: relative;
@@ -98,96 +98,70 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mercedes-Benz 스타일 원형 로고 프레임
+   데스크톱(노트북 이상): 좌측 로고 + 서비스 이름 (균형 잡힌 적정 크기)
    -------------------------------------------------------------------------- */
+.gnb-desktop-brand {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.gnb-desktop-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-h);
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gnb-desktop-brand-link:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
+
 .gnb-logo-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    background: var(--code-bg);
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.35);
     flex-shrink: 0;
     overflow: hidden;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.gnb-logo {
-    width: 76px;
-    height: 76px;
+.gnb-logo-wrap--desktop {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--code-bg);
+    border: 1.5px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gnb-desktop-brand-link:hover .gnb-logo-wrap--desktop {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px var(--accent-bg, rgba(255, 154, 60, 0.3)), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.gnb-logo-wrap--desktop .gnb-logo {
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     transition: transform 0.2s ease;
 }
 
-/* --------------------------------------------------------------------------
-   데스크톱(노트북 이상): 상단 중앙 로고 + 새로고침(refresh) 버튼
-   -------------------------------------------------------------------------- */
-.gnb-center-brand {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-}
-
-.gnb-center-logo-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: none;
-    background: transparent;
-    padding: 4px 10px;
-    cursor: pointer;
-    border-radius: 999px;
-    transition: transform 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.gnb-center-logo-btn:hover .gnb-logo-wrap {
-    transform: scale(1.06);
-    border-color: var(--accent);
-    box-shadow: 0 6px 16px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.5);
-}
-
-.gnb-center-logo-btn:active .gnb-logo-wrap {
-    transform: scale(0.94);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.gnb-center-logo-btn:hover .gnb-service-name {
-    opacity: 0.85;
-}
-
-/* 서비스이름 세로 길이를 로고 크기와 비례하여 맞춤 (노트북/데스크톱 화면 기본) */
 .gnb-service-name {
-    height: 60px;
-    max-height: 70px;
     width: auto;
     object-fit: contain;
     transition: opacity 0.15s ease;
 }
 
-/* 기본 상태에서는 1024px 이하에서 서비스 이름 숨김.
-   단, 모바일에서 로고 클릭 후(active) 노출되는 서비스 이름 및 드로어 내부 서비스 이름은 예외로 표시 */
-@media (max-width: 1024px) {
-    .gnb-service-name:not(.gnb-service-name--active):not(.gnb-service-name--drawer) {
-        display: none !important;
-    }
-
-    .gnb-service-name--active,
-    .gnb-service-name--drawer {
-        display: block !important;
-        height: 38px;
-        max-height: 40px;
-        max-width: calc(100vw - 180px);
-        width: auto;
-        object-fit: contain;
-    }
+.gnb-service-name--desktop {
+    height: 38px;
+    max-height: 40px;
 }
 
 .gnb-beta-badge {
@@ -215,23 +189,26 @@
     display: none;
 }
 
-/* 모바일 전용 좌측 브랜드 영역 (노트북 이상에서는 숨김) */
-.gnb-mobile-brand-wrap {
+/* 모바일 전용 요소 (노트북 이상에서는 숨김) */
+.gnb-mobile-left,
+.gnb-mobile-center-logo {
     display: none;
 }
 
 /* --------------------------------------------------------------------------
-   GNB Desktop Left Navigation Menu (중앙에서 왼쪽으로 이동)
+   GNB Desktop Center Menu (중앙으로 다시 복귀)
    -------------------------------------------------------------------------- */
 .gnb-menu {
     display: flex;
     align-items: center;
     gap: 4px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     padding: 4px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--code-bg);
-    flex-shrink: 0;
 }
 
 .gnb-menu a {
@@ -643,80 +620,156 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
     .gnb {
-        padding: 6px 12px;
-        min-height: 104px;
+        padding: 6px 14px;
+        min-height: 66px;
         box-sizing: border-box;
     }
 
-    .gnb-center-brand {
-        display: none;
-    }
-
+    /* 데스크톱 브랜드 & 메뉴 숨김 */
+    .gnb-desktop-brand,
     .gnb-menu {
         display: none;
     }
 
-    .gnb-mobile-brand-wrap {
+    /* 모바일 좌측 햄버거 메뉴 버튼 */
+    .gnb-mobile-left {
         display: flex;
         align-items: center;
         min-width: 0;
+        z-index: 2;
     }
 
-    .gnb-mobile-brand-btn {
+    .gnb-mobile-hamburger-btn {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         border: none;
         background: transparent;
-        padding: 2px 4px;
+        padding: 4px;
         cursor: pointer;
+        color: var(--text-h);
+        border-radius: 10px;
         -webkit-tap-highlight-color: transparent;
         transition: transform 0.12s ease;
     }
 
-    /* 모바일: 로고 크기 5% 줄임(기존 94px -> 89px), 원형 프레임 */
-    .gnb-mobile-brand-btn .gnb-logo-wrap {
-        width: 89px;
-        height: 89px;
-        border-radius: 50%;
-        border: 2px solid var(--border);
+    .gnb-hamburger-icon-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         background: var(--code-bg);
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.4);
-        transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease, border-color 0.12s ease;
+        border: 1px solid var(--border);
+        color: var(--text-h);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transition: background 0.15s ease, transform 0.12s ease;
     }
 
-    .gnb-mobile-brand-btn .gnb-logo {
-        width: 78px;
-        height: 78px;
-        object-fit: contain;
-    }
-
-    /* 모바일 버튼 누르는 느낌 (Tactile Press Feel) */
-    .gnb-mobile-brand-btn:active .gnb-logo-wrap {
+    .gnb-mobile-hamburger-btn:active .gnb-hamburger-icon-wrap {
         transform: scale(0.92);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 2px 5px rgba(0, 0, 0, 0.35);
+        background: var(--accent-bg);
         border-color: var(--accent);
     }
 
-    /* 누른 후 활성화된 상태의 서비스 이름 애니메이션 */
-    .gnb-service-name--active {
+    /* 햄버거 메뉴 활성화(누른 후) 시 헤더에 서비스 이름 노출 */
+    .gnb-service-name--header {
+        display: block !important;
+        height: 36px;
+        max-height: 38px;
+        max-width: calc(100vw - 180px);
+        width: auto;
+        object-fit: contain;
         animation: gnbFadeIn 0.2s ease;
+    }
+
+    /* 모바일 드로어 내부 서비스 이름 노출 */
+    .gnb-service-name--drawer {
+        display: block !important;
+        height: 38px;
+        max-height: 40px;
+        max-width: calc(100% - 130px);
+        width: auto;
+        object-fit: contain;
+    }
+
+    /* 모바일 상단 중앙: 원형 glass 효과 배경 로고 */
+    .gnb-mobile-center-logo {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+
+    .gnb-mobile-glass-logo-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .gnb-logo-wrap--glass {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.24);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1.5px solid rgba(255, 255, 255, 0.45);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    [data-theme="dark"] .gnb-logo-wrap--glass {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+
+    .gnb-logo-wrap--glass .gnb-logo {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        transition: transform 0.2s ease;
+    }
+
+    .gnb-mobile-glass-logo-link:active .gnb-logo-wrap--glass {
+        transform: scale(0.92);
     }
 
     @media (max-width: 380px) {
         .gnb {
-            min-height: 94px;
-            padding: 4px 8px;
+            min-height: 62px;
+            padding: 4px 10px;
         }
 
-        .gnb-mobile-brand-btn .gnb-logo-wrap {
-            width: 76px;
-            height: 76px;
+        .gnb-logo-wrap--glass {
+            width: 42px;
+            height: 42px;
         }
 
-        .gnb-mobile-brand-btn .gnb-logo {
-            width: 66px;
-            height: 66px;
+        .gnb-logo-wrap--glass .gnb-logo {
+            width: 34px;
+            height: 34px;
+        }
+
+        .gnb-hamburger-icon-wrap {
+            width: 36px;
+            height: 36px;
+        }
+
+        .gnb-service-name--header {
+            height: 32px;
+            max-width: calc(100vw - 140px);
         }
     }
 
