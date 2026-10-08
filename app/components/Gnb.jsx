@@ -187,7 +187,7 @@ export default function Gnb() {
                         aria-expanded={showMobileNavMenu}
                     >
                         <span className="gnb-logo-wrap">
-                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={85} height={85} decoding="async" />
+                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={110} height={110} decoding="async" />
                         </span>
                         <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={340} height={85} decoding="async" />
                         <span className="gnb-beta-badge gnb-beta-badge--desktop">
@@ -323,9 +323,9 @@ export default function Gnb() {
                         <div className="gnb-fullscreen-nav-header">
                             <div className="gnb-fullscreen-nav-brand" onClick={() => goTo('/library')}>
                                 <span className="gnb-logo-wrap">
-                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={72} height={72} decoding="async" />
+                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={94} height={94} decoding="async" />
                                 </span>
-                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={280} height={72} decoding="async" />
+                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={160} height={38} decoding="async" />
                                 <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
