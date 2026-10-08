@@ -121,11 +121,19 @@
     object-fit: contain;
 }
 
-/* 서비스이름 세로 길이를 로고 크기와 비례하여 맞춤 (1.5배 확대) */
+/* 서비스이름 세로 길이를 로고 크기와 비례하여 맞춤 (노트북/데스크톱 화면 기본) */
 .gnb-service-name {
     height: 85px;
     width: auto;
     object-fit: contain;
+}
+
+/* 노트북 크기(> 1024px)부터만 서비스 이름이 들어가고,
+   그 아래로는(스마트폰, 아이패드/태블릿 등 <= 1024px) 전부 서비스 이름 숨김 */
+@media (max-width: 1024px) {
+    .gnb-service-name {
+        display: none !important;
+    }
 }
 
 .gnb-beta-badge {
@@ -606,16 +614,6 @@
         height: 94px;
     }
 
-    /* 모바일 세로 화면에서 잘리지 않도록 높이 및 max-width 최적화 */
-    .gnb-service-name {
-        height: 38px;
-        max-height: 40px;
-        max-width: calc(100vw - 180px);
-        width: auto;
-        object-fit: contain;
-        flex-shrink: 1;
-    }
-
     @media (max-width: 380px) {
         .gnb {
             min-height: 94px;
@@ -626,11 +624,6 @@
         .gnb-logo {
             width: 80px;
             height: 80px;
-        }
-
-        .gnb-service-name {
-            height: 32px;
-            max-width: calc(100vw - 150px);
         }
     }
 
@@ -878,12 +871,6 @@
         height: 80px;
     }
 
-    .gnb-fullscreen-nav-brand .gnb-service-name {
-        height: 38px;
-        max-width: calc(100% - 130px);
-        width: auto;
-        object-fit: contain;
-    }
 
     .gnb-fullscreen-close-btn {
         display: flex;

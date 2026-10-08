@@ -325,7 +325,6 @@ export default function Gnb() {
                                 <span className="gnb-logo-wrap">
                                     <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={94} height={94} decoding="async" />
                                 </span>
-                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={160} height={38} decoding="async" />
                                 <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
