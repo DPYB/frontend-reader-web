@@ -97,42 +97,96 @@
     opacity: 0.8;
 }
 
+/* --------------------------------------------------------------------------
+   Mercedes-Benz 스타일 원형 로고 프레임
+   -------------------------------------------------------------------------- */
 .gnb-logo-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    height: auto;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--code-bg);
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.35);
     flex-shrink: 0;
-    transition: transform 0.2s ease;
-}
-
-.gnb-left:hover .gnb-logo-wrap {
-    transform: scale(1.05);
-    box-shadow: none;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .gnb-logo {
-    width: 110px;
-    height: 110px;
+    width: 76px;
+    height: 76px;
     object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+/* --------------------------------------------------------------------------
+   데스크톱(노트북 이상): 상단 중앙 로고 + 새로고침(refresh) 버튼
+   -------------------------------------------------------------------------- */
+.gnb-center-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.gnb-center-logo-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: none;
+    background: transparent;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gnb-center-logo-btn:hover .gnb-logo-wrap {
+    transform: scale(1.06);
+    border-color: var(--accent);
+    box-shadow: 0 6px 16px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.gnb-center-logo-btn:active .gnb-logo-wrap {
+    transform: scale(0.94);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.gnb-center-logo-btn:hover .gnb-service-name {
+    opacity: 0.85;
 }
 
 /* 서비스이름 세로 길이를 로고 크기와 비례하여 맞춤 (노트북/데스크톱 화면 기본) */
 .gnb-service-name {
-    height: 85px;
+    height: 60px;
+    max-height: 70px;
     width: auto;
     object-fit: contain;
+    transition: opacity 0.15s ease;
 }
 
-/* 노트북 크기(> 1024px)부터만 서비스 이름이 들어가고,
-   그 아래로는(스마트폰, 아이패드/태블릿 등 <= 1024px) 전부 서비스 이름 숨김 */
+/* 기본 상태에서는 1024px 이하에서 서비스 이름 숨김.
+   단, 모바일에서 로고 클릭 후(active) 노출되는 서비스 이름 및 드로어 내부 서비스 이름은 예외로 표시 */
 @media (max-width: 1024px) {
-    .gnb-service-name {
+    .gnb-service-name:not(.gnb-service-name--active):not(.gnb-service-name--drawer) {
         display: none !important;
+    }
+
+    .gnb-service-name--active,
+    .gnb-service-name--drawer {
+        display: block !important;
+        height: 38px;
+        max-height: 40px;
+        max-width: calc(100vw - 180px);
+        width: auto;
+        object-fit: contain;
     }
 }
 
@@ -161,19 +215,23 @@
     display: none;
 }
 
+/* 모바일 전용 좌측 브랜드 영역 (노트북 이상에서는 숨김) */
+.gnb-mobile-brand-wrap {
+    display: none;
+}
+
 /* --------------------------------------------------------------------------
-   GNB Desktop Center Menu
+   GNB Desktop Left Navigation Menu (중앙에서 왼쪽으로 이동)
    -------------------------------------------------------------------------- */
 .gnb-menu {
     display: flex;
+    align-items: center;
     gap: 4px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     padding: 4px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--code-bg);
+    flex-shrink: 0;
 }
 
 .gnb-menu a {
@@ -581,37 +639,68 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mobile Responsive Breakdown (<= 768px)
+   Mobile & Tablet Responsive Breakdown (<= 1024px)
    -------------------------------------------------------------------------- */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .gnb {
         padding: 6px 12px;
         min-height: 104px;
         box-sizing: border-box;
     }
 
-    .gnb-left {
-        padding: 2px 0;
-        gap: 8px;
-        cursor: pointer;
+    .gnb-center-brand {
+        display: none;
+    }
+
+    .gnb-menu {
+        display: none;
+    }
+
+    .gnb-mobile-brand-wrap {
+        display: flex;
+        align-items: center;
         min-width: 0;
+    }
+
+    .gnb-mobile-brand-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        background: transparent;
+        padding: 2px 4px;
+        cursor: pointer;
         -webkit-tap-highlight-color: transparent;
+        transition: transform 0.12s ease;
     }
 
-    .gnb-left:active {
-        opacity: 0.85;
-        transform: scale(0.98);
+    /* 모바일: 로고 크기 5% 줄임(기존 94px -> 89px), 원형 프레임 */
+    .gnb-mobile-brand-btn .gnb-logo-wrap {
+        width: 89px;
+        height: 89px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: var(--code-bg);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+        transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease, border-color 0.12s ease;
     }
 
-    .gnb-logo-wrap {
-        width: 94px;
-        height: 94px;
-        flex-shrink: 0;
+    .gnb-mobile-brand-btn .gnb-logo {
+        width: 78px;
+        height: 78px;
+        object-fit: contain;
     }
 
-    .gnb-logo {
-        width: 94px;
-        height: 94px;
+    /* 모바일 버튼 누르는 느낌 (Tactile Press Feel) */
+    .gnb-mobile-brand-btn:active .gnb-logo-wrap {
+        transform: scale(0.92);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 2px 5px rgba(0, 0, 0, 0.35);
+        border-color: var(--accent);
+    }
+
+    /* 누른 후 활성화된 상태의 서비스 이름 애니메이션 */
+    .gnb-service-name--active {
+        animation: gnbFadeIn 0.2s ease;
     }
 
     @media (max-width: 380px) {
@@ -620,10 +709,14 @@
             padding: 4px 8px;
         }
 
-        .gnb-logo-wrap,
-        .gnb-logo {
-            width: 80px;
-            height: 80px;
+        .gnb-mobile-brand-btn .gnb-logo-wrap {
+            width: 76px;
+            height: 76px;
+        }
+
+        .gnb-mobile-brand-btn .gnb-logo {
+            width: 66px;
+            height: 66px;
         }
     }
 
