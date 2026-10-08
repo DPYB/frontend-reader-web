@@ -116,8 +116,8 @@ export async function sendChatMessage({
     if (action && action !== 'chat') {
       payload.action = action;
     }
-    if (bookId) {
-      payload.book_id = bookId;
+    if (bookId != null && String(bookId).trim()) {
+      payload.book_id = String(bookId).trim();
     }
     if (topic) {
       payload.topic = topic;
@@ -224,8 +224,8 @@ export async function streamChatMessage({
     if (action && action !== 'chat') {
       payload.action = action;
     }
-    if (bookId) {
-      payload.book_id = bookId;
+    if (bookId != null && String(bookId).trim()) {
+      payload.book_id = String(bookId).trim();
     }
     if (topic) {
       payload.topic = topic;
