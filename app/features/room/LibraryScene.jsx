@@ -15,6 +15,7 @@ import { shouldShowGuideModal } from '../guide/guideStorage';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import './LibrarianChat.css';
+import { TransformControls } from '@react-three/drei';
 import {
   BG_ASPECT,
   getBgSrc,
@@ -47,69 +48,210 @@ function CameraRig({ fov, position, target }) {
   return null;
 }
 
-// 캘리브레이션 모드에서 각 선반 위치를 반투명 박스로 표시(활성 선반은 강조)
-function ShelfGuides({ shelves, activeIdx }) {
+// 활성 선반 마야 스타일 기즈모 컨트롤러 (중심점: 선반 중앙, Q/W/E/R 단축키 지원)
+function ActiveShelfGizmo({
+  shelf,
+  activeIdx,
+  gizmoMode,
+  coordSpace,
+  onPatchShelf,
+}) {
+  const groupRef = useRef();
+  const isDraggingRef = useRef(false);
+
+  // 상태(shelf)가 단일 기준: 상태가 바뀌면 3D 객체를 항상 상태에 맞춘다 (드래그 중엔 기즈모 값 유지)
+  useEffect(() => {
+    if (!groupRef.current || isDraggingRef.current) return;
+    groupRef.current.position.set(shelf.pos[0], shelf.pos[1], shelf.pos[2]);
+    groupRef.current.rotation.set(
+      THREE.MathUtils.degToRad(shelf.rotXdeg ?? 0),
+      THREE.MathUtils.degToRad(shelf.rotYdeg ?? 0),
+      THREE.MathUtils.degToRad(shelf.rotZdeg ?? 0)
+    );
+    groupRef.current.scale.set(1, 1, 1);
+  }, [shelf.pos, shelf.rotXdeg, shelf.rotYdeg, shelf.rotZdeg, activeIdx]);
+
+  // 모드와 상관없이 현재 3D 객체의 전체 변환(위치+회전)을 항상 함께 상태로 기록한다.
+  // (예전엔 모드별로 일부 값만 기록해 화면과 복사되는 값이 어긋났음)
+  const commitTransform = useCallback(() => {
+    const grp = groupRef.current;
+    if (!grp) return;
+    const patch = {
+      pos: [
+        Number(grp.position.x.toFixed(2)),
+        Number(grp.position.y.toFixed(2)),
+        Number(grp.position.z.toFixed(2)),
+      ],
+      rotXdeg: Number(THREE.MathUtils.radToDeg(grp.rotation.x).toFixed(1)),
+      rotYdeg: Number(THREE.MathUtils.radToDeg(grp.rotation.y).toFixed(1)),
+      rotZdeg: Number(THREE.MathUtils.radToDeg(grp.rotation.z).toFixed(1)),
+    };
+    const sx = grp.scale.x;
+    const sz = grp.scale.z;
+    if (Math.abs(sx - 1) > 0.005 || Math.abs(sz - 1) > 0.005) {
+      patch.width = Math.max(0.3, Number((shelf.width * sx).toFixed(2)));
+      patch.depth = Math.max(0.1, Number((shelf.depth * sz).toFixed(2)));
+      grp.scale.set(1, 1, 1);
+    }
+    onPatchShelf(activeIdx, patch);
+  }, [activeIdx, onPatchShelf, shelf.width, shelf.depth]);
+
+  const handleObjectChange = useCallback(() => {
+    // 실제 드래그 중일 때만 기록 (선반 전환 시 reset 방지)
+    if (!isDraggingRef.current) return;
+    commitTransform();
+  }, [commitTransform]);
+
+  const showGizmo = gizmoMode && gizmoMode !== 'select';
+
+  return (
+    <>
+      <group ref={groupRef}>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[shelf.width, 0.02, shelf.depth]} />
+          <meshBasicMaterial color="#00e5ff" transparent opacity={0.65} />
+        </mesh>
+      </group>
+
+      {showGizmo && (
+        <TransformControls
+          key={`tc-${shelf.id}-${activeIdx}`}
+          object={groupRef}
+          mode={gizmoMode}
+          space={coordSpace}
+          size={0.7}
+          onMouseDown={() => {
+            isDraggingRef.current = true;
+          }}
+          onMouseUp={() => {
+            if (isDraggingRef.current) commitTransform();
+            isDraggingRef.current = false;
+          }}
+          onObjectChange={handleObjectChange}
+        />
+      )}
+    </>
+  );
+}
+
+// 캘리브레이션 모드에서 각 선반 위치를 반투명 박스로 표시(활성 선반은 마야 기즈모로 조작)
+function ShelfGuides({ shelves, activeIdx, onSelectIdx, gizmoMode, coordSpace, onPatchShelf }) {
   return (
     <group>
-      {shelves.map((s, i) => (
-        <mesh
-          key={s.id}
-          position={s.pos}
-          rotation={[
-            THREE.MathUtils.degToRad(s.rotXdeg ?? 0),
-            THREE.MathUtils.degToRad(s.rotYdeg ?? 0),
-            THREE.MathUtils.degToRad(s.rotZdeg ?? 0),
-          ]}
-        >
-          <boxGeometry args={[s.width, 0.02, s.depth]} />
-          <meshBasicMaterial
-            color={i === activeIdx ? '#00e5ff' : '#ff3b7b'}
-            transparent
-            opacity={i === activeIdx ? 0.55 : 0.3}
-          />
-        </mesh>
-      ))}
+      {shelves.map((s, i) => {
+        if (i === activeIdx) {
+          return (
+            <ActiveShelfGizmo
+              key={`active-${s.id}-${i}`}
+              shelf={s}
+              activeIdx={i}
+              gizmoMode={gizmoMode}
+              coordSpace={coordSpace}
+              onPatchShelf={onPatchShelf}
+            />
+          );
+        }
+        return (
+          <mesh
+            key={`guide-${s.id}-${i}`}
+            position={s.pos}
+            rotation={[
+              THREE.MathUtils.degToRad(s.rotXdeg ?? 0),
+              THREE.MathUtils.degToRad(s.rotYdeg ?? 0),
+              THREE.MathUtils.degToRad(s.rotZdeg ?? 0),
+            ]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectIdx(i);
+            }}
+          >
+            <boxGeometry args={[s.width, 0.02, s.depth]} />
+            <meshBasicMaterial
+              color="#ff3b7b"
+              transparent
+              opacity={0.3}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
 
 // leva 슬라이더 (카메라 + 활성 선반). calibrating일 때만 마운트됨.
 function CalibrationControls({ camera, shelf, activeIdx, onCamera, onCamComp, onShelf, onShelfPos }) {
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // 카메라 (마운트 시 1회 초기화)
   useControls(
     () => ({
       카메라: folder({
-        fov: { value: camera.fov, min: 10, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && onCamera({ fov: v }) },
-        posX: { value: camera.position[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('position', 0, v) },
-        posY: { value: camera.position[1], min: -6, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('position', 1, v) },
-        posZ: { value: camera.position[2], min: 0.5, max: 24, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('position', 2, v) },
-        tgtX: { value: camera.target[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('target', 0, v) },
-        tgtY: { value: camera.target[1], min: -6, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('target', 1, v) },
-        tgtZ: { value: camera.target[2], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onCamComp('target', 2, v) },
+        fov: { value: camera.fov, min: 10, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamera({ fov: v }) },
+        posX: { value: camera.position[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('position', 0, v) },
+        posY: { value: camera.position[1], min: -6, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('position', 1, v) },
+        posZ: { value: camera.position[2], min: 0.5, max: 24, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('position', 2, v) },
+        tgtX: { value: camera.target[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('target', 0, v) },
+        tgtY: { value: camera.target[1], min: -6, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('target', 1, v) },
+        tgtZ: { value: camera.target[2], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onCamComp('target', 2, v) },
       }),
     }),
     []
   );
 
   // 활성 선반 (activeIdx 바뀌면 해당 선반 값으로 리셋됨)
-  useControls(
+  const [, setShelfPanel] = useControls(
     () => ({
       [`선반 #${activeIdx + 1} (${shelf.id})`]: folder({
-        sPosX: { value: shelf.pos[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelfPos(0, v) },
-        sPosY: { value: shelf.pos[1], min: -8, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelfPos(1, v) },
-        sPosZ: { value: shelf.pos[2], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelfPos(2, v) },
-        rotXdeg: { value: shelf.rotXdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && onShelf({ rotXdeg: v }) },
-        rotYdeg: { value: shelf.rotYdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && onShelf({ rotYdeg: v }) },
-        rotZdeg: { value: shelf.rotZdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && onShelf({ rotZdeg: v }) },
-        width: { value: shelf.width, min: 0.5, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelf({ width: v }) },
-        depth: { value: shelf.depth, min: 0.2, max: 2, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelf({ depth: v }) },
-        bookHeight: { value: shelf.bookHeight ?? 1.1, min: 0.3, max: 3, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelf({ bookHeight: v }) },
-        heightVar: { value: shelf.heightVar ?? 0.15, min: 0, max: 1, step: 0.01, onChange: (v, _p, c) => c.fromPanel && onShelf({ heightVar: v }) },
-        capacity: { value: shelf.capacity ?? 0, min: 0, max: 40, step: 1, onChange: (v, _p, c) => c.fromPanel && onShelf({ capacity: v }) },
+        sPosX: { value: shelf.pos[0], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelfPos(0, v) },
+        sPosY: { value: shelf.pos[1], min: -8, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelfPos(1, v) },
+        sPosZ: { value: shelf.pos[2], min: -12, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelfPos(2, v) },
+        rotXdeg: { value: shelf.rotXdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ rotXdeg: v }) },
+        rotYdeg: { value: shelf.rotYdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ rotYdeg: v }) },
+        rotZdeg: { value: shelf.rotZdeg ?? 0, min: -90, max: 90, step: 0.5, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ rotZdeg: v }) },
+        width: { value: shelf.width, min: 0.5, max: 12, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ width: v }) },
+        depth: { value: shelf.depth, min: 0.2, max: 2, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ depth: v }) },
+        bookHeight: { value: shelf.bookHeight ?? 1.1, min: 0.3, max: 3, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ bookHeight: v }) },
+        heightVar: { value: shelf.heightVar ?? 0.15, min: 0, max: 1, step: 0.01, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ heightVar: v }) },
+        capacity: { value: shelf.capacity ?? 0, min: 0, max: 40, step: 1, onChange: (v, _p, c) => c.fromPanel && isMountedRef.current && onShelf({ capacity: v }) },
       }),
     }),
-    [activeIdx]
+    [activeIdx, shelf.id]
   );
+
+  // 기즈모(QWER)로 바뀐 값이 슬라이더 패널에도 항상 반영되도록 상태→패널 방향으로 동기화
+  // (set은 fromPanel=false라 onChange 핸들러를 타지 않아 되돌아오는 루프가 없다)
+  useEffect(() => {
+    setShelfPanel({
+      sPosX: shelf.pos[0],
+      sPosY: shelf.pos[1],
+      sPosZ: shelf.pos[2],
+      rotXdeg: shelf.rotXdeg ?? 0,
+      rotYdeg: shelf.rotYdeg ?? 0,
+      rotZdeg: shelf.rotZdeg ?? 0,
+      width: shelf.width,
+      depth: shelf.depth,
+      bookHeight: shelf.bookHeight ?? 1.1,
+      heightVar: shelf.heightVar ?? 0.15,
+      capacity: shelf.capacity ?? 0,
+    });
+  }, [
+    setShelfPanel,
+    shelf.pos,
+    shelf.rotXdeg,
+    shelf.rotYdeg,
+    shelf.rotZdeg,
+    shelf.width,
+    shelf.depth,
+    shelf.bookHeight,
+    shelf.heightVar,
+    shelf.capacity,
+  ]);
 
   return null;
 }
@@ -186,6 +328,26 @@ export default function LibraryScene() {
   const [previewCount, setPreviewCount] = useState(6);
   const [activeIdx, setActiveIdx] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [saveToast, setSaveToast] = useState('');
+
+  // 마야 스타일 QWER 조작 모드 ('select'(Q) | 'translate'(W) | 'rotate'(E) | 'scale'(R))
+  const [gizmoMode, setGizmoMode] = useState('translate');
+  const [coordSpace, setCoordSpace] = useState('local');
+
+  // Q, W, E, R 단축키 리스너
+  useEffect(() => {
+    if (!calibrating) return;
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'q') setGizmoMode('select');
+      else if (key === 'w') setGizmoMode('translate');
+      else if (key === 'e') setGizmoMode('rotate');
+      else if (key === 'r') setGizmoMode('scale');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [calibrating]);
 
   const [workingConfig, setWorkingConfig] = useState(
     () => loadCalibration(librarianId) || { camera: getDefaultCamera(librarianId), shelves: getDefaultShelves(librarianId) }
@@ -360,8 +522,8 @@ export default function LibraryScene() {
 
   const copyJson = async () => {
     const { camera, shelves } = workingConfig;
-    const camName = librarianId === 'stork' ? 'STORK_CAMERA' : 'CAT_CAMERA';
-    const shelvesName = librarianId === 'stork' ? 'STORK_SHELVES' : 'CAT_SHELVES';
+    const camName = `${librarianId.toUpperCase()}_CAMERA`;
+    const shelvesName = `${librarianId.toUpperCase()}_SHELVES`;
     const text = `// ${librarian.name} (${librarianId}) 서재 배치\nconst ${camName} = ${JSON.stringify(camera, null, 2)};\n\nconst ${shelvesName} = ${JSON.stringify(shelves, null, 2)};`;
     try {
       await navigator.clipboard.writeText(text);
@@ -370,6 +532,42 @@ export default function LibraryScene() {
     } catch {
       // 무시
     }
+  };
+
+  // 현재 활성 선반의 설정을 localStorage에 확정 저장하고 JSON을 클립보드로 복사
+  const saveAndCopyCurrentShelf = async () => {
+    try {
+      localStorage.setItem(getCalibKey(librarianId), JSON.stringify(workingConfig));
+    } catch {
+      // 무시
+    }
+    const curShelf = workingConfig.shelves[activeIdx];
+    if (curShelf) {
+      const text = JSON.stringify(curShelf, null, 2) + ',';
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // 무시
+      }
+    }
+    setSaveToast(`선반 #${activeIdx + 1} 저장&복사됨!`);
+    setTimeout(() => setSaveToast(''), 2000);
+  };
+
+  // shelfLayout.js에 저장된 최신 코드값으로 즉시 동기화
+  const syncFromFile = () => {
+    const freshConfig = {
+      camera: getDefaultCamera(librarianId),
+      shelves: getDefaultShelves(librarianId),
+    };
+    setWorkingConfig(freshConfig);
+    try {
+      localStorage.setItem(getCalibKey(librarianId), JSON.stringify(freshConfig));
+    } catch {
+      // 무시
+    }
+    setSaveToast('코드 최신값 동기화 완료!');
+    setTimeout(() => setSaveToast(''), 2000);
   };
 
   // 캘리브레이션 중이면 작업용 설정, 아니면 해당 사서의 배포용 기본 설정
@@ -448,7 +646,16 @@ export default function LibraryScene() {
           <directionalLight position={[4, 8, 6]} intensity={1.0} />
           <directionalLight position={[-5, 3, 4]} intensity={0.3} />
 
-          {calibrating && <ShelfGuides shelves={activeConfig.shelves} activeIdx={activeIdx} />}
+          {calibrating && (
+            <ShelfGuides
+              shelves={activeConfig.shelves}
+              activeIdx={activeIdx}
+              onSelectIdx={setActiveIdx}
+              gizmoMode={gizmoMode}
+              coordSpace={coordSpace}
+              onPatchShelf={patchShelf}
+            />
+          )}
 
           {placements.map((b) => (
             <Book3D
@@ -567,6 +774,7 @@ export default function LibraryScene() {
 
       {isDev && calibrating && (
         <CalibrationControls
+          key={`calib-shelf-${activeShelf?.id || activeIdx}-${librarianId}`}
           camera={workingConfig.camera}
           shelf={activeShelf}
           activeIdx={activeIdx}
@@ -575,6 +783,174 @@ export default function LibraryScene() {
           onShelf={(patch) => patchShelf(activeIdx, patch)}
           onShelfPos={(i, v) => setShelfPos(activeIdx, i, v)}
         />
+      )}
+
+      {/* 마야 스타일 QWER 트랜스폼 모드 툴바 */}
+      {isDev && calibrating && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 14,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(18, 18, 24, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1.5px solid rgba(255, 255, 255, 0.25)',
+            borderRadius: 999,
+            padding: '5px 12px',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+            color: '#fff',
+            fontSize: 14,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 4px', borderRight: '1px solid rgba(255,255,255,0.2)' }}>
+            <button
+              type="button"
+              onClick={() => setActiveIdx((i) => Math.max(0, i - 1))}
+              disabled={activeIdx === 0}
+              title="이전 선반"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: activeIdx === 0 ? 'rgba(255,255,255,0.25)' : '#fff',
+                cursor: activeIdx === 0 ? 'default' : 'pointer',
+                fontSize: 12,
+                padding: '2px 5px',
+              }}
+            >
+              ◀
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#ff9a3c', minWidth: 62, textAlign: 'center' }}>
+              #{activeIdx + 1} {workingConfig.shelves[activeIdx]?.id || ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveIdx((i) => Math.min(workingConfig.shelves.length - 1, i + 1))}
+              disabled={activeIdx >= workingConfig.shelves.length - 1}
+              title="다음 선반"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: activeIdx >= workingConfig.shelves.length - 1 ? 'rgba(255,255,255,0.25)' : '#fff',
+                cursor: activeIdx >= workingConfig.shelves.length - 1 ? 'default' : 'pointer',
+                fontSize: 12,
+                padding: '2px 5px',
+              }}
+            >
+              ▶
+            </button>
+          </div>
+          {[
+            { mode: 'select', key: 'Q', label: '선택' },
+            { mode: 'translate', key: 'W', label: '이동' },
+            { mode: 'rotate', key: 'E', label: '회전' },
+            { mode: 'scale', key: 'R', label: '크기' },
+          ].map((m) => {
+            const active = gizmoMode === m.mode;
+            return (
+              <button
+                key={m.mode}
+                type="button"
+                onClick={() => setGizmoMode(m.mode)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  border: active ? '1.5px solid var(--accent, #ff9a3c)' : '1px solid rgba(255,255,255,0.15)',
+                  background: active ? 'var(--accent, #ff9a3c)' : 'rgba(255,255,255,0.08)',
+                  color: active ? '#111' : '#fff',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <kbd
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: '1px 5px',
+                    borderRadius: 4,
+                    background: active ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)',
+                  }}
+                >
+                  {m.key}
+                </kbd>
+                {m.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setCoordSpace((prev) => (prev === 'local' ? 'world' : 'local'))}
+            title="좌표계 전환 (Local / World)"
+            style={{
+              marginLeft: 4,
+              padding: '5px 10px',
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.12)',
+              color: '#00e5ff',
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            {coordSpace === 'local' ? 'Local 축' : 'World 축'}
+          </button>
+
+          <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)', margin: '0 4px' }} />
+
+          {/* 저장 & 복사 버튼 */}
+          <button
+            type="button"
+            onClick={saveAndCopyCurrentShelf}
+            title="현재 선반 상태를 로컬 저장하고 JSON을 클립보드에 복사합니다"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 13px',
+              borderRadius: 999,
+              border: '1.5px solid rgba(52, 211, 153, 0.7)',
+              background: 'rgba(16, 185, 129, 0.28)',
+              color: '#34d399',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer',
+              boxShadow: '0 0 10px rgba(52, 211, 153, 0.2)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            💾 {saveToast || '선반 저장 & 복사'}
+          </button>
+
+          {/* 코드값 동기화 버튼 */}
+          <button
+            type="button"
+            onClick={syncFromFile}
+            title="shelfLayout.js의 최신 설정값으로 화면을 즉시 동기화합니다"
+            style={{
+              padding: '5px 11px',
+              borderRadius: 999,
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#cbd5e1',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            🔄 코드값 동기화
+          </button>
+        </div>
       )}
 
       {/*
