@@ -576,8 +576,8 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
     .gnb {
-        padding: 8px 12px;
-        min-height: 52px;
+        padding: 8px 14px;
+        min-height: 58px;
         box-sizing: border-box;
     }
 
@@ -587,18 +587,18 @@
     }
 
     .gnb-logo-wrap {
-        width: 34px;
-        height: 34px;
+        width: 40px;
+        height: 40px;
     }
 
     .gnb-logo {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
     }
 
-    /* 모바일 서비스이름 세로 길이를 로고 지름(34px)과 1:1로 일치 */
+    /* 모바일 서비스이름 세로 길이를 로고 지름(40px)과 1:1로 일치시켜 시인성 확대 */
     .gnb-service-name {
-        height: 34px;
+        height: 40px;
         width: auto;
         object-fit: contain;
     }
@@ -613,9 +613,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
-        padding: 2px 6px;
+        padding: 2px 7px;
         margin: 0;
         letter-spacing: 0.3px;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
@@ -641,8 +641,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         border: 1px solid var(--border);
         background: var(--code-bg);
@@ -787,7 +787,7 @@
 
     .gnb-mobile-nav-dropdown {
         position: fixed;
-        top: calc(54px + env(safe-area-inset-top, 0px));
+        top: calc(58px + env(safe-area-inset-top, 0px) + 2mm);
         left: 12px;
         width: min(280px, calc(100vw - 24px));
         background: var(--bg);

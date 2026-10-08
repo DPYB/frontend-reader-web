@@ -16,6 +16,7 @@ import { toKoreanStatus } from '../../api/bookApi';
 import LoadingSequence from '../../components/LoadingSequence';
 import { DEBATE_PERSONAS } from '../../data/debatePersonas';
 import { LIBRARIANS } from '../../data/librarians';
+import { useTheme } from '../../store/themeStore';
 import './LibrarianChat.css';
 
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
@@ -129,6 +130,7 @@ function getRecommendationLoadingMessage(librarianId) {
 export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange, onOpenTimer }) {
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   // CLIAR-257: 추천 도서 등록 후 뒤로가기 시 대화/추천 카드 복원
@@ -1058,7 +1060,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
               />
             </button>
 
-            {/* 사서 탭 시 노출되는 3가지 미니 메뉴 (사서 프로필 & 변경, 사서와 대화하기, 독서 타이머) */}
+            {/* 사서 탭 시 노출되는 4가지 미니 메뉴 (1. 대화하기, 2. 독서 타이머, 3. 사서 프로필&변경, 4. 테마 스위치) */}
             {showMobileMenu && (
               <div
                 className={`lc-mobile-mini-menu ${isNearRight ? 'align-right' : 'align-left'}`}
@@ -1069,21 +1071,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                   <strong>{librarian.displayName || librarian.name} 사서</strong>
                   <span>{librarian.specialtyGenre || librarian.species}</span>
                 </div>
-                <button
-                  type="button"
-                  className="lc-mobile-menu-item"
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    navigate('/librarians');
-                  }}
-                  role="menuitem"
-                >
-                  <span className="lc-mobile-menu-item-icon">✨</span>
-                  <div className="lc-mobile-menu-item-text">
-                    <strong>사서 프로필 <span className="lc-ampersand">&amp;</span> 변경</strong>
-                    <span>다른 사서 프로필 둘러보기</span>
-                  </div>
-                </button>
+                {/* 1. 사서와 대화하기 */}
                 <button
                   type="button"
                   className="lc-mobile-menu-item lc-mobile-menu-item--primary"
@@ -1099,6 +1087,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                     <span>도서 추천·검색·독서 토론</span>
                   </div>
                 </button>
+                {/* 2. 독서 타이머 */}
                 <button
                   type="button"
                   className="lc-mobile-menu-item"
@@ -1112,6 +1101,37 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                   <div className="lc-mobile-menu-item-text">
                     <strong>독서 타이머</strong>
                     <span>독서 시간 측정 <span className="lc-ampersand">&amp;</span> 집중 기록</span>
+                  </div>
+                </button>
+                {/* 3. 사서 프로필 & 변경 */}
+                <button
+                  type="button"
+                  className="lc-mobile-menu-item"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/librarians');
+                  }}
+                  role="menuitem"
+                >
+                  <span className="lc-mobile-menu-item-icon">✨</span>
+                  <div className="lc-mobile-menu-item-text">
+                    <strong>사서 프로필 <span className="lc-ampersand">&amp;</span> 변경</strong>
+                    <span>다른 사서 프로필 둘러보기</span>
+                  </div>
+                </button>
+                {/* 4. 나이트모드 / 라이트모드 스위치 */}
+                <button
+                  type="button"
+                  className="lc-mobile-menu-item"
+                  onClick={() => {
+                    setTheme(theme === 'dark' ? 'light' : 'dark');
+                  }}
+                  role="menuitem"
+                >
+                  <span className="lc-mobile-menu-item-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+                  <div className="lc-mobile-menu-item-text">
+                    <strong>{theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}</strong>
+                    <span>{theme === 'dark' ? '밝고 화사한 화면' : '눈이 편안한 밤 화면'}</span>
                   </div>
                 </button>
               </div>
@@ -1155,6 +1175,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   }
 
   // 열린 상태 (open === true)
+  // 상단 GNB(58px + safe-area) 및 로고/서비스명/BETA/로그아웃 버튼과 정확히 2mm 거리 유지
   const panelStyle = isMobile
     ? {
         position: 'fixed',
@@ -1164,7 +1185,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         maxWidth: 440,
         margin: '0 auto',
         zIndex: 120,
-        maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 24px - env(safe-area-inset-bottom, 0px))',
+        maxHeight: 'calc(100dvh - 58px - env(safe-area-inset-top, 0px) - 2mm - 16px - env(safe-area-inset-bottom, 0px))',
         minHeight: 'min(360px, calc(100dvh - 120px))',
         background: 'var(--bubble-bg)',
         border: '1px solid var(--border)',
