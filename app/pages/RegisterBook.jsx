@@ -683,7 +683,7 @@ export default function RegisterBook() {
           role="tab"
           aria-selected={activeTab === 'camera'}
         >
-          📷 사진·ISBN 바코드
+          📷 ISBN·표지
         </button>
         <button
           type="button"

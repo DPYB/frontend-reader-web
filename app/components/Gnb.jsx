@@ -185,9 +185,9 @@ export default function Gnb() {
                         aria-label="내 서재로 이동"
                     >
                         <span className="gnb-logo-wrap">
-                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={38} height={38} decoding="async" />
+                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={57} height={57} decoding="async" />
                         </span>
-                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={42} decoding="async" />
+                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={240} height={60} decoding="async" />
                         <span className="gnb-beta-badge gnb-beta-badge--desktop">
                             BETA
                         </span>
@@ -314,17 +314,26 @@ export default function Gnb() {
                 </div>
             </header>
 
-            {/* 모바일 햄버거 버튼 클릭 시 나타나는 깔끔한 전체 화면 네비게이션 메뉴 (토글 소메뉴 포함) */}
+            {/* 모바일 햄버거 버튼 클릭 시 나타나는 85% 드로어 네비게이션 메뉴 (토글 소메뉴 포함) */}
             {showMobileNavMenu && (
-                <div className="gnb-fullscreen-nav-overlay" role="dialog" aria-modal="true" aria-label="전체 네비게이션 메뉴">
-                    <div className="gnb-fullscreen-nav-container">
+                <div
+                    className="gnb-fullscreen-nav-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="네비게이션 메뉴"
+                    onClick={() => setShowMobileNavMenu(false)}
+                >
+                    <div
+                        className="gnb-fullscreen-nav-container"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {/* 1. 모바일 전체 메뉴 헤더 */}
                         <div className="gnb-fullscreen-nav-header">
                             <div className="gnb-fullscreen-nav-brand" onClick={() => goTo('/library')}>
                                 <span className="gnb-logo-wrap">
-                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={38} height={38} decoding="async" />
+                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={48} height={48} decoding="async" />
                                 </span>
-                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={160} height={38} decoding="async" />
+                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={200} height={48} decoding="async" />
                                 <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
@@ -337,7 +346,7 @@ export default function Gnb() {
                             </button>
                         </div>
 
-                        {/* 2. 깔끔한 메뉴 리스트 + 토글 소메뉴 */}
+                        {/* 2. 깔끔한 메뉴 리스트 (가운데 정렬 + 토글 소메뉴) */}
                         <nav className="gnb-fullscreen-nav-list" aria-label="모바일 메뉴 목록">
                             {/* 1. 내 서재 */}
                             <div className="gnb-fullscreen-nav-item-wrap">
@@ -351,7 +360,7 @@ export default function Gnb() {
                                 </NavLink>
                             </div>
 
-                            {/* 2. 책 등록 (토글 기능 포함) */}
+                            {/* 2. 책 등록 (토글 기능 포함: 도서 검색 -> ISBN·표지 촬영 -> 직접 입력) */}
                             <div className="gnb-fullscreen-nav-item-wrap">
                                 <div className="gnb-fullscreen-nav-row">
                                     <NavLink
@@ -379,15 +388,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/register', { tab: 'search' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">🔍</span>
-                                            <span>YES24 도서 검색 등록</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="gnb-fullscreen-subitem"
-                                            onClick={() => goTo('/register', { tab: 'manual' })}
-                                        >
-                                            <span className="gnb-fullscreen-subicon">✍️</span>
-                                            <span>직접 입력 등록</span>
+                                            <span>도서 검색</span>
                                         </button>
                                         <button
                                             type="button"
@@ -395,7 +396,15 @@ export default function Gnb() {
                                             onClick={() => goTo('/register', { tab: 'camera' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">📷</span>
-                                            <span>사진 / 바코드 촬영</span>
+                                            <span>ISBN·표지 촬영</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/register', { tab: 'manual' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">✍️</span>
+                                            <span>직접 입력</span>
                                         </button>
                                     </div>
                                 )}
@@ -413,7 +422,7 @@ export default function Gnb() {
                                 </NavLink>
                             </div>
 
-                            {/* 4. 마이페이지 (토글 기능 포함) */}
+                            {/* 4. 마이페이지 (토글 기능 포함: 사서 프로필 제외) */}
                             <div className="gnb-fullscreen-nav-item-wrap">
                                 <div className="gnb-fullscreen-nav-row">
                                     <NavLink
@@ -459,39 +468,13 @@ export default function Gnb() {
                                             <span className="gnb-fullscreen-subicon">👤</span>
                                             <span>내 정보 관리</span>
                                         </button>
-                                        <button
-                                            type="button"
-                                            className="gnb-fullscreen-subitem"
-                                            onClick={() => goTo('/librarians')}
-                                        >
-                                            <span className="gnb-fullscreen-subicon">🐾</span>
-                                            <span>사서 프로필 &amp; 변경</span>
-                                        </button>
                                     </div>
                                 )}
                             </div>
                         </nav>
 
-                        {/* 3. 모바일 전체 메뉴 푸터: 테마 전환 + 로그아웃 */}
+                        {/* 3. 모바일 전체 메뉴 푸터: 로그아웃 */}
                         <div className="gnb-fullscreen-footer">
-                            <div className="gnb-fullscreen-theme-wrap">
-                                <button
-                                    type="button"
-                                    className={`gnb-fullscreen-theme-btn${theme === 'light' ? ' on' : ''}`}
-                                    onClick={() => setTheme('light')}
-                                >
-                                    <SunIcon />
-                                    <span>라이트 모드</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`gnb-fullscreen-theme-btn${theme === 'dark' ? ' on' : ''}`}
-                                    onClick={() => setTheme('dark')}
-                                >
-                                    <MoonIcon />
-                                    <span>다크 모드</span>
-                                </button>
-                            </div>
                             <button
                                 type="button"
                                 className="gnb-fullscreen-logout-btn"
