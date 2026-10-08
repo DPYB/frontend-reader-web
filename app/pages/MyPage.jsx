@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import MyPageReadingList from '../features/mypage/MyPageReadingList';
 import MyPageReadingCalendar from '../features/mypage/MyPageReadingCalendar';
@@ -15,9 +15,12 @@ const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 export default function MyPage() {
   const { member, isGuest, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // 스몰 메뉴(탭): 'profile' | 'books' | 'calendar'
-  const [activeTab, setActiveTab] = useState('profile');
+  const [selectedTab, setSelectedTab] = useState(null);
+  const activeTab = selectedTab || location.state?.tab || 'profile';
+  const setActiveTab = setSelectedTab;
   const [loggingOut, setLoggingOut] = useState(false);
 
   // 독서 리스트/캘린더에서 도서 클릭 시 상세 팝업 오픈

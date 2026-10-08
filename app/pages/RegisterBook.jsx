@@ -85,7 +85,7 @@ export default function RegisterBook() {
   const searchTimerRef = useRef(null);
 
   // 등록 모드: 'search'(키워드 검색) | 'camera'(사진/바코드 촬영) | 'manual'(직접 입력)
-  const [activeTab, setActiveTab] = useState('search');
+  const [activeTab, setActiveTab] = useState(() => location.state?.tab || 'search');
 
   // ── 도서 키워드 검색 상태 ──
   const [searchQuery, setSearchQuery] = useState('');
