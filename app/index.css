@@ -54,7 +54,7 @@ canvas,
   --text-h: #f0e6d6;
   --bg: #150c04;
   --border: #2e2010;
-  --code-bg: #1f140a;
+  --code-bg: #271a0e;
   --accent: #ff7a00;
   --accent-secondary: #259b36;
   --accent-bg: rgba(255, 122, 0, 0.15);
@@ -94,7 +94,7 @@ canvas,
   --text-h: #2d1808;
   --bg: #f5d4a6;
   --border: #d4a96e;
-  --code-bg: #f0c88e;
+  --code-bg: #fae4c5;
   --accent: #e06a10;
   --accent-secondary: #2e7d32;
   --accent-bg: rgba(224, 106, 16, 0.14);
@@ -106,7 +106,7 @@ canvas,
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
   --answer-border: #e1c48e;
   --bubble-bg: #faeed6;
-  --answer-bg: linear-gradient(160deg, #f9e4be 0%, #f4d69f 100%);
+  --answer-bg: linear-gradient(160deg, #fff2dd 0%, #fde7c7 100%);
 }
 
 /* 슈빌(스토크) 사서 다크 모드 — 연보라 + 찐보라 테마 */
@@ -115,7 +115,7 @@ canvas,
   --text-h: #ece6f8;
   --bg: #221e40;
   --border: #423a60;
-  --code-bg: #2c264a;
+  --code-bg: #322b56;
   --accent: #9b7bf0;
   --accent-secondary: #7d50c0;
   --accent-bg: rgba(155, 123, 240, 0.15);
@@ -134,7 +134,7 @@ canvas,
   --text-h: #2a1e50;
   --bg: #cec0ed;
   --border: #ae9ad4;
-  --code-bg: #ddd4f0;
+  --code-bg: #e6def8;
   --accent: #7d50c0;
   --accent-secondary: #9b7bf0;
   --accent-bg: rgba(125, 80, 192, 0.14);
@@ -153,7 +153,7 @@ canvas,
   --text-h: #e2f6f0;
   --bg: #0f2624;
   --border: #1f4642;
-  --code-bg: #15332f;
+  --code-bg: #1b423d;
   --accent: #ff5a4e;
   --accent-secondary: #4fc4ac;
   --accent-bg: rgba(255, 90, 78, 0.15);
@@ -172,7 +172,7 @@ canvas,
   --text-h: #0e332e;
   --bg: #bfe8e0;
   --border: #8fc8bc;
-  --code-bg: #aedfd4;
+  --code-bg: #d2f2ec;
   --accent: #e03e30;
   --accent-secondary: #23907c;
   --accent-bg: rgba(224, 62, 48, 0.14);
@@ -191,7 +191,7 @@ canvas,
   --text-h: #f2eef0;
   --bg: #1c1a1c;
   --border: #3a363a;
-  --code-bg: #262326;
+  --code-bg: #2f2a2f;
   --accent: #ff2a85;
   --accent-secondary: #ff6fa5;
   --accent-bg: rgba(255, 42, 133, 0.15);
@@ -210,7 +210,7 @@ canvas,
   --text-h: #2a2628;
   --bg: #e4e0e2;
   --border: #c5bfc2;
-  --code-bg: #d8d3d5;
+  --code-bg: #f2eef0;
   --accent: #c02f70;
   --accent-secondary: #e91e63;
   --accent-bg: rgba(192, 47, 112, 0.14);

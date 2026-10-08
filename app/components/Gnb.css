@@ -699,23 +699,23 @@
         box-shadow: 0 4px 14px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.7);
     }
 
-    /* 햄버거 메뉴 활성화(누른 후) 시 헤더에 서비스 이름 노출 */
+    /* 햄버거 메뉴 활성화(누른 후) 시 헤더에 서비스 이름 2배 크기로 노출 */
     .gnb-service-name--header {
         display: block !important;
-        height: 36px;
-        max-height: 38px;
-        max-width: calc(100vw - 180px);
+        height: 64px;
+        max-height: 68px;
+        max-width: calc(100vw - 120px);
         width: auto;
         object-fit: contain;
         animation: gnbFadeIn 0.2s ease;
     }
 
-    /* 모바일 드로어 내부 서비스 이름 노출 */
+    /* 모바일 드로어 내부 서비스 이름 2배 크기로 노출 */
     .gnb-service-name--drawer {
         display: block !important;
-        height: 38px;
-        max-height: 40px;
-        max-width: calc(100% - 130px);
+        height: 76px;
+        max-height: 80px;
+        max-width: calc(100% - 50px);
         width: auto;
         object-fit: contain;
     }
@@ -794,8 +794,9 @@
         }
 
         .gnb-service-name--header {
-            height: 32px;
-            max-width: calc(100vw - 140px);
+            height: 52px;
+            max-height: 56px;
+            max-width: calc(100vw - 110px);
         }
     }
 

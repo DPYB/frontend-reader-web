@@ -210,7 +210,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       initialChat.push({
         role: 'assistant',
         text: saved.answer.text,
-        senderIcon: saved?.answer?.senderIcon || librarian?.icon,
+        senderIcon: saved?.answer?.senderIcon || '🐾',
         senderName: saved?.answer?.senderName || librarianNames[librarian?.id] || librarian?.displayName || librarian?.name,
         recommendedBooks: saved?.answer?.recommended_books || saved?.answer?.recommendedBooks || [],
         libraryBooks: saved?.answer?.library_books || saved?.answer?.libraryBooks || [],
@@ -622,7 +622,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     const activeSessionId = isDebate ? debateSessionId : chatSessionId;
     const currentSenderIcon = isDebate
       ? selectedDebatePersona?.icon || '💡'
-      : librarian?.icon || '🐾';
+      : '🐾';
     const currentSenderName = isDebate
       ? selectedDebatePersona?.name || '토론 파트너'
       : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
@@ -1068,7 +1068,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                 aria-label="사서 퀵 메뉴"
               >
                 <div className="lc-mobile-menu-header">
-                  <strong>{librarian.displayName || librarian.name} 사서</strong>
+                  <strong>🐾 {librarian.displayName || librarian.name} 사서</strong>
                   <span>{librarian.specialtyGenre || librarian.species}</span>
                 </div>
                 {/* 1. 사서와 대화하기 */}
@@ -1213,7 +1213,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       {/* 1. 최상단 헤더: 사서 이름 + [✨ 새 대화] + 모드별 도움말 (?) + 닫기 (✕) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
-          {librarian.icon} {librarian.displayName || librarian.name}
+          🐾 {librarian.displayName || librarian.name}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* ✨ 새 대화 버튼 */}
@@ -1702,10 +1702,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                   {isUser
                     ? '👤 나'
                     : msg.senderName
-                      ? `${msg.senderIcon || ''} ${msg.senderName}`.trim()
+                      ? `${msg.senderIcon || '🐾'} ${msg.senderName}`.trim()
                       : chatMode === 'debate'
                         ? `${selectedDebatePersona.icon} ${selectedDebatePersona.name}`
-                        : `${librarian.icon} ${librarianNames[librarian.id] || librarian.displayName || librarian.name}`}
+                        : `🐾 ${librarianNames[librarian.id] || librarian.displayName || librarian.name}`}
                 </div>
                 <div className="lc-message-bubble">
                   {isUser ? (

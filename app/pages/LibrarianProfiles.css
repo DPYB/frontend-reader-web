@@ -300,9 +300,11 @@
   line-height: 1.45;
   white-space: pre-line;
   margin: 0;
-  padding: 4px;
-  background: var(--bg);
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
   border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .lp-persona {
