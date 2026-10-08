@@ -394,7 +394,6 @@ export default function Gnb() {
                                     height={38}
                                     decoding="async"
                                 />
-                                <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
                                 type="button"
