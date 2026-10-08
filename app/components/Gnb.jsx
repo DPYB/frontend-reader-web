@@ -80,6 +80,16 @@ function LogoutIcon() {
 }
 
 
+function HamburgerIcon() {
+    return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+    );
+}
+
 function CloseIcon() {
     return (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -170,89 +180,93 @@ export default function Gnb() {
         setShowMobileNavMenu((prev) => !prev);
     };
 
-    const handleRefresh = (e) => {
-        if (e) e.preventDefault();
-        if (typeof window !== 'undefined') {
-            window.location.reload();
-        }
-    };
-
     return (
         <>
             <header className={`gnb${isLibraryPage ? ' gnb--overlay' : ''}`}>
-                {/* 1. 모바일 좌측 브랜드 버튼 (노트북 이상에서는 숨김) */}
-                <div className="gnb-mobile-brand-wrap" ref={navWrapRef}>
+                {/* 1. 모바일 좌측: 햄버거 메뉴 버튼 (누르면 서비스 이름 전환 및 드로어 토글) */}
+                <div className="gnb-mobile-left" ref={navWrapRef}>
                     <button
                         type="button"
-                        className={`gnb-mobile-brand-btn${showMobileNavMenu ? ' active' : ''}`}
+                        className={`gnb-mobile-hamburger-btn${showMobileNavMenu ? ' active' : ''}`}
                         onClick={handleBrandClick}
                         aria-label={showMobileNavMenu ? "메뉴 닫기" : "메뉴 열기"}
                         aria-expanded={showMobileNavMenu}
                     >
                         {showMobileNavMenu ? (
                             <img
-                                className="gnb-service-name gnb-service-name--active"
+                                className="gnb-service-name gnb-service-name--header"
                                 src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`}
                                 alt="Don't Paw-get Your Book"
-                                width={160}
-                                height={38}
+                                width={150}
+                                height={36}
                                 decoding="async"
                             />
                         ) : (
-                            <span className="gnb-logo-wrap gnb-logo-wrap--circle">
-                                <img
-                                    className="gnb-logo"
-                                    src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
-                                    alt="Don't Paw-get Your Book 로고"
-                                    width={89}
-                                    height={89}
-                                    decoding="async"
-                                />
+                            <span className="gnb-hamburger-icon-wrap">
+                                <HamburgerIcon />
                             </span>
                         )}
                     </button>
                 </div>
 
-                {/* 2. 데스크톱 좌측 네비게이션 메뉴 (중앙에서 왼쪽으로 이동) */}
+                {/* 2. 데스크톱 좌측: 로고 + 서비스 이름 (적절한 크기로 축소) */}
+                <div className="gnb-desktop-brand">
+                    <NavLink
+                        to="/library"
+                        className="gnb-desktop-brand-link"
+                        aria-label="내 서재로 이동"
+                    >
+                        <span className="gnb-logo-wrap gnb-logo-wrap--desktop">
+                            <img
+                                className="gnb-logo"
+                                src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
+                                alt="Don't Paw-get Your Book 로고"
+                                width={48}
+                                height={48}
+                                decoding="async"
+                            />
+                        </span>
+                        <img
+                            className="gnb-service-name gnb-service-name--desktop"
+                            src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`}
+                            alt="Don't Paw-get Your Book"
+                            width={160}
+                            height={38}
+                            decoding="async"
+                        />
+                        <span className="gnb-beta-badge gnb-beta-badge--desktop">
+                            BETA
+                        </span>
+                    </NavLink>
+                </div>
+
+                {/* 3. 모바일 상단 중앙: 원형 glass 효과 배경 로고 */}
+                <div className="gnb-mobile-center-logo">
+                    <NavLink
+                        to="/library"
+                        className="gnb-mobile-glass-logo-link"
+                        aria-label="내 서재로 이동"
+                    >
+                        <span className="gnb-logo-wrap gnb-logo-wrap--glass">
+                            <img
+                                className="gnb-logo"
+                                src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
+                                alt="Don't Paw-get Your Book 로고"
+                                width={44}
+                                height={44}
+                                decoding="async"
+                            />
+                        </span>
+                    </NavLink>
+                </div>
+
+                {/* 4. 데스크톱 상단 중앙: 네비게이션 메뉴 (중앙으로 다시 이동) */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
                     <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>내 서재</NavLink>
                     <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>책 등록</NavLink>
                     <NavLink to="/reports" className={({ isActive }) => (isActive ? 'on' : undefined)}>독서 리포트</NavLink>
                     <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'on' : undefined)}>마이페이지</NavLink>
                 </nav>
-
-                {/* 3. 데스크톱 상단 중앙 로고 (벤츠 스타일 상단 중앙 배치 + 누르면 새로고침(refresh)) */}
-                <div className="gnb-center-brand">
-                    <button
-                        type="button"
-                        className="gnb-center-logo-btn"
-                        onClick={handleRefresh}
-                        title="페이지 새로고침"
-                        aria-label="로고 클릭 시 새로고침"
-                    >
-                        <span className="gnb-logo-wrap gnb-logo-wrap--circle">
-                            <img
-                                className="gnb-logo"
-                                src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`}
-                                alt="Don't Paw-get Your Book 로고"
-                                width={85}
-                                height={85}
-                                decoding="async"
-                            />
-                        </span>
-                        <img
-                            className="gnb-service-name"
-                            src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`}
-                            alt="Don't Paw-get Your Book"
-                            width={240}
-                            height={60}
-                            decoding="async"
-                        />
-                        <span className="gnb-beta-badge gnb-beta-badge--desktop">
-                            BETA
-                        </span>
-                    </button>
-                </div>
 
                 <div className="gnb-right">
                     {/* 모바일 상단: BETA 뱃지 */}
