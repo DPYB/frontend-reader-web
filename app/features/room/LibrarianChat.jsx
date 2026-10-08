@@ -634,7 +634,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       longitude: location?.longitude,
       mode: isDebate ? 'debate' : 'chat',
       persona: isDebate ? debaterPersona : null,
-      bookId: isDebate && selectedDebateBook ? (selectedDebateBook.bookId ?? selectedDebateBook.id) : null,
+      bookId: isDebate && selectedDebateBook ? String(selectedDebateBook.bookId ?? selectedDebateBook.id) : null,
       topic: isDebate ? (selectedDebateBook ? selectedDebateBook.title : '자유 주제') : null,
       action,
       signal: controller.signal,
@@ -803,28 +803,70 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         onAnswer(newAnswer);
       }
     } else {
-      // 백엔드 연결 실패 시에만 로컬 서재 검색으로 폴백
-      const localResult = answerQuestion({ text: message, books, librarian, librarianNames });
-      setModeAnswers((prev) => ({ ...prev, [activeMode]: localResult }));
+      // 백엔드 연결 실패 시 fallback 처리
+      let fallbackText;
+      let isConcluded = false;
+      let debateSummary = null;
+      let recommendedBooks = [];
+      let libraryBooks = [];
+      let switchTo = null;
+
+      if (isDebate) {
+        // 토론 모드 폴백: 사서 서재 검색(answerQuestion) 대신 토론 페르소나 맞춤 답변/총평 제공
+        const personaObj = DEBATE_PERSONAS.find((p) => p.id === debaterPersona);
+        const personaName = personaObj?.name || '토론 파트너';
+        const topicStr = selectedDebateBook?.title ? `《${selectedDebateBook.title}》` : '오늘 나눈 주제';
+
+        if (action === 'conclude') {
+          isConcluded = true;
+          debateSummary = `${personaName}와 함께한 ${topicStr} 토론이 성공적으로 마무리되었습니다.`;
+          fallbackText = `오늘 ${topicStr}에 대한 ${personaName}과의 깊이 있는 대화 즐거웠습니다. 함께 나눈 질문과 생각들이 앞으로의 독서 여정에 좋은 길잡이가 되기를 바랍니다. 🏁`;
+        } else {
+          fallbackText = `${personaName}: ${topicStr}에 대해 의미 있는 시각을 공유해 주셨네요. 작품이 던지는 질문을 찬찬히 곱씹어볼 가치가 있는 것 같습니다.`;
+        }
+      } else {
+        // 일반 사서 대화 모드 폴백: 로컬 서재 DB 기반 검색
+        const localResult = answerQuestion({ text: message, books, librarian, librarianNames });
+        fallbackText = localResult.text;
+        recommendedBooks = localResult.recommendedBooks || localResult.recommended_books || [];
+        libraryBooks = localResult.libraryBooks || localResult.library_books || [];
+        switchTo = localResult.switchTo || null;
+      }
+
+      const fallbackResult = {
+        text: fallbackText,
+        sessionId: activeSessionId,
+        switchTo,
+        signals: null,
+        libraryBooks,
+        library_books: libraryBooks,
+        recommendedBooks,
+        recommended_books: recommendedBooks,
+        isConcluded,
+        is_concluded: isConcluded,
+        debateSummary,
+        debate_summary: debateSummary,
+      };
+      setModeAnswers((prev) => ({ ...prev, [activeMode]: fallbackResult }));
 
       const assistantMsg = {
         role: 'assistant',
-        text: localResult.text,
+        text: fallbackText,
         senderIcon: currentSenderIcon,
         senderName: currentSenderName,
-        recommendedBooks: localResult.recommendedBooks || localResult.recommended_books || [],
-        libraryBooks: isDebate ? [] : (localResult.libraryBooks || localResult.library_books || []),
-        isConcluded: false,
-        debateSummary: null,
+        recommendedBooks,
+        libraryBooks,
+        isConcluded,
+        debateSummary,
         signals: null,
-        switchTo: null,
+        switchTo,
       };
       setModeMessages((prev) => ({
         ...prev,
         [activeMode]: [...(prev[activeMode] || []), assistantMsg],
       }));
       if (onAnswer) {
-        onAnswer(localResult);
+        onAnswer(fallbackResult);
       }
     }
 
@@ -1105,14 +1147,14 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         right: 10,
         maxWidth: 440,
         margin: '0 auto',
-        zIndex: 95,
-        minHeight: 'min(420px, calc(100vh - 140px))',
-        maxHeight: 'min(640px, calc(100vh - 140px))',
+        zIndex: 120,
+        maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px))',
+        minHeight: 'min(360px, calc(100dvh - 150px))',
         background: 'var(--bubble-bg)',
         border: '1px solid var(--border)',
         borderRadius: 16,
-        padding: 12,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        padding: '12px 14px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         color: 'var(--text-h)',
         overflow: 'hidden',
         display: 'flex',
@@ -1220,7 +1262,15 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
               </div>
             )}
           </div>
-          <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+          <button
+            type="button"
+            className="lc-chat-close-btn"
+            onClick={() => setOpen(false)}
+            aria-label="대화창 닫기"
+            title="대화창 닫기"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
