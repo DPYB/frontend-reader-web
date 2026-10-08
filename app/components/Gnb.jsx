@@ -439,14 +439,6 @@ export default function Gnb() {
                                         <button
                                             type="button"
                                             className="gnb-fullscreen-subitem"
-                                            onClick={() => goTo('/mypage', { tab: 'calendar' })}
-                                        >
-                                            <span className="gnb-fullscreen-subicon">📅</span>
-                                            <span>독서 잔디 캘린더</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="gnb-fullscreen-subitem"
                                             onClick={() => goTo('/mypage', { tab: 'books' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">📚</span>
@@ -455,10 +447,18 @@ export default function Gnb() {
                                         <button
                                             type="button"
                                             className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/mypage', { tab: 'calendar' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">📅</span>
+                                            <span>독서 캘린더</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
                                             onClick={() => goTo('/mypage', { tab: 'profile' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">👤</span>
-                                            <span>내 정보 관리</span>
+                                            <span>내 정보</span>
                                         </button>
                                     </div>
                                 )}
