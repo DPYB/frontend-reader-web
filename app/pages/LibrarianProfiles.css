@@ -2,49 +2,44 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 36px 20px 88px;
-  gap: 10px;
+  padding: 28px 16px 80px;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .lp-heading {
-  font-size: 26px;
+  font-size: 24px;
   color: var(--text-h);
   margin: 0;
+  font-weight: 800;
 }
 
 .lp-desc {
-  font-size: 17px;
+  font-size: 15px;
   color: var(--text);
   text-align: center;
-  margin: 0 0 20px;
-  line-height: 1.6;
+  margin: 0 0 14px;
+  line-height: 1.5;
 }
 
 /*
- * 카드 4개가 항상 한 줄에 나란히 놓이고, 5번째부터 다음 줄로 내려가는 고정 4열 그리드.
- * (기존 auto-fill은 뷰포트 폭에 따라 열 수가 유동적이라 4개째부터 줄바꿈이 보장되지 않았다)
- * 좁은 화면에서는 미디어 쿼리로 2열 → 1열로 줄여 카드 내용(성격·독서 성향 등 긴 문단)이
- * 눌리지 않게 한다.
+ * 고정 4열 그리드 (데스크톱) -> 2열 그리드 (태블릿 및 모바일).
+ * 모바일 세로 화면에서도 1열이 아닌 2x2 그리드로 유지하여 4명의 사서 카드를 한눈에 확인.
  */
 .lp-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   max-width: 1180px;
-  /* 같은 행에 놓인 카드끼리 높이를 동일하게 맞춘다 (기본 grid item 동작) */
-  align-items: stretch;
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
   .lp-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .lp-grid {
-    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 
@@ -53,41 +48,46 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 28px 20px 20px;
+  gap: 10px;
+  padding: 22px 14px 14px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--code-bg);
-  transition: border-color 0.2s, transform 0.15s;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .lp-card:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .lp-card--active {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 /* 뱃지 */
 .lp-badge {
   position: absolute;
-  top: 10px;
-  padding: 3px 9px;
+  top: 8px;
+  padding: 2px 7px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+  letter-spacing: -0.2px;
 }
 
 .lp-badge--active {
-  left: 10px;
+  left: 8px;
   background: var(--accent);
   color: #fff;
 }
 
 .lp-badge--rep {
-  right: 10px;
+  right: 8px;
   border: 1px solid var(--accent-border);
   background: var(--accent-bg);
   color: var(--text-h);
@@ -98,27 +98,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 96px;
-  height: 96px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
-  border: 3px solid var(--accent);
+  border: 2.5px solid var(--accent);
   background: var(--bg);
   overflow: hidden;
+  margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .lp-avatar img {
   width: 100%;
   height: 100%;
-  /*
-   * 원형 아바타를 사진이 꽉 채우도록 cover 사용 (GNB 프로필과 동일).
-   * 정사각 일러스트(cat/stork.webp)는 물론, 가로/세로 비율이 다른 실사진
-   * (nudi.jpg=가로형, gecko.jpg=세로형)도 여백(레터박스) 없이 원 안을 채운다.
-   */
   object-fit: cover;
 }
 
 .lp-avatar-fallback {
-  font-size: 46px;
+  font-size: 38px;
   line-height: 1;
 }
 
@@ -128,12 +125,13 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
 }
 
 .lp-name {
-  font-size: 20px;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text-h);
 }
 
@@ -141,13 +139,14 @@
   flex: 1;
   min-width: 0;
   box-sizing: border-box;
-  padding: 5px 8px;
+  padding: 4px 6px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
   color: var(--text-h);
-  font-size: 17px;
+  font-size: 14px;
   outline: none;
+  text-align: center;
 }
 
 .lp-name-input:focus {
@@ -155,10 +154,10 @@
 }
 
 .lp-btn {
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 6px;
   border: none;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -179,167 +178,41 @@
   border-color: var(--accent);
 }
 
-/*
- * 한 줄 소개. white-space: pre-line으로 데이터의 '\n'을 실제 줄바꿈으로 렌더링한다
- * (예: 게코의 "…연결하는\n공감형 탐구자" — "탐구자"가 "탐/구자"로 잘리는 자연
- * 줄바꿈을 피해 단어 경계에서 개행, 사용자 요청 2026-09).
- */
-.lp-oneliner {
+/* 특화 장르 태그 */
+.lp-genre-wrap {
   width: 100%;
-  text-align: center;
-  font-size: 15px;
-  color: var(--text);
-  line-height: 1.5;
-  white-space: pre-line;
-  /*
-   * 사서마다 소개 문구 길이가 달라 1줄/2줄로 다르게 줄바꿈되면, 그 아래
-   * 구분선·"성격 독서 성향 보기"·말투 문구·버튼 위치가 카드마다 어긋난다.
-   * 항상 2줄 높이를 미리 확보해 아래 요소들이 카드 간에 수평으로 맞춰지게 한다
-   * (사용자 요청, 2026-09).
-   */
-  min-height: calc(1.5em * 2);
-}
-
-/* 메타 정보 */
-.lp-meta {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-}
-
-.lp-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 16px;
-}
-
-/*
- * 사서마다 특화 장르 목록 길이가 달라("총류·철학·종교" vs "사회과학·언어·역사")
- * 줄바꿈 여부가 카드마다 다를 수 있다. 최대 2줄 높이를 미리 확보해 그 아래
- * 구분선·문구·버튼이 카드 간에 수평으로 맞춰지게 한다 (사용자 요청, 2026-09).
- */
-.lp-meta-row--genre dd {
-  min-height: calc(1.5em * 2);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.lp-meta dt {
-  color: var(--text);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.lp-meta dd {
-  color: var(--text-h);
-  margin: 0;
-  text-align: right;
-  line-height: 1.5;
-}
-
-/*
- * 성격/독서 성향 아코디언 (기획 페르소나 문서). 문단이 길어 카드가 늘어나는 걸
- * 막기 위해 <details>로 접어 두고 기본은 닫힌 상태로 시작한다.
- */
-.lp-details {
-  width: 100%;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-}
-
-.lp-details-summary {
-  cursor: pointer;
-  list-style: none;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--accent);
-  text-align: center;
-  padding: 4px 0;
-  /* 브라우저 기본 화살표 마커를 지우고 아래 커스텀 화살표로 대체 */
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  min-height: 2.6em;
 }
 
-.lp-details-summary::-webkit-details-marker {
-  display: none;
-}
-
-/* 펼침 상태를 나타내는 화살표. details[open]일 때 180도 회전한다 */
-.lp-details-summary::after {
-  content: '▾';
-  font-size: 12px;
-  transition: transform 0.15s;
-}
-
-.lp-details[open] .lp-details-summary::after {
-  transform: rotate(180deg);
-}
-
-.lp-persona {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 8px 0 0;
-}
-
-.lp-persona-row dt {
-  font-size: 14px;
-  font-weight: 700;
+.lp-genre-tag {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--accent);
-  margin-bottom: 2px;
-}
-
-.lp-persona-row dd {
-  margin: 0;
-  font-size: 15px;
-  color: var(--text);
-  line-height: 1.55;
-  text-align: left;
-}
-
-/*
- * 페르소나 핵심 문장. 사서마다 문장 길이가 달라(예: 게코가 가장 길다) 1줄/2줄로
- * 다르게 줄바꿈되면 바로 아래 버튼 위치가 카드마다 어긋난다. 최대 2줄 높이를
- * 미리 확보해 버튼이 카드 간에 수평으로 맞춰지게 한다 (사용자 요청, 2026-09).
- */
-.lp-catchphrase {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  color: var(--text-h);
-  font-size: 15px;
-  font-style: italic;
-  line-height: 1.5;
   text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(1.5em * 2 + 20px);
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
-/* 선택 버튼 */
+/* 서재 선택 버튼 */
 .lp-select-btn {
   width: 100%;
-  padding: 10px 0;
+  padding: 8px 0;
   border-radius: 8px;
   border: 1px solid var(--accent);
   background: var(--accent);
   color: #fff;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lp-select-btn:active {
+  transform: scale(0.97);
 }
 
 .lp-select-btn:disabled {
@@ -347,4 +220,235 @@
   border-color: var(--border);
   color: var(--text);
   cursor: default;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/*
+ * 상세 정보 아코디언 (<details>).
+ * 한 줄 소개, 성격/독서 성향, 핵심 문장을 접어 카드의 컴팩트함을 유지.
+ */
+.lp-details {
+  width: 100%;
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+
+.lp-details-summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.lp-details-summary:hover {
+  color: var(--accent);
+}
+
+.lp-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-details-summary::after {
+  content: '▾';
+  font-size: 11px;
+  transition: transform 0.15s;
+}
+
+.lp-details[open] .lp-details-summary::after {
+  transform: rotate(180deg);
+}
+
+.lp-details[open] .lp-details-summary {
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.lp-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  animation: lpDetailsOpen 0.2s ease;
+}
+
+@keyframes lpDetailsOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-oneliner {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.45;
+  white-space: pre-line;
+  margin: 0;
+  padding: 4px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+
+.lp-persona {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.lp-persona-row dt {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 1px;
+}
+
+.lp-persona-row dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.45;
+  text-align: left;
+}
+
+.lp-catchphrase {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  text-align: center;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Mobile 2x2 Breakdown (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .lp {
+    padding: 16px 12px 64px;
+    gap: 6px;
+  }
+
+  .lp-heading {
+    font-size: 20px;
+  }
+
+  .lp-desc {
+    font-size: 13px;
+    margin: 0 0 10px;
+  }
+
+  .lp-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .lp-card {
+    padding: 18px 8px 10px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .lp-badge {
+    top: 6px;
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+
+  .lp-badge--active {
+    left: 6px;
+  }
+
+  .lp-badge--rep {
+    right: 6px;
+  }
+
+  .lp-avatar {
+    width: 54px;
+    height: 54px;
+    border-width: 2px;
+    margin-top: 2px;
+  }
+
+  .lp-avatar-fallback {
+    font-size: 28px;
+  }
+
+  .lp-name {
+    font-size: 14px;
+  }
+
+  .lp-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .lp-genre-wrap {
+    min-height: 2.4em;
+  }
+
+  .lp-genre-tag {
+    font-size: 11px;
+  }
+
+  .lp-select-btn {
+    font-size: 12px;
+    padding: 6px 0;
+    border-radius: 6px;
+  }
+
+  .lp-details-summary {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .lp-grid {
+    gap: 6px;
+  }
+
+  .lp-card {
+    padding: 16px 6px 8px;
+  }
+
+  .lp-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .lp-name {
+    font-size: 13px;
+  }
+
+  .lp-genre-tag {
+    font-size: 10px;
+  }
+
+  .lp-select-btn {
+    font-size: 11px;
+    padding: 5px 0;
+  }
 }
