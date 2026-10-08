@@ -151,15 +151,16 @@ export default function MobileShelfSheet({
         [totalShelves]
     );
 
-    // 현재 선택된 선반에 담긴 책 목록 (placements에서 shelfIndex matching, 없으면 순서 분배 fallback)
+    // 현재 선택된 선반에 담긴 책 목록 (placements에서 해당 선반에 배치된 책만 정확히 반환)
     const shelfBooks = useMemo(() => {
         if (activeShelfIdx === null || activeShelfIdx === undefined) return [];
 
-        // 1) placements에서 해당 shelfIndex에 배치된 책 추출
-        const fromPlacements = placements.filter((b) => b.shelfIndex === activeShelfIdx);
-        if (fromPlacements.length > 0) return fromPlacements;
+        // 1) 3D 배치(placements)가 배열로 전달된 경우: 해당 선반(shelfIndex)에 꽂힌 책만 반환 (빈 선반은 빈 배열)
+        if (Array.isArray(placements)) {
+            return placements.filter((b) => b.shelfIndex === activeShelfIdx);
+        }
 
-        // 2) fallback: allBooks를 균등하게 선반에 나누어 배분
+        // 2) placements가 아예 없는 예외 상황에서만 fallback 분배
         const chunkSize = Math.max(1, Math.ceil(allBooks.length / Math.max(1, totalShelves)));
         const start = activeShelfIdx * chunkSize;
         return allBooks.slice(start, start + chunkSize);
