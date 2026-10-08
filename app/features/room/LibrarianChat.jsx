@@ -1152,20 +1152,10 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         }}
       >
         <button
+          type="button"
+          className="lc-chat-toggle-btn"
           onClick={() => setOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            borderRadius: 999,
-            border: 'none',
-            background: 'var(--accent)',
-            color: '#fff',
-            fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            cursor: 'pointer',
-          }}
+          aria-label="사서에게 질문하기"
         >
           <span style={{ fontSize: 20 }}>💬</span>
           사서에게 질문하기
