@@ -17,9 +17,9 @@ export default function MyPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 스몰 메뉴(탭): 'profile' | 'books' | 'calendar'
+  // 스몰 메뉴(탭): 'books' | 'calendar' | 'profile'
   const [selectedTab, setSelectedTab] = useState(null);
-  const activeTab = selectedTab || location.state?.tab || 'profile';
+  const activeTab = selectedTab || location.state?.tab || 'books';
   const setActiveTab = setSelectedTab;
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -63,15 +63,8 @@ export default function MyPage() {
           </p>
         </div>
 
-        {/* ── 스몰 메뉴 (Tab Navigation) ── */}
+        {/* ── 스몰 메뉴 (Tab Navigation: 독서 리스트 -> 독서 캘린더 -> 내 정보) ── */}
         <nav className="mypage-tab-nav" aria-label="마이페이지 메뉴">
-          <button
-            type="button"
-            className={`mypage-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            <span>👤</span> 내 정보
-          </button>
           <button
             type="button"
             className={`mypage-tab-btn ${activeTab === 'books' ? 'active' : ''}`}
@@ -85,6 +78,13 @@ export default function MyPage() {
             onClick={() => setActiveTab('calendar')}
           >
             <span>📅</span> 독서 캘린더
+          </button>
+          <button
+            type="button"
+            className={`mypage-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <span>👤</span> 내 정보
           </button>
         </nav>
       </div>
