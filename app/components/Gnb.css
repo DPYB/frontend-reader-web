@@ -39,6 +39,7 @@
 .gnb--overlay .gnb-logout-btn,
 .gnb--overlay .gnb-profile-btn,
 .gnb--overlay .gnb-menu,
+.gnb--overlay .gnb-desktop-brand-link,
 .gnb--overlay .gnb-mobile-theme-btn,
 .gnb--overlay .gnb-mobile-logout-btn {
     background: rgba(0, 0, 0, 0.45);
@@ -49,6 +50,12 @@
 /* 라이트 모드 + 내 서재 오버레이 */
 [data-theme='light'] .gnb--overlay .gnb-menu {
     background: rgba(0, 0, 0, 0.55);
+}
+
+[data-theme='light'] .gnb--overlay .gnb-desktop-brand-link {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 [data-theme='light'] .gnb--overlay .gnb-menu a {
@@ -110,16 +117,34 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 4px 14px 4px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.6);
     text-decoration: none;
     color: var(--text-h);
     cursor: pointer;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme="dark"] .gnb-desktop-brand-link {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .gnb-desktop-brand-link:hover {
     transform: translateY(-1px);
-    opacity: 0.95;
+    border-color: var(--accent);
+    box-shadow: 0 6px 18px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.gnb-desktop-brand-link:active {
+    transform: translateY(0);
 }
 
 .gnb-logo-wrap {
@@ -131,32 +156,28 @@
 }
 
 .gnb-logo-wrap--desktop {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.24);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255, 255, 255, 0.45);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.6);
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7);
+    transition: transform 0.2s ease;
 }
 
 [data-theme="dark"] .gnb-logo-wrap--desktop {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .gnb-desktop-brand-link:hover .gnb-logo-wrap--desktop {
-    border-color: var(--accent);
-    box-shadow: 0 4px 14px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.7);
     transform: scale(1.05);
 }
 
 .gnb-logo-wrap--desktop .gnb-logo {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     object-fit: contain;
     transition: transform 0.2s ease;
 }
@@ -214,7 +235,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   GNB Desktop Center Menu (중앙으로 다시 복귀)
+   GNB Desktop Center Menu (중앙 네비게이션 글라스 효과 적용)
    -------------------------------------------------------------------------- */
 .gnb-menu {
     display: flex;
@@ -223,10 +244,20 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    padding: 4px;
-    border: 1px solid var(--border);
+    padding: 5px 8px;
     border-radius: 999px;
-    background: var(--code-bg);
+    background: rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .gnb-menu {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .gnb-menu a {

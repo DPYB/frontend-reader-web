@@ -14,6 +14,7 @@ import ServiceGuideModal from '../guide/ServiceGuideModal';
 import { shouldShowGuideModal } from '../guide/guideStorage';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { toKoreanStatus } from '../../api/bookApi';
+import './LibrarianChat.css';
 import {
   BG_ASPECT,
   getBgSrc,
@@ -776,31 +777,26 @@ export default function LibraryScene() {
 
       {/* 데스크톱 전용 독서 타이머 플로팅 버튼 (모바일은 사서 플로팅 미니 메뉴에 포함) */}
       {!calibrating && !isMobile && (
-        <button
-          onClick={() => setShowTimer(true)}
-          title="독서 집중 타이머 시작"
+        <div
           style={{
             position: 'fixed',
             right: 'min(16px, 2vw)',
             bottom: 'min(76px, calc(2vh + 60px))',
             zIndex: 19,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            borderRadius: 999,
-            border: '1px solid var(--accent-border)',
-            background: 'var(--bg)',
-            color: 'var(--text-h)',
-            fontWeight: 700,
-            fontSize: 15,
-            boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-            cursor: 'pointer',
+            fontSize: 17,
           }}
         >
-          <span style={{ fontSize: 20 }}>⏱️</span>
-          독서 타이머
-        </button>
+          <button
+            type="button"
+            className="lc-timer-toggle-btn"
+            onClick={() => setShowTimer(true)}
+            aria-label="독서 집중 타이머 시작"
+            title="독서 집중 타이머 시작"
+          >
+            <span style={{ fontSize: 20 }}>⏱️</span>
+            독서 타이머
+          </button>
+        </div>
       )}
 
       {/* 서비스 이용 가이드 팝업 모달 */}
