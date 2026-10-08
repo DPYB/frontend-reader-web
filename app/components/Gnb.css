@@ -99,29 +99,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--bg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     flex-shrink: 0;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
 .gnb-left:hover .gnb-logo-wrap {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.38);
+    box-shadow: none;
 }
 
 .gnb-logo {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
     object-fit: contain;
 }
 
-/* 서비스이름 세로 길이를 로고 지름(40px)과 1:1로 일치 */
+/* 서비스이름 세로 길이를 로고 크기와 비례하여 맞춤 */
 .gnb-service-name {
-    height: 40px;
+    height: 42px;
     width: auto;
     object-fit: contain;
 }
@@ -865,203 +865,158 @@
         color: var(--accent);
     }
 
-    /* 2. 현재 사서 미니 카드 */
-    .gnb-fullscreen-librarian-card {
+    /* 2. 깔끔한 메뉴 리스트 + 토글 소메뉴 */
+    .gnb-fullscreen-nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+    .gnb-fullscreen-nav-item-wrap {
+        display: flex;
+        flex-direction: column;
+        border-radius: 14px;
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .gnb-fullscreen-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .gnb-fullscreen-nav-link {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        border: 1px solid var(--accent-border, var(--border));
-        background: var(--accent-bg, var(--code-bg));
-        cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .gnb-fullscreen-librarian-card:active {
-        transform: scale(0.98);
-    }
-
-    .gnb-fullscreen-librarian-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        object-fit: cover;
-        background: var(--bg);
-        border: 2px solid var(--accent);
-        flex-shrink: 0;
-    }
-
-    .gnb-fullscreen-librarian-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .gnb-fullscreen-librarian-name-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .gnb-fullscreen-librarian-name {
+        padding: 13px 16px;
+        text-decoration: none;
+        color: var(--text-h);
         font-size: 15px;
         font-weight: 700;
-        color: var(--text-h);
-    }
-
-    .gnb-fullscreen-librarian-badge {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 999px;
-        background: var(--accent);
-        color: #fff;
-        font-weight: 700;
-    }
-
-    .gnb-fullscreen-librarian-genre {
-        font-size: 12px;
-        color: var(--accent);
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .gnb-fullscreen-librarian-link {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--accent);
-        flex-shrink: 0;
-    }
-
-    /* 3. 메뉴 리스트 및 카드 */
-    .gnb-fullscreen-nav-content {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
         flex: 1;
-    }
-
-    .gnb-fullscreen-nav-title {
-        font-size: 13px;
-        font-weight: 800;
-        color: var(--text);
-        opacity: 0.7;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        padding: 0 4px;
-    }
-
-    .gnb-fullscreen-menu-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .gnb-fullscreen-card {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 14px 16px;
-        border-radius: 16px;
-        border: 1px solid var(--border);
-        background: var(--code-bg);
-        text-decoration: none;
-        color: var(--text);
-        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        transition: background 0.15s ease, color 0.15s ease;
         -webkit-tap-highlight-color: transparent;
     }
 
-    .gnb-fullscreen-card:active {
-        transform: scale(0.98);
-        border-color: var(--accent);
-    }
-
-    .gnb-fullscreen-card.on {
+    .gnb-fullscreen-nav-link:active {
         background: var(--accent-bg);
-        border-color: var(--accent-border, var(--accent));
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     }
 
-    .gnb-fullscreen-card-head {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .gnb-fullscreen-nav-link.on {
+        color: var(--accent);
     }
 
-    .gnb-fullscreen-card-icon {
+    .gnb-fullscreen-nav-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
         background: var(--bg);
         color: var(--text);
         flex-shrink: 0;
+        transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .gnb-fullscreen-card.on .gnb-fullscreen-card-icon {
+    .gnb-fullscreen-nav-link.on .gnb-fullscreen-nav-icon {
         background: var(--accent);
         color: #fff;
     }
 
-    .gnb-fullscreen-card-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--text-h);
+    .gnb-fullscreen-nav-label {
         flex: 1;
+        font-size: 15px;
+        font-weight: 700;
     }
 
-    .gnb-fullscreen-card.on .gnb-fullscreen-card-title {
-        color: var(--accent);
-    }
-
-    .gnb-fullscreen-card-arrow {
-        font-size: 14px;
-        color: var(--text);
-        opacity: 0.5;
-        transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .gnb-fullscreen-card.on .gnb-fullscreen-card-arrow {
-        color: var(--accent);
-        opacity: 1;
-        transform: translateX(2px);
-    }
-
-    .gnb-fullscreen-card-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--text);
-        opacity: 0.85;
-        line-height: 1.4;
-    }
-
-    .gnb-fullscreen-tags {
+    .gnb-fullscreen-nav-toggle {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 4px;
-    }
-
-    .gnb-fullscreen-tag {
-        font-size: 11px;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 6px;
-        background: var(--bg);
-        border: 1px solid var(--border);
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 48px;
+        border: none;
+        background: transparent;
         color: var(--text);
-        opacity: 0.9;
+        cursor: pointer;
+        border-left: 1px solid var(--border);
+        transition: background 0.15s ease, color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
     }
 
-    .gnb-fullscreen-card.on .gnb-fullscreen-tag {
+    .gnb-fullscreen-nav-toggle:active {
+        background: var(--accent-bg);
+    }
+
+    .gnb-fullscreen-nav-toggle.open {
+        color: var(--accent);
+        background: var(--accent-bg);
+    }
+
+    .gnb-fullscreen-toggle-arrow {
+        font-size: 11px;
+        font-weight: 800;
+        opacity: 0.8;
+    }
+
+    .gnb-fullscreen-sublist {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px 10px;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+        animation: gnbSubmenuSlide 0.18s ease-out;
+    }
+
+    @keyframes gnbSubmenuSlide {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .gnb-fullscreen-subitem {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+        width: 100%;
+        box-sizing: border-box;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .gnb-fullscreen-subitem:active {
+        background: var(--accent-bg);
         border-color: var(--accent-border, var(--accent));
         color: var(--accent);
+    }
+
+    .gnb-fullscreen-subicon {
+        font-size: 14px;
+        flex-shrink: 0;
     }
 
     /* 4. 푸터: 테마 전환 + 로그아웃 버튼 */

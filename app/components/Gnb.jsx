@@ -106,6 +106,7 @@ export default function Gnb() {
     const [loggingOut, setLoggingOut] = useState(false);
     const profileWrapRef = useRef(null);
     const [showMobileNavMenu, setShowMobileNavMenu] = useState(false);
+    const [expandedSubmenu, setExpandedSubmenu] = useState(null); // 'register' | 'mypage' | null
     const navWrapRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
@@ -128,10 +129,10 @@ export default function Gnb() {
         }
     }, [loggingOut, logout, navigate]);
 
-    const goTo = useCallback((path) => {
+    const goTo = useCallback((path, state) => {
         setShowProfileMenu(false);
         setShowMobileNavMenu(false);
-        navigate(path);
+        navigate(path, { state });
     }, [navigate]);
 
     // 외부 클릭 시 프로필/모바일 메뉴 닫기
@@ -139,9 +140,6 @@ export default function Gnb() {
         const handleClickOutside = (e) => {
             if (profileWrapRef.current && !profileWrapRef.current.contains(e.target)) {
                 setShowProfileMenu(false);
-            }
-            if (navWrapRef.current && !navWrapRef.current.contains(e.target)) {
-                setShowMobileNavMenu(false);
             }
         };
         const handleKeyDown = (e) => {
@@ -162,16 +160,18 @@ export default function Gnb() {
     }, [showProfileMenu, showMobileNavMenu]);
 
     // 페이지 변경 시 메뉴 닫기
+    const prevPathRef = useRef(location.pathname);
     useEffect(() => {
-        setShowProfileMenu(false);
-        setShowMobileNavMenu(false);
+        if (prevPathRef.current !== location.pathname) {
+            prevPathRef.current = location.pathname;
+            setShowProfileMenu((prev) => (prev ? false : prev));
+            setShowMobileNavMenu((prev) => (prev ? false : prev));
+        }
     }, [location.pathname]);
 
-    const handleLogoClick = (e) => {
-        if (window.innerWidth <= 768) {
-            e.preventDefault();
-            setShowMobileNavMenu((prev) => !prev);
-        }
+    const toggleSubmenu = (key, e) => {
+        if (e) e.stopPropagation();
+        setExpandedSubmenu((prev) => (prev === key ? null : key));
     };
 
     return (
@@ -180,20 +180,16 @@ export default function Gnb() {
                 <div className="gnb-left-wrap" ref={navWrapRef}>
                     <NavLink
                         to="/library"
-                        className={`gnb-left${showMobileNavMenu ? ' active' : ''}`}
-                        onClick={handleLogoClick}
-                        aria-label={window.innerWidth <= 768 ? '메인 네비게이션 메뉴 열기' : '내 서재로 이동'}
-                        aria-expanded={showMobileNavMenu}
+                        className="gnb-left"
+                        onClick={() => setShowMobileNavMenu(false)}
+                        aria-label="내 서재로 이동"
                     >
                         <span className="gnb-logo-wrap">
-                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={32} height={32} decoding="async" />
+                            <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="Don't Paw-get Your Book 로고" width={38} height={38} decoding="async" />
                         </span>
-                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={40} decoding="async" />
+                        <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={180} height={42} decoding="async" />
                         <span className="gnb-beta-badge gnb-beta-badge--desktop">
                             BETA
-                        </span>
-                        <span className="gnb-mobile-nav-arrow" aria-hidden="true">
-                            {showMobileNavMenu ? '▴' : '▾'}
                         </span>
                     </NavLink>
                 </div>
@@ -318,17 +314,17 @@ export default function Gnb() {
                 </div>
             </header>
 
-            {/* 모바일 상단 로고/햄버거 클릭 시 나타나는 전체 화면 네비게이션 메뉴 (소메뉴 미리보기 포함) */}
+            {/* 모바일 햄버거 버튼 클릭 시 나타나는 깔끔한 전체 화면 네비게이션 메뉴 (토글 소메뉴 포함) */}
             {showMobileNavMenu && (
                 <div className="gnb-fullscreen-nav-overlay" role="dialog" aria-modal="true" aria-label="전체 네비게이션 메뉴">
                     <div className="gnb-fullscreen-nav-container">
                         {/* 1. 모바일 전체 메뉴 헤더 */}
                         <div className="gnb-fullscreen-nav-header">
-                            <div className="gnb-fullscreen-nav-brand">
+                            <div className="gnb-fullscreen-nav-brand" onClick={() => goTo('/library')}>
                                 <span className="gnb-logo-wrap">
-                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={32} height={32} decoding="async" />
+                                    <img className="gnb-logo" src={librarian?.logoImage || `/logo/logo_${librarian?.id || 'cat'}.png`} alt="" width={38} height={38} decoding="async" />
                                 </span>
-                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={160} height={36} decoding="async" />
+                                <img className="gnb-service-name" src={librarian?.nameImage || `/name/name_${librarian?.id || 'cat'}.webp`} alt="Don't Paw-get Your Book" width={160} height={38} decoding="async" />
                                 <span className="gnb-beta-badge">BETA</span>
                             </div>
                             <button
@@ -341,115 +337,142 @@ export default function Gnb() {
                             </button>
                         </div>
 
-                        {/* 2. 현재 사서 미니 프로필 카드 */}
-                        <div
-                            className="gnb-fullscreen-librarian-card"
-                            onClick={() => goTo('/librarians')}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    goTo('/librarians');
-                                }
-                            }}
-                        >
-                            <img className="gnb-fullscreen-librarian-avatar" src={librarian.profileImage} alt="" width={44} height={44} decoding="async" />
-                            <div className="gnb-fullscreen-librarian-info">
-                                <div className="gnb-fullscreen-librarian-name-row">
-                                    <strong className="gnb-fullscreen-librarian-name">{librarian.displayName} 사서</strong>
-                                    <span className="gnb-fullscreen-librarian-badge">{librarian.species}</span>
-                                </div>
-                                <span className="gnb-fullscreen-librarian-genre">
-                                    {librarian.specialtyGenre ? `#${librarian.specialtyGenre.split('·').join(' #')}` : '사서 라운지 바로가기'}
-                                </span>
-                            </div>
-                            <span className="gnb-fullscreen-librarian-link">프로필 ➔</span>
-                        </div>
-
-                        {/* 3. 소메뉴 미리보기가 포함된 4대 핵심 메뉴 그리드 */}
-                        <div className="gnb-fullscreen-nav-content">
-                            <div className="gnb-fullscreen-nav-title">메뉴 바로가기</div>
-                            <div className="gnb-fullscreen-menu-grid">
-                                {/* 내 서재 */}
+                        {/* 2. 깔끔한 메뉴 리스트 + 토글 소메뉴 */}
+                        <nav className="gnb-fullscreen-nav-list" aria-label="모바일 메뉴 목록">
+                            {/* 1. 내 서재 */}
+                            <div className="gnb-fullscreen-nav-item-wrap">
                                 <NavLink
                                     to="/library"
-                                    className={({ isActive }) => `gnb-fullscreen-card${isActive ? ' on' : ''}`}
+                                    className={({ isActive }) => `gnb-fullscreen-nav-link${isActive ? ' on' : ''}`}
                                     onClick={() => setShowMobileNavMenu(false)}
                                 >
-                                    <div className="gnb-fullscreen-card-head">
-                                        <span className="gnb-fullscreen-card-icon"><LibraryIcon /></span>
-                                        <strong className="gnb-fullscreen-card-title">내 서재</strong>
-                                        <span className="gnb-fullscreen-card-arrow">➔</span>
-                                    </div>
-                                    <p className="gnb-fullscreen-card-desc">3D 인터랙티브 가상 서재 및 책장 도서 탐색</p>
-                                    <div className="gnb-fullscreen-tags">
-                                        <span className="gnb-fullscreen-tag">3D 가상 서재</span>
-                                        <span className="gnb-fullscreen-tag">선반별 열람</span>
-                                        <span className="gnb-fullscreen-tag">독서 상태 필터</span>
-                                    </div>
-                                </NavLink>
-
-                                {/* 책 등록 */}
-                                <NavLink
-                                    to="/register"
-                                    className={({ isActive }) => `gnb-fullscreen-card${isActive ? ' on' : ''}`}
-                                    onClick={() => setShowMobileNavMenu(false)}
-                                >
-                                    <div className="gnb-fullscreen-card-head">
-                                        <span className="gnb-fullscreen-card-icon"><RegisterIcon /></span>
-                                        <strong className="gnb-fullscreen-card-title">책 등록</strong>
-                                        <span className="gnb-fullscreen-card-arrow">➔</span>
-                                    </div>
-                                    <p className="gnb-fullscreen-card-desc">YES24 검색 &amp; 원스톱 내 서재 등록</p>
-                                    <div className="gnb-fullscreen-tags">
-                                        <span className="gnb-fullscreen-tag">YES24 도서 검색</span>
-                                        <span className="gnb-fullscreen-tag">직접 입력</span>
-                                        <span className="gnb-fullscreen-tag">표지·책등 커스텀</span>
-                                    </div>
-                                </NavLink>
-
-                                {/* 독서 리포트 */}
-                                <NavLink
-                                    to="/reports"
-                                    className={({ isActive }) => `gnb-fullscreen-card${isActive ? ' on' : ''}`}
-                                    onClick={() => setShowMobileNavMenu(false)}
-                                >
-                                    <div className="gnb-fullscreen-card-head">
-                                        <span className="gnb-fullscreen-card-icon"><ReportIcon /></span>
-                                        <strong className="gnb-fullscreen-card-title">독서 리포트</strong>
-                                        <span className="gnb-fullscreen-card-arrow">➔</span>
-                                    </div>
-                                    <p className="gnb-fullscreen-card-desc">월간 독서 통계 및 AI 성향 분석</p>
-                                    <div className="gnb-fullscreen-tags">
-                                        <span className="gnb-fullscreen-tag">월간 완독 차트</span>
-                                        <span className="gnb-fullscreen-tag">장르 레이더</span>
-                                        <span className="gnb-fullscreen-tag">AI 사서 총평</span>
-                                    </div>
-                                </NavLink>
-
-                                {/* 마이페이지 */}
-                                <NavLink
-                                    to="/mypage"
-                                    className={({ isActive }) => `gnb-fullscreen-card${isActive ? ' on' : ''}`}
-                                    onClick={() => setShowMobileNavMenu(false)}
-                                >
-                                    <div className="gnb-fullscreen-card-head">
-                                        <span className="gnb-fullscreen-card-icon"><UserIcon /></span>
-                                        <strong className="gnb-fullscreen-card-title">마이페이지</strong>
-                                        <span className="gnb-fullscreen-card-arrow">➔</span>
-                                    </div>
-                                    <p className="gnb-fullscreen-card-desc">독서 캘린더, 문장 스크랩 및 계정 설정</p>
-                                    <div className="gnb-fullscreen-tags">
-                                        <span className="gnb-fullscreen-tag">독서 잔디 캘린더</span>
-                                        <span className="gnb-fullscreen-tag">문장 스크랩 갤러리</span>
-                                        <span className="gnb-fullscreen-tag">사서 변경</span>
-                                    </div>
+                                    <span className="gnb-fullscreen-nav-icon"><LibraryIcon /></span>
+                                    <span className="gnb-fullscreen-nav-label">내 서재</span>
                                 </NavLink>
                             </div>
-                        </div>
 
-                        {/* 4. 모바일 전체 메뉴 푸터: 테마 전환 + 로그아웃 */}
+                            {/* 2. 책 등록 (토글 기능 포함) */}
+                            <div className="gnb-fullscreen-nav-item-wrap">
+                                <div className="gnb-fullscreen-nav-row">
+                                    <NavLink
+                                        to="/register"
+                                        className={({ isActive }) => `gnb-fullscreen-nav-link${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                    >
+                                        <span className="gnb-fullscreen-nav-icon"><RegisterIcon /></span>
+                                        <span className="gnb-fullscreen-nav-label">책 등록</span>
+                                    </NavLink>
+                                    <button
+                                        type="button"
+                                        className={`gnb-fullscreen-nav-toggle${expandedSubmenu === 'register' ? ' open' : ''}`}
+                                        onClick={(e) => toggleSubmenu('register', e)}
+                                        aria-label="책 등록 세부 기능 토글"
+                                    >
+                                        <span className="gnb-fullscreen-toggle-arrow">{expandedSubmenu === 'register' ? '▲' : '▼'}</span>
+                                    </button>
+                                </div>
+                                {expandedSubmenu === 'register' && (
+                                    <div className="gnb-fullscreen-sublist">
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/register', { tab: 'search' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">🔍</span>
+                                            <span>YES24 도서 검색 등록</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/register', { tab: 'manual' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">✍️</span>
+                                            <span>직접 입력 등록</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/register', { tab: 'camera' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">📷</span>
+                                            <span>사진 / 바코드 촬영</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. 독서 리포트 */}
+                            <div className="gnb-fullscreen-nav-item-wrap">
+                                <NavLink
+                                    to="/reports"
+                                    className={({ isActive }) => `gnb-fullscreen-nav-link${isActive ? ' on' : ''}`}
+                                    onClick={() => setShowMobileNavMenu(false)}
+                                >
+                                    <span className="gnb-fullscreen-nav-icon"><ReportIcon /></span>
+                                    <span className="gnb-fullscreen-nav-label">독서 리포트</span>
+                                </NavLink>
+                            </div>
+
+                            {/* 4. 마이페이지 (토글 기능 포함) */}
+                            <div className="gnb-fullscreen-nav-item-wrap">
+                                <div className="gnb-fullscreen-nav-row">
+                                    <NavLink
+                                        to="/mypage"
+                                        className={({ isActive }) => `gnb-fullscreen-nav-link${isActive ? ' on' : ''}`}
+                                        onClick={() => setShowMobileNavMenu(false)}
+                                    >
+                                        <span className="gnb-fullscreen-nav-icon"><UserIcon /></span>
+                                        <span className="gnb-fullscreen-nav-label">마이페이지</span>
+                                    </NavLink>
+                                    <button
+                                        type="button"
+                                        className={`gnb-fullscreen-nav-toggle${expandedSubmenu === 'mypage' ? ' open' : ''}`}
+                                        onClick={(e) => toggleSubmenu('mypage', e)}
+                                        aria-label="마이페이지 세부 기능 토글"
+                                    >
+                                        <span className="gnb-fullscreen-toggle-arrow">{expandedSubmenu === 'mypage' ? '▲' : '▼'}</span>
+                                    </button>
+                                </div>
+                                {expandedSubmenu === 'mypage' && (
+                                    <div className="gnb-fullscreen-sublist">
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/mypage', { tab: 'calendar' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">📅</span>
+                                            <span>독서 잔디 캘린더</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/mypage', { tab: 'books' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">📚</span>
+                                            <span>독서 리스트</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/mypage', { tab: 'profile' })}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">👤</span>
+                                            <span>내 정보 관리</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="gnb-fullscreen-subitem"
+                                            onClick={() => goTo('/librarians')}
+                                        >
+                                            <span className="gnb-fullscreen-subicon">🐾</span>
+                                            <span>사서 프로필 &amp; 변경</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </nav>
+
+                        {/* 3. 모바일 전체 메뉴 푸터: 테마 전환 + 로그아웃 */}
                         <div className="gnb-fullscreen-footer">
                             <div className="gnb-fullscreen-theme-wrap">
                                 <button
