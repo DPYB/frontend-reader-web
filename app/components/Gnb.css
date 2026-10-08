@@ -8,8 +8,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 24px;
-    min-height: 96px;
+    padding: 6px 24px;
+    min-height: 118px;
     box-sizing: border-box;
     border-bottom: 1px solid var(--border);
     position: relative;
@@ -116,8 +116,8 @@
 }
 
 .gnb-logo {
-    width: 85px;
-    height: 85px;
+    width: 110px;
+    height: 110px;
     object-fit: contain;
 }
 
@@ -577,8 +577,8 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
     .gnb {
-        padding: 8px 14px;
-        min-height: 82px;
+        padding: 6px 12px;
+        min-height: 104px;
         box-sizing: border-box;
     }
 
@@ -586,6 +586,7 @@
         padding: 2px 0;
         gap: 8px;
         cursor: pointer;
+        min-width: 0;
         -webkit-tap-highlight-color: transparent;
     }
 
@@ -595,20 +596,42 @@
     }
 
     .gnb-logo-wrap {
-        width: 72px;
-        height: 72px;
+        width: 94px;
+        height: 94px;
+        flex-shrink: 0;
     }
 
     .gnb-logo {
-        width: 72px;
-        height: 72px;
+        width: 94px;
+        height: 94px;
     }
 
-    /* 모바일 서비스이름 세로 길이를 로고 지름(72px)과 1:1로 일치시켜 시인성 확대 */
+    /* 모바일 세로 화면에서 잘리지 않도록 높이 및 max-width 최적화 */
     .gnb-service-name {
-        height: 72px;
+        height: 38px;
+        max-height: 40px;
+        max-width: calc(100vw - 180px);
         width: auto;
         object-fit: contain;
+        flex-shrink: 1;
+    }
+
+    @media (max-width: 380px) {
+        .gnb {
+            min-height: 94px;
+            padding: 4px 8px;
+        }
+
+        .gnb-logo-wrap,
+        .gnb-logo {
+            width: 80px;
+            height: 80px;
+        }
+
+        .gnb-service-name {
+            height: 32px;
+            max-width: calc(100vw - 150px);
+        }
     }
 
     /* 데스크톱 로고 옆 BETA 숨김 */
@@ -841,20 +864,23 @@
         align-items: center;
         gap: 8px;
         cursor: pointer;
+        min-width: 0;
     }
 
     .gnb-fullscreen-nav-brand .gnb-logo-wrap {
-        width: 72px;
-        height: 72px;
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
     }
 
     .gnb-fullscreen-nav-brand .gnb-logo {
-        width: 72px;
-        height: 72px;
+        width: 80px;
+        height: 80px;
     }
 
     .gnb-fullscreen-nav-brand .gnb-service-name {
-        height: 72px;
+        height: 38px;
+        max-width: calc(100% - 130px);
         width: auto;
         object-fit: contain;
     }
