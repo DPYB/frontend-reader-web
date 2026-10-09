@@ -79,6 +79,12 @@
   transition: border-color 0.2s;
 }
 
+.signup-field input[type='password'],
+.signup-pw-input-wrap input[type='password'] {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+  letter-spacing: 2px;
+}
+
 .signup-field input::placeholder {
   color: var(--text);
   opacity: 0.6;
