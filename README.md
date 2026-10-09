@@ -241,6 +241,17 @@ frontend-reader-web/
 
 ---
 
+## 📱 디스플레이 규격 및 반응형 UI/UX 가이드
+
+DPYB 웹 클라이언트는 **Desktop/Laptop (마우스/키보드 환경)**과 **Mobile & Tablet (스마트폰 ~ 12.9" 대형 태블릿 터치 통합 환경)**으로 이원화된 최적의 반응형 UX를 지원합니다.
+
+- 📖 **상세 가이드 문서**: [`docs/UI_RESPONSIVE_GUIDELINE.md`](docs/UI_RESPONSIVE_GUIDELINE.md)
+- **주요 특징**:
+  - **Mobile & Tablet (Touch Device)**: 상단 선반 셀렉터 + `MobileShelfSheet` 바텀시트, 드래그형 `MobileChatFAB` 사서 플로팅 버튼 & 미니 액션, 1열 수직 스크롤 폼 & Safe Area 지원
+  - **Desktop / Laptop (Mouse & Keyboard)**: Three.js 3D 서재 직접 마우스 호버/선택, 마우스 추적 동물 사서 커서(`LibrarianCursor`) & 조명 효과, 다열(Multi-column) 와이드 모달 레이아웃
+
+---
+
 ## 🚀 로컬 개발 및 실행 가이드
 
 ```bash

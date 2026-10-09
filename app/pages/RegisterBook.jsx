@@ -16,6 +16,7 @@ import BookSearchSection from '../features/register/BookSearchSection';
 import BookIsbnScanSection from '../features/register/BookIsbnScanSection';
 import BookRegisterForm from '../features/register/BookRegisterForm';
 import IsbnGuideModal from '../features/register/IsbnGuideModal';
+import { useResponsive } from '../hooks/useResponsive';
 import './RegisterBook.css';
 
 /**
@@ -139,15 +140,7 @@ export default function RegisterBook() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
 
   const isLibraryFull = !ocrBookId && books.length >= MAX_LIBRARY_BOOKS;
 

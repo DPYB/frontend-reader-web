@@ -21,6 +21,7 @@ import ChatMessageList from './chat/ChatMessageList';
 import ChatBookCards from './chat/ChatBookCards';
 import ChatInputForm from './chat/ChatInputForm';
 import MobileChatFAB from './chat/MobileChatFAB';
+import { useResponsive } from '../../hooks/useResponsive';
 import './LibrarianChat.css';
 
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
@@ -135,8 +136,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     return Boolean(answer?.text);
   });
 
-  // 모바일 뷰포트 (<= 768px) 감지
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  // 디스플레이 규격 및 반응형 UX (스마트폰 ~ 대형 태블릿 통합)
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
 
   // 모바일 사서 플로팅 버튼 클릭 시 미니 메뉴(사서 변경 / 사서와 대화하기 / 독서 타이머) 팝업 상태
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -279,18 +280,12 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const isConcluded = chatMode === 'debate' ? modeSummaries.debate.isConcluded : false;
   const debateSummary = chatMode === 'debate' ? modeSummaries.debate.summary : null;
 
-  // 창 크기 리사이즈 이벤트 리스너 (모바일 감지)
+  // 데스크톱 전환 시 모바일 미니 메뉴 닫기
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      if (!mobile) {
-        setShowMobileMenu(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (!isMobile) {
+      setShowMobileMenu(false);
+    }
+  }, [isMobile]);
 
   // 모바일 FAB 드래그 앤 드롭 핸들러
   const handleFabPointerDown = (e) => {
