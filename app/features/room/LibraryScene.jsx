@@ -13,6 +13,7 @@ import MobileShelfSheet from './MobileShelfSheet';
 import ServiceGuideModal from '../guide/ServiceGuideModal';
 import { shouldShowGuideModal } from '../guide/guideStorage';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
+import { useAuth } from '../../store/authStore';
 import { toKoreanStatus } from '../../api/bookApi';
 import './LibrarianChat.css';
 import { TransformControls } from '@react-three/drei';
@@ -300,23 +301,28 @@ export default function LibraryScene() {
   const [calibrating, setCalibrating] = useState(false);
   // 사서 상태는 전역(LibrarianProvider) — Gnb·사서 프로필 페이지와 공유
   const { activeId: librarianId, librarian } = useLibrarian();
+  const { member, isGuest } = useAuth();
+  const currentUserId = isGuest ? 'guest' : (member?.member_id || member?.id || member?.sub || member?.email || 'user');
+
   // CLIAR-257: 추천 도서 등록 후 복귀 시 이전 대화/추천 카드 유지를 위해 사서별 sessionStorage에서 복원
   const [chatAnswer, setChatAnswer] = useState(() => {
-    const saved = loadSavedChatSessionByLibrarian(librarianId);
+    const saved = loadSavedChatSessionByLibrarian(librarianId, currentUserId, 'chat');
     return saved?.answer || null;
   });
   const sceneRef = useRef(null);
 
-  // 사서(librarianId)가 변경되면 커서 말풍선도 해당 사서의 저장된 마지막 응답(또는 null)으로 즉시 교체
+  // 사서(librarianId) 또는 사용자 계정 변경 시 커서 말풍선도 해당 사서의 저장된 마지막 응답(또는 null)으로 즉시 교체
   const prevSceneLibrarianRef = useRef(librarianId);
+  const prevUserRef = useRef(currentUserId);
   const { isUnifiedMobileUX: isMobile } = useResponsive();
   useEffect(() => {
-    if (prevSceneLibrarianRef.current !== librarianId) {
+    if (prevSceneLibrarianRef.current !== librarianId || prevUserRef.current !== currentUserId) {
       prevSceneLibrarianRef.current = librarianId;
-      const saved = loadSavedChatSessionByLibrarian(librarianId);
+      prevUserRef.current = currentUserId;
+      const saved = loadSavedChatSessionByLibrarian(librarianId, currentUserId, 'chat');
       setChatAnswer(saved?.answer || null);
     }
-  }, [librarianId]);
+  }, [librarianId, currentUserId]);
 
   const [previewCount, setPreviewCount] = useState(6);
   const [activeIdx, setActiveIdx] = useState(0);
