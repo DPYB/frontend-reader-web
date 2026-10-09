@@ -1,5 +1,30 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 서비스 이용 가이드 모달 슬라이드 타이틀 및 내용 정합성 보정
+- 작업 브랜치: `fix/service-guide-slide-descriptions`
+- **사용자 요청**:
+  - 로그인 후 노출되는 서비스 이용 가이드 팝업에서 슬라이드 이미지와 상단 설명 타이틀 불일치 수정:
+    - 2/6: 도서 등록
+    - 3/6: 도서 상세 및 관리
+    - 6/6: 사서와의 대화 & 추천
+- **원인 분석**:
+  - `ServiceGuideModal.jsx` 내 `GUIDE_TITLES` 배열 인덱스가 실제 슬라이드 이미지(`/guide/0.png` ~ `/guide/5.png`)의 챕터 순서와 어긋나 있어 2/6 슬라이드에 '사서와의 대화 & 추천', 3/6 슬라이드에 '도서 등록 및 관리', 6/6 슬라이드에 '마이페이지 & 독서 캘린더'가 표시되던 문제.
+- **작업 내용**:
+  1. `app/features/guide/ServiceGuideModal.jsx`:
+     - `GUIDE_TITLES` 배열을 실제 6개 슬라이드 내용에 맞게 1:1 정합 매핑:
+       - 1/6: '서재 기본 안내'
+       - 2/6: '도서 등록'
+       - 3/6: '도서 상세 및 관리'
+       - 4/6: '문장 수집 & 카메라 OCR'
+       - 5/6: '독서 타이머 & 집중 모드'
+       - 6/6: '사서와의 대화 & 추천'
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 모바일 사서 대화창 뷰포트 줌 방지, 내부 스크롤 보장 및 탭 터치 인터랙션 개선
 - 작업 브랜치: `fix/mobile-chat-zoom-and-interaction`
 - **사용자 요청**:
@@ -88,29 +113,6 @@
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 디스플레이 규격별 UI/UX 가이드라인 수립 및 표준 반응형 훅 도입 (태블릿~모바일 터치 통합)
-- 작업 브랜치: `feat/responsive-tablet-mobile-unification`
-- **사용자 요청**: 디스플레이 규격별 UI 가이드라인 수립 및 노트북/데스크톱이 아닌 환경(스마트폰부터 12.9" 대형 태블릿까지)을 모바일 터치 통합 UI/UX로 일원화.
-- **작업 내용**:
-  1. `docs/UI_RESPONSIVE_GUIDELINE.md` 공식 가이드라인 문서 작성:
-     - Desktop/Laptop (마우스·키보드 전용) vs Mobile & Tablet (스마트폰 ~ 12.9" 대형 태블릿 터치 통합) 인터랙션 이원화 설계.
-     - 뷰포트 규격, 포인터 감지(`pointer: coarse`), 3D 서재(선반 탭 셀렉터 & 바텀시트), 플로팅 사서 FAB, 단일 열 수직 스크롤 폼 규격 정립.
-  2. `app/hooks/useResponsive.js` 표준 반응형 훅 구현:
-     - 뷰포트 너비 및 터치 환경(`pointer: coarse`, `ontouchstart`, `maxTouchPoints`) 기반 `isUnifiedMobileUX` 플래그 제공.
-  3. 6개 핵심 컴포넌트 하드코딩(`innerWidth <= 768`) 제거 및 일원화:
-     - `LibrarianChat.jsx`: 플로팅 FAB & 바텀시트 챗봇
-     - `LibraryScene.jsx`: 선반 탭 셀렉터 & 3D 서재 조작
-     - `SentenceCollectModal.jsx`: 수직 1열 스크롤 & 문장 OCR 모달
-     - `BookDetail.jsx`: 모바일/태블릿 맞춤 1열 도서 상세 모달
-     - `RegisterBook.jsx`: 카메라/앨범 스캔 및 도서 등록 폼
-     - `ScrapGallery.jsx`: 수직 카드 스크롤 갤러리
-  4. `README.md`에 가이드라인 링크 및 핵심 요약 추가.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
