@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: AI 사서 대화(LibrarianChat) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
+- 작업 브랜치: `feat/modularize-librarian-chat`
+- **사용자 요청**: 추천 3단계 작업으로 프론트엔드 최대 파일(82KB, 1950줄)이었던 `LibrarianChat.jsx`의 서브 컴포넌트 모듈화 및 80여 개 인라인 스타일을 전면 클래스화하여 유지보수성 및 코드 가독성 개선.
+- **작업 내용**:
+  1. `app/features/room/chat/` 서브 컴포넌트 6종 분리:
+     - `ChatHeader.jsx`: 사서 이름/타이틀, [✨ 새 대화] 버튼, 모드별 도움말(?) 툴팁, 닫기 버튼
+     - `ChatModeTabs.jsx`: [ 📚 내 서재 | 💬 대화·추천 | 💡 토론 ] 3대 모드 전환 탭
+     - `DebateSetupSection.jsx`: 3단계 토론 파트너(4인) 선택 그리드, 도서/자유주제 선택 카드 및 상단 고정 토론 배너([🏁 끝내기] 미니 액션 포함)
+     - `ChatMessageList.jsx`: 사용자/사서 멀티턴 버블, 사서 전환 팁 박스, 토론 인사이트 저장 완료 뱃지, 발바닥 로딩 애니메이션 및 자동 스크롤
+     - `ChatBookCards.jsx`: 내 서재 도서 목록 카드([책 열기 ➔]) 및 추천 도서 바로 등록 카드([등록 ➔])
+     - `ChatInputForm.jsx`: 자연어/토론 메시지 입력창, 전송 버튼, 2000자 초과 방어 카운터
+     - `MobileChatFAB.jsx`: 모바일 드래그 가능 사서 FAB 버튼 및 팝업 미니 메뉴(대화/타이머/프로필/다크모드)
+  2. `app/features/room/LibrarianChat.css`:
+     - 80여 개의 인라인 스타일(`style={{ ... }}`)을 전용 CSS 클래스로 전면 전환.
+  3. `app/features/room/LibrarianChat.jsx`:
+     - 상위 컨테이너에서 SSE 스트리밍 통신, 사서별 세션 격리/복원, 드래그 상태 관리 및 서브 컴포넌트 합성(Composition) 구조로 간결화.
+  4. 하네스 문서(`STATE.md`, `PLAN.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 최신화 및 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 2.75s)
+
 ## 2026-10-09: README 전면 최신화 및 실구현 기반 Mermaid 아키텍처 다이어그램 구축
 - 작업 브랜치: `docs/readme-architecture-diagrams`
 - **사용자 요청**: 추천 2단계 작업으로 저장소 `README.md`를 최신화하고, 4종 사서(블루/슈빌/누디/게코), 듀얼 백엔드(Google Cloud Run), 실시간 SSE 토론 및 도서 등록 OCR/YES24 연동 흐름을 직관적인 Mermaid 다이어그램으로 구축.
@@ -83,23 +106,3 @@
   - `npm run lint` 통과 (0 errors)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle built in 318ms)
-
-## 2026-10-02: 월간 독서 리포트 가짜 목데이터 제거 및 정직한 Empty State & 게스트 배너 연동
-- 작업 브랜치: `feat/monthly-report-real-data-and-empty-state`
-- **사용자 요청**: 월간 독서 리포트에서 백엔드 실제 데이터가 아니라 칼 세이건 《코스모스》 등 가짜 목데이터가 강제로 뜨는 문제 해결 및 게스트 모드 공용 서재 연동 고려.
-- **원인 분석**:
-  - `MonthlyReport.jsx`에서 `hasDayActivity`나 `taste.genreStats`가 비어있을 때 `DEFAULT_FALLBACK_DATA`(완독 4권, 1240쪽, 코스모스, 이기적 유전자, 문학 38% 등)를 강제로 덮어씌워, 신규 회원/게스트에게 허위 데이터가 렌더링되던 결함 규명.
-- **수정 내용**:
-  1. `app/pages/MonthlyReport.jsx`:
-     - `DEFAULT_FALLBACK_DATA`를 순수 초기 스켈레톤 `EMPTY_REPORT_DATA`로 전면 교체.
-     - 백엔드 실제 통계(`data`)만 보존하고 가짜 목데이터 덮어쓰기 로직 완전 제거.
-     - 활동 유무 판별(`hasActivity`) 훅 도입 (완독 권수, 총 독서시간, 세션 횟수, 스크랩, 장르 기반).
-     - 활동이 없는 달 진입 시 친절한 안내 배너(`report-empty-banner`) 및 사서별 맞춤 독서 독려 멘트(`librarianSpeech`) 표출.
-     - 공용 체험(게스트) 모드 접속 시 상단 띠 배너(`guest-notice-banner`) 노출 (`useAuth().isGuest`).
-     - 장르 통계, 날씨별 도서, 문장 스크랩, 처방 도서 섹션별 정직한 Empty State 카드 연동.
-  2. `app/pages/MonthlyReport.css`:
-     - `.guest-notice-banner`, `.report-empty-banner`, `.report-empty-placeholder` 등 Empty State 및 안내 배너 스타일 추가.
-- **검증**:
-  - `npm run lint`: 0 errors 통과
-  - `npm run typecheck`: 0 errors 통과
-  - `npm run build`: Vite 클라이언트 번들링 성공 (466ms)
