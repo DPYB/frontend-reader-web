@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 저장소 `README.md` 전면 최신화 및 실구현(4종 사서, 듀얼 백엔드, SSE 토론/추천, 멀티모달 도서등록/OCR, 타이머/리포트) 기반 Mermaid 아키텍처/워크플로우 다이어그램 구축 완료
 - 도서 등록 화면(`RegisterBook.jsx`) 서브 컴포넌트(`RecommendationBanner`, `BookSearchSection`, `BookIsbnScanSection`, `BookRegisterForm`, `IsbnGuideModal`) 모듈화 및 전용 CSS 클래스화/인라인 스타일 제거 완료
 - 하네스 문서 슬림화 및 롤링 아카이빙(.harness/archive/), Node.js 기반 자동 검증 체계(scripts/check_harness.mjs, npm run check:harness, CI 연동) 구축 완료
 - 월간 독서 리포트 가짜 목데이터(코스모스 등) 강제 주입 제거 및 활동 유무(hasActivity) 기반 정직한 Empty State, 게스트 공용 체험 모드 안내 띠 배너 연동 완료
