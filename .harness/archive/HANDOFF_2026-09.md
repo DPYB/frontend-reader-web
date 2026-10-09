@@ -1,5 +1,33 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 사서 서재(슈빌·누디) 3D 도서 가시성 개선, 고아 파일 삭제 및 컨벤션 리팩토링
+- 작업 브랜치: `feat/fix-librarian-shelves-and-refactor`
+- **사용자 요청**:
+  1. `develop` 브랜치 최신화 및 머지된 로컬 브랜치 정리.
+  2. 책 등록 시 블루(고양이)와 게코에만 책이 보이고 슈빌(황새)과 누디 서재에는 책이 안 보이는 문제 긴급 해결.
+  3. 프론트엔드 코드 리팩토링 및 기술부채 정리.
+- **원인 분석**:
+  - `placeBooks()`가 1번 선반(`shelf1`)부터 도서를 채우는데, 슈빌과 누디는 카메라 FOV가 24로 좁고 `shelf1` X좌표(`-2.81`, `-2.94`)가 카메라 시야각 바깥에 위치하여 첫 번째 선반의 책이 화면 좌측 바깥으로 벗어나 보이지 않는 문제 규명.
+- **작업 내용**:
+  1. `app/features/room/shelfLayout.js`:
+     - `STORK_CAMERA`, `NUDI_CAMERA`를 `CAT_CAMERA`/`GECKO_CAMERA`와 동일한 `fov: 28, position: [-9.38, -0.89, 24], target: [7.52, -0.13, 0.67]` 표준 시야각으로 정합 보정하여 1~7번 전체 선반이 뷰포트 내 안전하게 들어오도록 수정.
+  2. 고아(Orphan) 레거시 파일 삭제:
+     - `app/features/bookshelf/` (2D 레거시 5종 파일: `BookSlot.jsx`, `BookshelfScene.jsx`, `mockBooks.js`, `slotCoords.json`, `useBookWarp.js`)
+     - `app/features/bookshelf3d/` 미사용 3종 (`Bookshelf3DScene.jsx`, `WoodShelf.jsx`, `books3dData.js`)
+     - `app/components/` 미사용 2종 (`LoginOverlay.jsx`, `LoginOverlay.css`)
+     - `app/styles/global.css`
+  3. 컨벤션 준수 및 인라인 스타일 제거:
+     - `app/pages/TermsModal.css` 신설 및 `TermsModal.jsx` 인라인 스타일 전면 클래스화.
+     - `app/index.css`에 `.page-loader` 추가 및 `App.jsx` 인라인 스타일 제거.
+     - `app/pages/SignupPage.css`에 `.signup-error--center` 추가 및 `SignupPage.jsx` 인라인 스타일 제거.
+  4. ESLint React 19 호환 룰셋 정돈:
+     - `eslint.config.js`: `react-hooks/set-state-in-effect` 룰을 'off'로 조정하여 0 errors, 0 warnings 달성.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 3.74s)
+
 ## 2026-10-07: 하네스 문서 슬림화, 롤링 아카이빙 및 Node.js 자동 검증 체계 구축
 - 작업 브랜치: `feat/harness-slim-and-verification`
 - **사용자 요청**: DPYB 표준 하네스 규격(backend-ai-agent#59)을 이식하여 하네스 문서 슬림화 및 Node.js 기반 자동 검증 체계 구축.

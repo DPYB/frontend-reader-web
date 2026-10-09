@@ -107,20 +107,29 @@
 /* 입력 필드: 이미지 위에 투명하게 겹침 */
 .login-input-field {
   position: absolute;
-  z-index: 4;
+  z-index: 5;
   background: transparent;
   border: none;
   outline: none;
   color: #2a1809;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 18px;
+  line-height: 1.3;
   padding: 0 12px;
   box-sizing: border-box;
 }
 
+.login-input-field[type="password"] {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: 2.5px;
+}
+
 .login-input-field::placeholder {
   color: rgba(42, 24, 9, 0.40);
+  font-family: var(--sans);
   font-size: 17px;
   font-weight: 400;
+  letter-spacing: normal;
 }
 
 .login-input-field:focus {

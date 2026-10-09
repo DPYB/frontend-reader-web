@@ -73,7 +73,7 @@ const BUTTONS = [
 // 입력 필드 위치 (bbox 비율)
 const INPUT_FIELDS = {
   id: { left: 43.8, top: 45.6, width: 17.5, height: 3.8 },
-  pw: { left: 43.8, top: 53.3, width: 15.0, height: 3.8 },
+  pw: { left: 43.8, top: 53.3, width: 15.4, height: 3.8 },
 };
 
 function LoginButton({ btn, onClick, disabled, active }) {
