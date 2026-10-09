@@ -393,7 +393,7 @@ export default function SignupPage() {
           </div>
 
           {submitError && (
-            <span className="signup-error" style={{ textAlign: 'center' }}>{submitError}</span>
+            <span className="signup-error signup-error--center">{submitError}</span>
           )}
 
           <button className="signup-btn" type="submit" disabled={!allRequired || loading}>

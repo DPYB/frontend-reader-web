@@ -1,3 +1,5 @@
+import './TermsModal.css';
+
 /**
  * TermsModal — 약관 전문 표시 모달.
  * content는 plain text(마크다운/HTML 아님)이므로 white-space: pre-wrap으로 줄바꿈만 살려서 표시.
@@ -15,54 +17,28 @@ export default function TermsModal({ name, content, loading, error, onClose }) {
       aria-modal="true"
       aria-label={`${name} 전문`}
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 200,
-      }}
+      className="terms-modal-backdrop"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(480px, 90vw)',
-          maxHeight: '80vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--bg)',
-          border: '1px solid var(--border)',
-          borderRadius: 14,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-          overflow: 'hidden',
-        }}
+        className="terms-modal-card"
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <strong style={{ fontSize: 19, color: 'var(--text-h)' }}>{name}</strong>
+        <div className="terms-modal-header">
+          <strong className="terms-modal-title">{name}</strong>
           <button
             onClick={onClose}
             aria-label="닫기"
-            style={{ border: 'none', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 22 }}
+            className="terms-modal-close-btn"
           >
             ✕
           </button>
         </div>
 
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1 }}>
-          {loading && <p style={{ color: 'var(--text)', fontSize: 17 }}>약관을 불러오는 중입니다...</p>}
+        <div className="terms-modal-body">
+          {loading && <p className="terms-modal-loading">약관을 불러오는 중입니다...</p>}
           {!loading && error && <p className="signup-error">{error}</p>}
           {!loading && !error && (
-            <p style={{ whiteSpace: 'pre-wrap', fontSize: 17, lineHeight: 1.7, color: 'var(--text)', margin: 0 }}>
+            <p className="terms-modal-content">
               {content}
             </p>
           )}
@@ -71,3 +47,4 @@ export default function TermsModal({ name, content, loading, error, onClose }) {
     </div>
   );
 }
+

@@ -137,6 +137,10 @@
   color: #e74c3c;
 }
 
+.signup-error--center {
+  text-align: center;
+}
+
 .signup-success {
   font-size: 15px;
   color: #27ae60;

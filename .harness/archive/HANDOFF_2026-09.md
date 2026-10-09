@@ -1,5 +1,32 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-09-29: 모바일 UI/UX 상하 스크롤 및 한글 장르 표기 개편
+- 작업 브랜치: `feat/mobile-scroll-ui`
+- **사용자 요청**:
+  1. (모바일) 선반 클릭시 보여지는 책 정보는 일반 웹과 동일하게 책 장르 한글(`genreLabel`)로 맞춤.
+  2. 책 선택 후 나오는 책 상세내역과 수집 문장/독서 기록 부분을 상하 스크롤로 보기 가능하게 개선.
+  3. 문장 수집 모달 UI를 상하 스크롤 1열 세로 배치로 변경.
+  4. 책 등록 페이지 UI를 상하 스크롤 1열 세로 배치로 변경.
+- **개선 내용**:
+  1. `app/features/room/MobileShelfSheet.jsx`:
+     - `genreLabel` 유틸을 임포트하여 `#LITERATURE`, `#PHILOSOPHY` 등 영문 enum 또는 raw 문자열을 KDC 표준 한글 라벨(`#문학`, `#철학` 등)로 변환 표시.
+  2. `app/features/room/BookDetail.jsx`:
+     - `isMobile` (<= 768px) 동적 반응형 분기 적용.
+     - 모바일 다이얼로그 `width: 94vw`, `maxHeight: 90vh`, `overflowY: auto` 설정.
+     - 다이얼로그 내부 3열 그리드를 단일 1열(`1fr`)로 전환, 가로 세파레이터를 수평 구분선(`height: 1px`, `width: 100%`)으로 변환하여 책 메타데이터와 수집 문장/타이머 히스토리를 상하 수직 스크롤로 감상 가능하게 개선.
+  3. `app/features/room/SentenceCollectModal.jsx`:
+     - `isMobile` 동적 반응형 분기 적용.
+     - 다이얼로그 `width: 94vw`, `maxHeight: 92vh`, `overflowY: auto` 및 `gridTemplateColumns: 1fr` 수직 single-column 레이아웃 적용.
+     - 모바일 화면에서 문장 스캔(카메라/이미지/웹캠) ➔ 문장/메모 입력 ➔ 저장된 문장 목록이 수직 순서로 정렬되어 자연스럽게 스크롤되도록 개선.
+  4. `app/pages/RegisterBook.jsx`:
+     - `isMobile` 동적 반응형 분기 적용.
+     - 폼 grid columns를 `1fr` 수직 레이아웃으로 변경하고, 표지 미리보기 및 메타데이터 필드를 모바일 세로 배치(`flexDirection: column`)로 전환.
+     - 하단 네비게이션바와 겹치지 않도록 `padding: 20px 16px 100px` 여유 공간 확보.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors, 8 pre-existing warnings)
+  - `npm run build` 성공 (Vite bundle built in 20.01s)
+
 ## 2026-09-28: 모바일 5개 선반 선택 및 수직(상하) 스크롤 도서 목록 바텀시트 구현
 - 작업 브랜치: `feat/mobile-shelf-list`
 - **사용자 요청**: 모바일에서는 책 클릭해서 책 상세를 보는 방식이 아닌 선반을 클릭했을 때 그 선반에 있는 책들을 리스트업해서 거기서 고를 수 있게 해달라. public/cat_shelves 폴더의 1~5번 선반 이미지 오버레이 연동 및 모바일 수직 상하 스크롤 목록 구현.
