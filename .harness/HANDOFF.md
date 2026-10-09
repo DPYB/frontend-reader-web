@@ -1,5 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 대화창 기본 모드 내 서재(library) 지정 및 탭 모드 전환 롤백 결함 수정
+- 작업 브랜치: `fix/default-library-mode-and-tab-switching`
+- **사용자 요청**:
+  - 채팅창 오픈 시 대화·추천 모드가 아닌 '내 서재' 모드가 default로 먼저 열리도록 변경.
+  - 대화창 내에서 '내 서재', '대화·추천', '토론' 모드 탭 전환이 되지 않던 버그 해결.
+- **원인 분석**:
+  1. `LibrarianChat.jsx`의 세션 복원 `useEffect`가 `[librarian?.id, ..., onAnswer]`를 의존성으로 가지고 있어, 탭 클릭 시 `handleChangeMode` 내부의 `onAnswer(modeAnswers[mode])` 호출로 부모 `LibraryScene`이 리렌더링될 때마다 `useEffect`가 재실행되어 `setChatMode('chat')`로 강제 덮어쓰기(롤백)되던 문제 규명.
+  2. `chatMode` 초기 상태가 `'chat'`으로 하드코딩되어 있던 문제.
+- **작업 내용**:
+  1. `app/features/room/LibrarianChat.jsx`:
+     - `chatMode` 초기 상태를 `'library'`(내 서재 조회 모드)로 변경.
+     - `prevLibrarianIdRef`, `prevUserIdRef`를 도입하여 실제 사서나 로그인 계정이 변경되었을 때만 세션 복원 및 기본 모드(`'library'`) 리셋이 수행되도록 방어.
+     - 탭 전환(`handleChangeMode`) 시 `chatMode`가 안정적으로 유지되고 사용자 선택 모드로 즉각 전환되도록 보장.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 모바일 채팅 FAB 미니 메뉴 백드롭 z-index 계층 분리 및 터치 인터랙션 정상화
 - 작업 브랜치: `fix/mobile-chat-menu-backdrop-layering`
 - **사용자 요청**:
@@ -99,25 +119,6 @@
      - `useAuth`로부터 현재 로그인 사용자 식별자(`currentUserId: member_id || 'guest'`)를 획득하여 사서별/모드별 세션 로드 및 저장 시 정확한 격리 키 전달.
      - 사용자 변경 및 사서 변경(`[librarian?.id, currentUserId]`) 시 안전한 세션 복원 및 빈 세션 초기화 연동.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 챗버튼 사서 프로필 아바타 이미지(profileImage) 연동 누락 및 검정색 배경 렌더링 버그 수정
-- 작업 브랜치: `fix/librarian-chat-button-avatar`
-- **사용자 요청**: 챗버튼에 사서 프로필 이미지가 안 뜨고 검정색으로 표시되는 원인 분석 및 해결.
-- **원인 분석**:
-  1. `MobileChatFAB.jsx`에서 `librarian.profileImage`가 아닌 존재하지 않는 `librarian.avatar`와 커서 포인터 이미지(`librarian.image`)를 참조하고 있었으며, 클릭 특수 모션 경로(`/cursors/cat_hover.webp` 등)가 404 Not Found를 유발.
-  2. `LibrarianChat.css`의 FAB 및 데스크톱 챗 토글 버튼 스타일에서 아바타 컨테이너 및 이미지 스타일(`.lc-mobile-fab-avatar-img`, `.lc-chat-toggle-avatar-wrap`)이 누락되어 검정색/깨진 배경으로 렌더링.
-- **작업 내용**:
-  1. `app/features/room/chat/MobileChatFAB.jsx`:
-     - 모바일 플로팅 FAB 버튼 아바타 소스를 `librarian.profileImage`로 정상 연결.
-     - 데스크톱 챗 토글 버튼(`.lc-chat-toggle-btn`)에도 사서 프로필 아바타(`lc-chat-toggle-avatar-wrap`) 추가.
-  2. `app/features/room/LibrarianChat.css`:
-     - `.lc-mobile-fab`, `.lc-mobile-fab-avatar-img`, `.lc-chat-toggle-avatar-wrap`, `.lc-chat-toggle-avatar` 전용 원형 스타일 및 테두리/배경색 정비.
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

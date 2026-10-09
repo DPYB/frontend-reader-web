@@ -163,8 +163,8 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const [loading, setLoading] = useState(false);
   const [clickMotion, setClickMotion] = useState(false);
 
-  // 대화 모드: 'chat'(일반 대화 및 도서 추천) | 'debate'(AI 독서 토론) | 'library'(내 서재 조회)
-  const [chatMode, setChatMode] = useState('chat');
+  // 대화 모드: 'library'(내 서재 조회, 기본값) | 'chat'(일반 대화 및 도서 추천) | 'debate'(AI 독서 토론)
+  const [chatMode, setChatMode] = useState('library');
 
   // 토론 설정 단계: 'debater'(1단계: 토론 상대 4인 선택) | 'topic'(2단계: 주제/책 선택)
   const [debateStep, setDebateStep] = useState('debater');
@@ -785,7 +785,15 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   }, [currentMessages, loading, open]);
 
   // 사서 또는 사용자 계정이 변경되면 사서별 & 계정별 분리된 대화 세션 및 메시지 히스토리를 로드하여 복원
+  const prevLibrarianIdRef = useRef(librarian?.id);
+  const prevUserIdRef = useRef(currentUserId);
+
   useEffect(() => {
+    const librarianChanged = prevLibrarianIdRef.current !== librarian?.id;
+    const userChanged = prevUserIdRef.current !== currentUserId;
+    prevLibrarianIdRef.current = librarian?.id;
+    prevUserIdRef.current = currentUserId;
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -830,8 +838,11 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         onAnswer(null);
       }
     }
-    setChatMode('chat');
-  }, [librarian?.id, librarian?.displayName, librarian?.name, librarianNames, currentUserId, onAnswer, setChatSessionId, setLastUserMessage]);
+
+    if (librarianChanged || userChanged) {
+      setChatMode('library');
+    }
+  }, [librarian?.id, currentUserId, librarianNames, librarian?.displayName, librarian?.name, onAnswer, setChatSessionId, setLastUserMessage]);
 
   const handleSendMessage = (textToSend, action = 'chat') => {
     const text = (textToSend ?? input).trim();
