@@ -12,11 +12,11 @@ const GUIDE_IMAGES = [
 
 const GUIDE_TITLES = [
   '서재 기본 안내',
-  '사서와의 대화 & 추천',
-  '도서 등록 및 관리',
+  '도서 등록',
+  '도서 상세 및 관리',
   '문장 수집 & 카메라 OCR',
   '독서 타이머 & 집중 모드',
-  '마이페이지 & 독서 캘린더',
+  '사서와의 대화 & 추천',
 ];
 
 import { dismissGuideForToday } from './guideStorage';

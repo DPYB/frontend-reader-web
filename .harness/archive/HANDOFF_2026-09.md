@@ -1,5 +1,28 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 디스플레이 규격별 UI/UX 가이드라인 수립 및 표준 반응형 훅 도입 (태블릿~모바일 터치 통합)
+- 작업 브랜치: `feat/responsive-tablet-mobile-unification`
+- **사용자 요청**: 디스플레이 규격별 UI 가이드라인 수립 및 노트북/데스크톱이 아닌 환경(스마트폰부터 12.9" 대형 태블릿까지)을 모바일 터치 통합 UI/UX로 일원화.
+- **작업 내용**:
+  1. `docs/UI_RESPONSIVE_GUIDELINE.md` 공식 가이드라인 문서 작성:
+     - Desktop/Laptop (마우스·키보드 전용) vs Mobile & Tablet (스마트폰 ~ 12.9" 대형 태블릿 터치 통합) 인터랙션 이원화 설계.
+     - 뷰포트 규격, 포인터 감지(`pointer: coarse`), 3D 서재(선반 탭 셀렉터 & 바텀시트), 플로팅 사서 FAB, 단일 열 수직 스크롤 폼 규격 정립.
+  2. `app/hooks/useResponsive.js` 표준 반응형 훅 구현:
+     - 뷰포트 너비 및 터치 환경(`pointer: coarse`, `ontouchstart`, `maxTouchPoints`) 기반 `isUnifiedMobileUX` 플래그 제공.
+  3. 6개 핵심 컴포넌트 하드코딩(`innerWidth <= 768`) 제거 및 일원화:
+     - `LibrarianChat.jsx`: 플로팅 FAB & 바텀시트 챗봇
+     - `LibraryScene.jsx`: 선반 탭 셀렉터 & 3D 서재 조작
+     - `SentenceCollectModal.jsx`: 수직 1열 스크롤 & 문장 OCR 모달
+     - `BookDetail.jsx`: 모바일/태블릿 맞춤 1열 도서 상세 모달
+     - `RegisterBook.jsx`: 카메라/앨범 스캔 및 도서 등록 폼
+     - `ScrapGallery.jsx`: 수직 카드 스크롤 갤러리
+  4. `README.md`에 가이드라인 링크 및 핵심 요약 추가.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: AI 사서 대화(LibrarianChat) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
 - 작업 브랜치: `feat/modularize-librarian-chat`
 - **사용자 요청**: 추천 3단계 작업으로 프론트엔드 최대 파일(82KB, 1950줄)이었던 `LibrarianChat.jsx`의 서브 컴포넌트 모듈화 및 80여 개 인라인 스타일을 전면 클래스화하여 유지보수성 및 코드 가독성 개선.
