@@ -1,5 +1,20 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 슈빌(황새) 서재 커서 크기 배율 최적화 (게코 < 슈빌 < 기존)
+- 작업 브랜치: `feat/adjust-shoebill-cursor-size`
+- **사용자 요청**:
+  - 슈빌(황새) 커서 크기를 게코(`1.25`)보다는 크지만 기존 크기(`1.38`)보다는 작게 줄여서 밸런스 조정.
+- **작업 내용**:
+  1. `app/data/librarians.js`:
+     - 슈빌 사서(`id: 'stork'`, 황새)의 `imgScale` 값을 `1.38`에서 `1.31`로 최적화.
+     - 서재 씬(`LibrarianCursor.jsx`)에서 게코(`1.25`)보다 시각적 체격이 크면서도 화면 요소를 과도하게 가리지 않는 황금 비율(1.31) 확보.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 로그인 페이지 소셜(카카오/구글) 로그인 버튼 UI 비활성화 및 DPYB 체험하기 호버 반짝임/선택 효과 적용
 - 작업 브랜치: `feat/login-social-disabled-and-guest-hover-glow`
 - **사용자 요청**:
@@ -97,30 +112,3 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-09: 회원가입 버튼 활성화, 서비스 이용 가이드 슬라이드 줌인 및 모바일 채팅 FAB 5번째 메뉴 추가
-- 작업 브랜치: `feat/signup-button-guide-zoom-and-mobile-fab-menu`
-- **사용자 요청**:
-  - 로그인 페이지(LoginPage) 회원가입 버튼 활성화 및 `/signup` 라우트 연동.
-  - 서비스 이용 가이드 모달(ServiceGuideModal) 모바일/데스크톱 터치·클릭 슬라이드 줌인(확대/축소 및 내부 패닝) 기능 추가.
-  - 모바일 채팅 플로팅 버튼(MobileChatFAB) 미니 메뉴 5번째 항목으로 '서비스 이용 가이드' 추가 및 연동.
-- **작업 내용**:
-  1. `app/pages/LoginPage.jsx`:
-     - `BUTTONS` 배열 내 회원가입 툴팁을 `회원가입`으로 정돈 (BETA 비활성 문구 제거).
-     - `handleClick`: `case 'signup': navigate('/signup'); break;` 활성화.
-     - `isButtonDisabled`: 회원가입 버튼 disabled 예외 해제.
-  2. `app/features/guide/ServiceGuideModal.jsx` & `ServiceGuideModal.css`:
-     - `isZoomed` 상태 및 돋보기 배지(`.guide-zoom-badge`) 구현 (`터치하여 확대` ↔ `터치하여 축소`).
-     - 이미지 래퍼(`.guide-image-wrapper`) 클릭/터치/키보드 줌인 토글 연동.
-     - 줌인 상태(`.guide-image-wrapper.is-zoomed`): `overflow: auto`, `touch-action: pan-x pan-y`, `width: 220%` 적용으로 모바일 뷰포트에서도 슬라이드 내 모든 글씨와 화면을 선명하게 확대 및 상하좌우 부드러운 패닝 지원.
-     - 줌 상태 중에는 슬라이드 넘김 스와이프를 억제하여 안전한 뷰포트 탐색 보장, 이전/다음/도트 이동 시 자동 줌 리셋.
-  3. `app/features/room/chat/MobileChatFAB.jsx`:
-     - `onOpenGuide` prop 연동 및 미니 팝업 5번째 메뉴로 `📖 서비스 이용 가이드` (`onOpenGuide()`) 추가.
-  4. `app/features/room/LibrarianChat.jsx` & `LibraryScene.jsx`:
-     - `LibraryScene`의 `setShowGuide(true)`를 `LibrarianChat` ➔ `MobileChatFAB`으로 관통 연결.
-     - `LibrarianChat.css`의 `.lc-mobile-menu-popup`에 `max-height: min(340px, calc(100dvh - 120px))` 및 `overflow-y: auto`를 적용하여 5개 메뉴 쾌적한 스크롤 레이아웃 보장.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
