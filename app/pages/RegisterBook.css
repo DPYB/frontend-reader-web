@@ -25,6 +25,29 @@
   color: var(--text-h);
 }
 
+/* ── AI 추천 도서 안내 배너 ── */
+.rb-recommend-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-bg, rgba(0, 229, 255, 0.1));
+  border: 1px solid var(--accent-border, var(--accent));
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.rb-recommend-banner-close {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 17px;
+  padding: 4px;
+}
+
 /* ── 모드 선택 탭 (검색 / 촬영 / 직접 입력) ── */
 .rb-mode-tabs {
   display: flex;
@@ -187,6 +210,12 @@
   background: var(--accent-bg);
 }
 
+.rb-search-error {
+  color: #e05a4e;
+  font-size: 15px;
+  padding: 4px 8px;
+}
+
 /* ── 검색 결과 헤더 ── */
 .rb-search-meta {
   display: flex;
@@ -201,6 +230,17 @@
 .rb-search-meta-highlight {
   font-weight: 700;
   color: var(--accent);
+}
+
+.rb-search-provider-note {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.rb-search-loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
 }
 
 /* ── 도서 카드 그리드 ── */
@@ -446,6 +486,10 @@
   opacity: 0.8;
 }
 
+.rb-search-empty-desc {
+  font-size: 14px;
+}
+
 .rb-search-empty-actions {
   display: flex;
   gap: 8px;
@@ -492,4 +536,498 @@
 @keyframes rbToastIn {
   from { opacity: 0; transform: translate(-50%, -10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   등록 폼 및 스캔 영역 스타일
+   ───────────────────────────────────────────────────────────── */
+
+.rb-form-wrapper {
+  margin-top: 0;
+}
+
+.rb-form-wrapper.with-search-results {
+  margin-top: 40px;
+}
+
+.rb-detail-section-header {
+  border-top: 2px dashed var(--border);
+  padding-top: 28px;
+  margin-bottom: 20px;
+}
+
+.rb-detail-section-title {
+  font-size: 20px;
+  margin: 0 0 16px;
+  color: var(--text-h);
+}
+
+.rb-form-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+  width: 100%;
+}
+
+.rb-form-layout.manual-mode,
+.rb-form-layout.search-mode {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 768px) {
+  .rb-form-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* ── 왼쪽 컬럼: 사진 촬영 및 바코드 업로드 ── */
+.rb-scan-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rb-scan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rb-scan-title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.rb-guide-btn {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.rb-guide-btn:hover {
+  opacity: 0.9;
+}
+
+.rb-scan-help-text {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.rb-scan-btn {
+  padding: 10px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.rb-scan-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.rb-cover-preview-box {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: #000;
+}
+
+.rb-cover-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rb-ocr-loading-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--code-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.rb-ocr-spinner {
+  color: var(--accent);
+}
+
+.rb-ocr-error {
+  font-size: 15px;
+  color: #e05a4e;
+}
+
+.rb-ocr-notice {
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+/* ── ISBN 직접 입력란 ── */
+.rb-isbn-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.rb-isbn-input-title {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.rb-isbn-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.rb-isbn-text-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  outline: none;
+}
+
+.rb-isbn-text-input:focus {
+  border-color: var(--accent);
+}
+
+.rb-isbn-search-btn {
+  padding: 7px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.rb-isbn-search-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── 오른쪽/중앙 폼 영역: 상세 입력 및 편집 ── */
+.rb-detail-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.rb-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rb-detail-title {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text-h);
+}
+
+.rb-detail-edit-toggle {
+  font-size: 15px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rb-detail-edit-toggle.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.rb-detail-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .rb-detail-body {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.rb-detail-cover-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rb-detail-cover-img {
+  width: 130px;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  background: #1a1a20;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .rb-detail-cover-img {
+    width: 120px;
+  }
+}
+
+.rb-detail-cover-badge {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rb-detail-fields-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.rb-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rb-field-title {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rb-field-input,
+.rb-field-select {
+  padding: 6px 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.rb-field-input:focus,
+.rb-field-select:focus {
+  border-color: var(--accent);
+}
+
+.rb-field-view-text {
+  font-size: 17px;
+  color: var(--text-h);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.rb-genre-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rb-genre-loading-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rb-genre-spinner {
+  width: 11px;
+  height: 11px;
+  color: var(--accent);
+}
+
+.rb-genre-sub-text {
+  font-size: 13px;
+  color: var(--accent);
+  padding-left: 2px;
+}
+
+/* ── 책 색상 팔레트 ── */
+.rb-color-palette {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rb-color-swatch {
+  width: 38px;
+  height: 48px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  opacity: 1;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.rb-color-swatch:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.rb-color-swatch.selected {
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  transform: scale(1.05);
+}
+
+/* ── 총 페이지 & 현재 페이지 2컬럼 ── */
+.rb-pages-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rb-status-thickness-info {
+  font-size: 14px;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+/* ── 등록 제출 버튼 영역 ── */
+.rb-submit-col {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rb-submit-error {
+  color: #e05a4e;
+  font-size: 16px;
+}
+
+.rb-submit-btn {
+  padding: 12px 36px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  background: var(--border);
+  color: var(--text);
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s ease, transform 0.1s ease, background-color 0.2s ease;
+}
+
+.rb-submit-btn.active {
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.rb-submit-btn.active:hover {
+  opacity: 0.92;
+}
+
+.rb-submit-spinner {
+  color: #fff;
+}
+
+/* ── 가이드 모달 포탈 ── */
+.rb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.rb-modal-content {
+  width: min(480px, 92vw);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  color: var(--text-h);
+}
+
+.rb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.rb-modal-title {
+  margin: 0;
+  font-size: 19px;
+}
+
+.rb-modal-close-btn {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.rb-modal-guide-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.rb-modal-guide-caption {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  text-align: center;
 }

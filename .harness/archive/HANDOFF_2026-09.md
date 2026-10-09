@@ -1,5 +1,24 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-09-29: 구글 클라우드 런(Google Cloud Run) 백엔드 호스팅 URL 이전 및 Cloudflare Worker/Pages 반영
+- 작업 브랜치: `feat/cloud-run-backend-urls`
+- **사용자 요청**: 팀원이 서버 호스팅을 Render에서 Google Cloud Run으로 이전을 완료함에 따라, 백엔드 2종 URL(`https://backend-ai-agent-708438247739.asia-northeast3.run.app/`, `https://backend-core-api-708438247739.asia-northeast3.run.app/`)을 Cloudflare Worker/Pages 및 프론트엔드 환경변수에 업데이트.
+- **개선 내용**:
+  1. `frontend-reader-web/.env.example` & `frontend/.env`:
+     - `VITE_CORE_API_BASE_URL=https://backend-core-api-708438247739.asia-northeast3.run.app/api/v1`
+     - `VITE_AI_API_BASE_URL=https://backend-ai-agent-708438247739.asia-northeast3.run.app/api/v1`
+     - `MAIN_BACKEND_URL` & `AI_BACKEND_URL` 주소를 Google Cloud Run 호스트로 갱신.
+  2. `frontend-reader-web/app/api/apiBase.js`:
+     - 프로덕션 폴백 주소를 기존 Render에서 Google Cloud Run 주소로 변경 (`import.meta.env.DEV` ? `/api/v1` : `https://.../api/v1`).
+  3. `frontend-reader-web/wrangler.jsonc`:
+     - Cloudflare Worker / Cloudflare Pages 배포용 `vars` 블록 추가하여 `VITE_CORE_API_BASE_URL`, `VITE_AI_API_BASE_URL` 바인딩 반영.
+  4. `frontend-reader-web/README.md`:
+     - 아키텍처 다이어그램 및 문서 내 백엔드 호스팅 주체 표기를 `Google Cloud Run`으로 갱신.
+- **검증**:
+  - `npx tsc --noEmit` 통과 (0 errors)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run build` 성공 (Vite bundle built in 19.81s)
+
 ## 2026-09-29: 모바일 UI/UX 상하 스크롤 및 한글 장르 표기 개편
 - 작업 브랜치: `feat/mobile-scroll-ui`
 - **사용자 요청**:
