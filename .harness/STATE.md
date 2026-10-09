@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 로그인 페이지 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 및 클릭 영역 간극 버그 수정 완료
 - 디스플레이 규격별 UI/UX 가이드라인(`docs/UI_RESPONSIVE_GUIDELINE.md`) 수립 및 표준 반응형 훅(`useResponsive`) 도입을 통한 대형 태블릿~스마트폰 터치 통합 UX 일원화 완료
 - AI 사서 대화 및 독서 토론 화면(`LibrarianChat.jsx`) 서브 컴포넌트(`ChatHeader`, `ChatModeTabs`, `DebateSetupSection`, `ChatMessageList`, `ChatBookCards`, `ChatInputForm`, `MobileChatFAB`) 모듈화 및 80여 개 인라인 스타일 클래스화 완료
 - 저장소 `README.md` 전면 최신화 및 실구현(4종 사서, 듀얼 백엔드, SSE 토론/추천, 멀티모달 도서등록/OCR, 타이머/리포트) 기반 Mermaid 아키텍처/워크플로우 다이어그램 구축 완료

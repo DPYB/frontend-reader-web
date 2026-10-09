@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 로그인 페이지 비밀번호 입력 필드 마스킹 불릿(•) 글리프 누락 및 클릭 영역 간극 버그 수정
+- 작업 브랜치: `fix/login-password-input`
+- **사용자 요청**: 로그인 페이지에서 비밀번호 입력이 안 되는 원인 분석 및 해결.
+- **원인 분석**:
+  1. `app/index.css` 영문 폰트(`Chau Philomene One`)의 `unicode-range` 제약으로 인해 비밀번호 마스킹 문자(`•` U+2022)가 한글 폰트(`Memoment Kkukkukk`)로 위임되었으나, 폰트 내 불릿 글리프 누락/폭 0 문제로 마스킹 점이 렌더링되지 않아 입력 불가로 오인.
+  2. 비밀번호 입력창(`INPUT_FIELDS.pw.width: 15.0%`)과 발바닥 눈 버튼(`left: 59.2%`) 사이에 0.4% 공백 간극이 존재하여 우측 클릭 시 포커스 누락 발생.
+- **작업 내용**:
+  1. `app/pages/LoginPage.css`:
+     - `.login-input-field` 및 `[type="password"]`에 시스템 폰트 스택(`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`) 명시 및 `letter-spacing: 2.5px`, `line-height: 1.3`, `z-index: 5` 적용.
+     - `::placeholder`에 `letter-spacing: normal`, `font-family: var(--sans)` 보존.
+  2. `app/pages/LoginPage.jsx`:
+     - `INPUT_FIELDS.pw.width`를 `15.4%`로 조정하여 발바닥 눈 버튼(`59.2%`)과의 간극을 완전히 메움.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 디스플레이 규격별 UI/UX 가이드라인 수립 및 표준 반응형 훅 도입 (태블릿~모바일 터치 통합)
 - 작업 브랜치: `feat/responsive-tablet-mobile-unification`
 - **사용자 요청**: 디스플레이 규격별 UI 가이드라인 수립 및 노트북/데스크톱이 아닌 환경(스마트폰부터 12.9" 대형 태블릿까지)을 모바일 터치 통합 UI/UX로 일원화.
@@ -53,8 +72,8 @@
   1. `README.md`:
      - 전체 아키텍처 다이어그램(클라이언트 피처 모듈, Core API, AI Agent, Supabase DB/pgvector, 외부 API) 상세화.
      - 2종의 핵심 시퀀스/플로우차트 다이어그램 추가:
-       1) 실시간 사서 대화 & 3단계 독서 토론 및 내 서재 교차 검증 시퀀스
-       2) 멀티모달 도서 등록 & OCR/주상색/장르 분류 플로우차트
+        1) 실시간 사서 대화 & 3단계 독서 토론 및 내 서재 교차 검증 시퀀스
+        2) 멀티모달 도서 등록 & OCR/주상색/장르 분류 플로우차트
      - 4종 사서 FOV 28도 표준화 및 선반 캘리브레이션 반영.
      - 최신 프로젝트 디렉터리 구조(`app/features/register/` 서브 컴포넌트 포함) 동기화.
      - 계층형 검증 명령어(`check:harness`, `lint`, `typecheck`, `build`) 안내 최신화.
@@ -86,31 +105,4 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle built in 4.85s)
 
-## 2026-10-09: 사서 서재(슈빌·누디) 3D 도서 가시성 개선, 고아 파일 삭제 및 컨벤션 리팩토링
-- 작업 브랜치: `feat/fix-librarian-shelves-and-refactor`
-- **사용자 요청**:
-  1. `develop` 브랜치 최신화 및 머지된 로컬 브랜치 정리.
-  2. 책 등록 시 블루(고양이)와 게코에만 책이 보이고 슈빌(황새)과 누디 서재에는 책이 안 보이는 문제 긴급 해결.
-  3. 프론트엔드 코드 리팩토링 및 기술부채 정리.
-- **원인 분석**:
-  - `placeBooks()`가 1번 선반(`shelf1`)부터 도서를 채우는데, 슈빌과 누디는 카메라 FOV가 24로 좁고 `shelf1` X좌표(`-2.81`, `-2.94`)가 카메라 시야각 바깥에 위치하여 첫 번째 선반의 책이 화면 좌측 바깥으로 벗어나 보이지 않는 문제 규명.
-- **작업 내용**:
-  1. `app/features/room/shelfLayout.js`:
-     - `STORK_CAMERA`, `NUDI_CAMERA`를 `CAT_CAMERA`/`GECKO_CAMERA`와 동일한 `fov: 28, position: [-9.38, -0.89, 24], target: [7.52, -0.13, 0.67]` 표준 시야각으로 정합 보정하여 1~7번 전체 선반이 뷰포트 내 안전하게 들어오도록 수정.
-  2. 고아(Orphan) 레거시 파일 삭제:
-     - `app/features/bookshelf/` (2D 레거시 5종 파일: `BookSlot.jsx`, `BookshelfScene.jsx`, `mockBooks.js`, `slotCoords.json`, `useBookWarp.js`)
-     - `app/features/bookshelf3d/` 미사용 3종 (`Bookshelf3DScene.jsx`, `WoodShelf.jsx`, `books3dData.js`)
-     - `app/components/` 미사용 2종 (`LoginOverlay.jsx`, `LoginOverlay.css`)
-     - `app/styles/global.css`
-  3. 컨벤션 준수 및 인라인 스타일 제거:
-     - `app/pages/TermsModal.css` 신설 및 `TermsModal.jsx` 인라인 스타일 전면 클래스화.
-     - `app/index.css`에 `.page-loader` 추가 및 `App.jsx` 인라인 스타일 제거.
-     - `app/pages/SignupPage.css`에 `.signup-error--center` 추가 및 `SignupPage.jsx` 인라인 스타일 제거.
-  4. ESLint React 19 호환 룰셋 정돈:
-     - `eslint.config.js`: `react-hooks/set-state-in-effect` 룰을 'off'로 조정하여 0 errors, 0 warnings 달성.
-- **검증**:
-  - `npm run check:harness` 통과
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle built in 3.74s)
 
