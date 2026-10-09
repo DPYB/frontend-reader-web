@@ -971,6 +971,10 @@
   bottom: calc(100% + 12px);
   right: 0;
   width: 240px;
+  max-height: min(340px, calc(100dvh - 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 16px;

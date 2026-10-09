@@ -1,5 +1,30 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 서비스 이용 가이드 모달 슬라이드 타이틀 및 내용 정합성 보정
+- 작업 브랜치: `fix/service-guide-slide-descriptions`
+- **사용자 요청**:
+  - 로그인 후 노출되는 서비스 이용 가이드 팝업에서 슬라이드 이미지와 상단 설명 타이틀 불일치 수정:
+    - 2/6: 도서 등록
+    - 3/6: 도서 상세 및 관리
+    - 6/6: 사서와의 대화 & 추천
+- **원인 분석**:
+  - `ServiceGuideModal.jsx` 내 `GUIDE_TITLES` 배열 인덱스가 실제 슬라이드 이미지(`/guide/0.png` ~ `/guide/5.png`)의 챕터 순서와 어긋나 있어 2/6 슬라이드에 '사서와의 대화 & 추천', 3/6 슬라이드에 '도서 등록 및 관리', 6/6 슬라이드에 '마이페이지 & 독서 캘린더'가 표시되던 문제.
+- **작업 내용**:
+  1. `app/features/guide/ServiceGuideModal.jsx`:
+     - `GUIDE_TITLES` 배열을 실제 6개 슬라이드 내용에 맞게 1:1 정합 매핑:
+       - 1/6: '서재 기본 안내'
+       - 2/6: '도서 등록'
+       - 3/6: '도서 상세 및 관리'
+       - 4/6: '문장 수집 & 카메라 OCR'
+       - 5/6: '독서 타이머 & 집중 모드'
+       - 6/6: '사서와의 대화 & 추천'
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 모바일 사서 대화창 뷰포트 줌 방지, 내부 스크롤 보장 및 탭 터치 인터랙션 개선
 - 작업 브랜치: `fix/mobile-chat-zoom-and-interaction`
 - **사용자 요청**:

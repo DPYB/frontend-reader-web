@@ -23,21 +23,26 @@ import { dismissGuideForToday } from './guideStorage';
 
 export default function ServiceGuideModal({ isOpen, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [dontShowToday, setDontShowToday] = useState(false);
   const modalRef = useRef(null);
+  const touchMovedRef = useRef(false);
 
   const totalSlides = GUIDE_IMAGES.length;
 
   const handlePrev = useCallback(() => {
+    setIsZoomed(false);
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   }, []);
 
   const handleNext = useCallback(() => {
+    setIsZoomed(false);
     setCurrentIndex((prev) => Math.min(totalSlides - 1, prev + 1));
   }, [totalSlides]);
 
   const handleCloseModal = useCallback(() => {
+    setIsZoomed(false);
     if (dontShowToday) {
       dismissGuideForToday();
     }
@@ -75,12 +80,19 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
     }
   }, [isOpen, currentIndex, totalSlides]);
 
-  // 모바일 터치 스와이프
+  // 모바일 터치 스와이프 (단, 줌 상태일 때는 이미지 내부 팬/스크롤 허용을 위해 스와이프 이동 비활성화)
   const handleTouchStart = (e) => {
+    touchMovedRef.current = false;
+    if (isZoomed) return;
     setTouchStartX(e.touches[0].clientX);
   };
 
+  const handleTouchMove = () => {
+    touchMovedRef.current = true;
+  };
+
   const handleTouchEnd = (e) => {
+    if (isZoomed) return;
     if (touchStartX === null) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diffX = touchEndX - touchStartX;
@@ -92,6 +104,12 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
       handleNext();
     }
     setTouchStartX(null);
+  };
+
+  const handleToggleZoom = () => {
+    // 확대 상태에서 드래그/패닝 중에는 줌아웃 방지
+    if (isZoomed && touchMovedRef.current) return;
+    setIsZoomed((prev) => !prev);
   };
 
   if (!isOpen) return null;
@@ -136,6 +154,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
         <div
           className="guide-slide-viewport"
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           {/* 이전 버튼 (<) */}
@@ -150,8 +169,27 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
             ‹
           </button>
 
-          {/* 슬라이드 이미지 */}
-          <div className="guide-image-wrapper">
+          {/* 슬라이드 이미지 (클릭/터치 시 줌인/줌아웃 토글) */}
+          <div
+            className={`guide-image-wrapper ${isZoomed ? 'is-zoomed' : ''}`}
+            onClick={handleToggleZoom}
+            role="button"
+            tabIndex={0}
+            aria-label={isZoomed ? '슬라이드 원래 크기로 축소' : '슬라이드 확대하여 자세히 보기'}
+            title={isZoomed ? '터치/클릭하여 축소' : '터치/클릭하여 확대'}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsZoomed((prev) => !prev);
+              }
+            }}
+          >
+            <div className="guide-zoom-badge">
+              <span className="guide-zoom-badge-icon">🔍</span>
+              <span className="guide-zoom-badge-text">
+                {isZoomed ? '터치하여 축소' : '터치하여 확대'}
+              </span>
+            </div>
             <img
               key={currentIndex}
               src={GUIDE_IMAGES[currentIndex]}
@@ -181,7 +219,10 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
               key={idx}
               type="button"
               className={`guide-dot ${idx === currentIndex ? 'active' : ''}`}
-              onClick={() => setCurrentIndex(idx)}
+              onClick={() => {
+                setIsZoomed(false);
+                setCurrentIndex(idx);
+              }}
               aria-label={`가이드 ${idx + 1}페이지로 이동`}
               title={`${idx + 1}페이지: ${GUIDE_TITLES[idx]}`}
             />

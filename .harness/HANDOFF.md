@@ -1,5 +1,33 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 회원가입 버튼 활성화, 서비스 이용 가이드 슬라이드 줌인 및 모바일 채팅 FAB 5번째 메뉴 추가
+- 작업 브랜치: `feat/signup-button-guide-zoom-and-mobile-fab-menu`
+- **사용자 요청**:
+  - 로그인 페이지(LoginPage) 회원가입 버튼 활성화 및 `/signup` 라우트 연동.
+  - 서비스 이용 가이드 모달(ServiceGuideModal) 모바일/데스크톱 터치·클릭 슬라이드 줌인(확대/축소 및 내부 패닝) 기능 추가.
+  - 모바일 채팅 플로팅 버튼(MobileChatFAB) 미니 메뉴 5번째 항목으로 '서비스 이용 가이드' 추가 및 연동.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 배열 내 회원가입 툴팁을 `회원가입`으로 정돈 (BETA 비활성 문구 제거).
+     - `handleClick`: `case 'signup': navigate('/signup'); break;` 활성화.
+     - `isButtonDisabled`: 회원가입 버튼 disabled 예외 해제.
+  2. `app/features/guide/ServiceGuideModal.jsx` & `ServiceGuideModal.css`:
+     - `isZoomed` 상태 및 돋보기 배지(`.guide-zoom-badge`) 구현 (`터치하여 확대` ↔ `터치하여 축소`).
+     - 이미지 래퍼(`.guide-image-wrapper`) 클릭/터치/키보드 줌인 토글 연동.
+     - 줌인 상태(`.guide-image-wrapper.is-zoomed`): `overflow: auto`, `touch-action: pan-x pan-y`, `width: 220%` 적용으로 모바일 뷰포트에서도 슬라이드 내 모든 글씨와 화면을 선명하게 확대 및 상하좌우 부드러운 패닝 지원.
+     - 줌 상태 중에는 슬라이드 넘김 스와이프를 억제하여 안전한 뷰포트 탐색 보장, 이전/다음/도트 이동 시 자동 줌 리셋.
+  3. `app/features/room/chat/MobileChatFAB.jsx`:
+     - `onOpenGuide` prop 연동 및 미니 팝업 5번째 메뉴로 `📖 서비스 이용 가이드` (`onOpenGuide()`) 추가.
+  4. `app/features/room/LibrarianChat.jsx` & `LibraryScene.jsx`:
+     - `LibraryScene`의 `setShowGuide(true)`를 `LibrarianChat` ➔ `MobileChatFAB`으로 관통 연결.
+     - `LibrarianChat.css`의 `.lc-mobile-menu-popup`에 `max-height: min(340px, calc(100dvh - 120px))` 및 `overflow-y: auto`를 적용하여 5개 메뉴 쾌적한 스크롤 레이아웃 보장.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 모바일 채팅 버튼 아바타 깜빡임 제거 및 미니 메뉴 좌측 정렬(오버플로 방지) 개선
 - 작업 브랜치: `fix/mobile-chat-fab-image-and-menu-position`
 - **사용자 요청**:
@@ -84,31 +112,6 @@
      - `.lc-mobile-menu-item`에 `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`, `user-select: none` 적용하여 모바일 터치 반응성 보장.
      - 파일 하단에 중복 선언되어 있던 레거시 `.lc-mobile-fab-wrap`, `.lc-mobile-menu-popup` CSS 블록 정리.
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 서비스 이용 가이드 모달 슬라이드 타이틀 및 내용 정합성 보정
-- 작업 브랜치: `fix/service-guide-slide-descriptions`
-- **사용자 요청**:
-  - 로그인 후 노출되는 서비스 이용 가이드 팝업에서 슬라이드 이미지와 상단 설명 타이틀 불일치 수정:
-    - 2/6: 도서 등록
-    - 3/6: 도서 상세 및 관리
-    - 6/6: 사서와의 대화 & 추천
-- **원인 분석**:
-  - `ServiceGuideModal.jsx` 내 `GUIDE_TITLES` 배열 인덱스가 실제 슬라이드 이미지(`/guide/0.png` ~ `/guide/5.png`)의 챕터 순서와 어긋나 있어 2/6 슬라이드에 '사서와의 대화 & 추천', 3/6 슬라이드에 '도서 등록 및 관리', 6/6 슬라이드에 '마이페이지 & 독서 캘린더'가 표시되던 문제.
-- **작업 내용**:
-  1. `app/features/guide/ServiceGuideModal.jsx`:
-     - `GUIDE_TITLES` 배열을 실제 6개 슬라이드 내용에 맞게 1:1 정합 매핑:
-       - 1/6: '서재 기본 안내'
-       - 2/6: '도서 등록'
-       - 3/6: '도서 상세 및 관리'
-       - 4/6: '문장 수집 & 카메라 OCR'
-       - 5/6: '독서 타이머 & 집중 모드'
-       - 6/6: '사서와의 대화 & 추천'
-  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

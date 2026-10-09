@@ -1110,6 +1110,7 @@ export default function LibraryScene() {
           onAnswer={setChatAnswer}
           onLoadingChange={setChatLoading}
           onOpenTimer={() => setShowTimer(true)}
+          onOpenGuide={() => setShowGuide(true)}
           onOpenDetail={(bookOrId) => {
             if (typeof bookOrId === 'object' && bookOrId !== null) {
               const bookId = bookOrId.book_id ?? bookOrId.bookId ?? bookOrId.id;
