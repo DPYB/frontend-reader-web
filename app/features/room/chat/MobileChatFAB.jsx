@@ -18,10 +18,6 @@ export default function MobileChatFAB({
 
   if (isMobile) {
     const isSpecialMotion = clickMotion;
-    const isCat = librarian.id === 'cat';
-    const isStork = librarian.id === 'stork';
-    const isNudi = librarian.id === 'nudi';
-    const isGecko = librarian.id === 'gecko';
 
     return (
       <>
@@ -41,22 +37,16 @@ export default function MobileChatFAB({
         >
           <button
             type="button"
-            className={`lc-mobile-fab-btn ${showMobileMenu ? 'active' : ''}`}
+            className={`lc-mobile-fab ${showMobileMenu ? 'active' : ''}`}
             onPointerDown={onFabPointerDown}
             aria-label="사서 메뉴 열기"
           >
             <div className="lc-mobile-fab-avatar">
               <img
                 src={
-                  isSpecialMotion && isCat
-                    ? '/cursors/cat_hover.webp'
-                    : isSpecialMotion && isStork
-                      ? '/cursors/shoebill_hover.webp'
-                      : isSpecialMotion && isNudi
-                        ? '/cursors/nudi_hover.webp'
-                        : isSpecialMotion && isGecko
-                          ? '/cursors/gecko_hover.webp'
-                          : librarian.avatar || librarian.image
+                  isSpecialMotion && librarian.imageHover
+                    ? librarian.imageHover
+                    : librarian.profileImage || librarian.image
                 }
                 alt={librarian.displayName || librarian.name}
                 className="lc-mobile-fab-avatar-img"
@@ -147,8 +137,16 @@ export default function MobileChatFAB({
         onClick={() => setOpen(true)}
         aria-label="사서에게 질문하기"
       >
-        <span className="lc-chat-toggle-icon">💬</span>
-        사서에게 질문하기
+        <div className="lc-chat-toggle-avatar-wrap">
+          <img
+            src={librarian.profileImage || librarian.image}
+            alt=""
+            className="lc-chat-toggle-avatar"
+            width={26}
+            height={26}
+          />
+        </div>
+        <span className="lc-chat-toggle-label">사서에게 질문하기</span>
       </button>
     </div>
   );

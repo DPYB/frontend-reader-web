@@ -1,5 +1,26 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 도서 등록(RegisterBook) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
+- 작업 브랜치: `feat/modularize-register-book`
+- **사용자 요청**: 추천 1단계 작업으로 대형 컴포넌트인 `RegisterBook.jsx`의 서브 컴포넌트 모듈화 및 인라인 스타일을 전면 제거하여 유지보수성 및 코드 품질 개선.
+- **작업 내용**:
+  1. `app/features/register/` 서브 컴포넌트 분리:
+     - `RecommendationBanner.jsx`: AI 사서 도서 추천 안내 배너 분리.
+     - `BookSearchSection.jsx`: YES24 키워드 검색바, 추천 키워드 칩스, 결과 카드 그리드, 즉시 서재 담기/정보 확인 액션 분리.
+     - `BookIsbnScanSection.jsx`: ISBN 촬영/업로드 버튼, 웹캠 모달 연동, 표지 미리보기, OCR 상태 및 수동 ISBN 검색바 분리.
+     - `BookRegisterForm.jsx`: 도서 메타데이터(제목·저자·ISBN·장르·사서별 색상 팔레트·쪽수·독서상태·두께) 폼 및 제출/에러 영역 분리.
+     - `IsbnGuideModal.jsx`: ISBN 촬영 가이드 모달 포탈 분리.
+  2. `app/pages/RegisterBook.css`:
+     - 모든 인라인 스타일(`style={{ ... }}`)을 전용 CSS 클래스로 전환.
+     - 모바일 및 반응형 뷰포트 레이아웃 최적화.
+  3. `app/pages/RegisterBook.jsx`:
+     - 상위 컨테이너에서 상태 관리 및 핸들러 로직을 총괄하고 하위 서브 컴포넌트를 합성(Composition)하는 구조로 간결화.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 4.85s)
+
 ## 2026-10-09: 사서 서재(슈빌·누디) 3D 도서 가시성 개선, 고아 파일 삭제 및 컨벤션 리팩토링
 - 작업 브랜치: `feat/fix-librarian-shelves-and-refactor`
 - **사용자 요청**:
