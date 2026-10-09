@@ -70,9 +70,27 @@ export async function createOcrSentence({
 // ISBN-13 본체: 978/979 접두사 + 10자리. 바코드 옆 부가기호(03330 등)나
 // 정가 표기가 같은 줄에 섞여 들어와도 이 패턴만 뽑아낸다.
 const ISBN13_RE = /97[89]\d{10}/;
+const ISBN10_RE = /(?:ISBN(?:-10)?:?\s*)?([0-9]{1,5}[-\s]?[0-9]{1,7}[-\s]?[0-9]{1,6}[-\s]?[0-9X])/i;
 
 /**
- * OCR로 인식된 줄 목록에서 ISBN-13을 찾는다.
+ * 10자리 ISBN(ISBN-10)을 13자리(ISBN-13)로 변환한다.
+ * 2007년 이전 출판 도서의 10자리 ISBN 표기를 최신 13자리 체계로 매핑.
+ */
+export function convertIsbn10To13(isbn10) {
+  if (!isbn10) return null;
+  const clean = String(isbn10).replace(/[^0-9X]/gi, '').toUpperCase();
+  if (clean.length !== 10) return null;
+  const core = '978' + clean.slice(0, 9);
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(core[i], 10) * (i % 2 === 0 ? 1 : 3);
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return core + String(check);
+}
+
+/**
+ * OCR로 인식된 줄 목록에서 ISBN-13 또는 변환된 ISBN-10을 찾는다.
  *
  * backend-record도 같은 일을 하지만(app/services/bedrock_ocr.py `_extract_isbn`),
  * 줄에서 숫자만 남긴 뒤 '앞 13자리'만 검사해서 ISBN 앞에 다른 숫자가 붙은 줄
@@ -82,12 +100,25 @@ const ISBN13_RE = /97[89]\d{10}/;
  * @param {string[]} lines
  * @returns {string|null}
  */
-function findIsbnInLines(lines) {
+export function findIsbnInLines(lines) {
+  if (!Array.isArray(lines)) return null;
+
+  // 1차: 13자리 ISBN-13 패턴 (공백/하이픈 제거 후 978/979 시작)
   for (const line of lines) {
     const digits = String(line).replace(/\D/g, '');
     const matched = digits.match(ISBN13_RE);
     if (matched) return matched[0];
   }
+
+  // 2차: 10자리 ISBN-10 패턴 탐색 및 ISBN-13으로 자동 변환
+  for (const line of lines) {
+    const match10 = String(line).match(ISBN10_RE);
+    if (match10) {
+      const converted = convertIsbn10To13(match10[1]);
+      if (converted) return converted;
+    }
+  }
+
   return null;
 }
 
@@ -104,16 +135,27 @@ function findIsbnInLines(lines) {
  * 기존 book_id를 준다. 따라서 등록 화면은 이 book_id를 이어받아 새로 만들지 말고
  * 갱신해야 중복 등록이 생기지 않는다.
  *
- * @param {object} params
- * @param {File} params.imageFile - 촬영/선택한 이미지 파일 (image/jpeg 또는 image/png, 최대 50MB)
- * @param {string|null} [params.modelId] - 사용할 Bedrock 모델 ID (미지정 시 서버 설정값)
+ * @param {File|Blob|object} fileOrParams - File/Blob 객체 직접 전달 또는 { imageFile, modelId } 객체
+ * @param {File} [fileOrParams.imageFile] - 촬영/선택한 이미지 파일 (image/jpeg 또는 image/png, 최대 50MB)
+ * @param {string|null} [fileOrParams.modelId] - 사용할 모델 ID (미지정 시 서버 설정값)
  * @returns {Promise<{isbn: string|null, titleCandidate: string, authorCandidates: string[],
  *   lines: string[], bookId: any, alreadyRegistered: boolean, book: object|null,
  *   requestId: string|null, raw: any}>}
  */
-export async function createOcrCover({ imageFile, modelId = null }) {
+export async function createOcrCover(fileOrParams) {
+  const isFileLike =
+    fileOrParams instanceof Blob ||
+    (typeof File !== 'undefined' && fileOrParams instanceof File);
+  const imageFile = isFileLike ? fileOrParams : fileOrParams?.imageFile;
+  const modelId = isFileLike ? null : (fileOrParams?.modelId ?? null);
+
+  if (!imageFile) {
+    throw new Error('업로드할 이미지 파일이 누락되었습니다.');
+  }
+
   const form = new FormData();
-  form.append('image', imageFile);
+  const filename = imageFile.name || 'cover.jpg';
+  form.append('image', imageFile, filename);
 
   const query = modelId ? `?model_id=${encodeURIComponent(modelId)}` : '';
   const res = await authFetch(`/ocr/covers${query}`, { method: 'POST', body: form, baseUrl: AI_API_BASE });

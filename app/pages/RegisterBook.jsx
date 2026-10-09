@@ -24,7 +24,7 @@ import './RegisterBook.css';
  */
 function describeCoverOcrError(err) {
   if (err instanceof ApiError) {
-    if (err.status === 422) return 'ISBN을 찾지 못했어요. 바코드 아래 13자리 숫자가 선명하게 보이도록 다시 찍어 주세요.';
+    if (err.status === 422) return 'ISBN을 찾지 못했어요. 바코드 아래 숫자가 선명하게 보이도록 다시 찍어 주시거나 직접 입력해 주세요.';
     if (err.status === 404) return '해당 ISBN의 도서 정보를 찾지 못했어요. 아래에서 직접 입력해 주세요.';
     if (err.status === 400) return '인식한 ISBN이 올바르지 않아요. 바코드가 잘리지 않게 다시 찍어 주세요.';
     if (err.status === 413) return '이미지가 너무 커요. 더 작은 사진으로 다시 시도해 주세요.';
@@ -34,7 +34,7 @@ function describeCoverOcrError(err) {
     if (err.status === 401) return '로그인이 만료됐어요. 다시 로그인해 주세요.';
     return err.message || 'ISBN 인식 중 문제가 발생했어요.';
   }
-  return '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.';
+  return err?.message || '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.';
 }
 
 // 페이지 진행 상황으로 진행 상태 자동 계산
@@ -389,7 +389,7 @@ export default function RegisterBook() {
       });
 
     try {
-      const cover = await createOcrCover(file);
+      const cover = await createOcrCover({ imageFile: file });
       if (runIdRef.current !== runId) return;
 
       if (cover.isbn) {
