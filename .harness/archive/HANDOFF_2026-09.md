@@ -1,5 +1,19 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-01: 계층형 3단계 검증 체계(Tiered Verification) 도입 및 완화된 중앙 컨벤션 연동
+- 작업 브랜치: `feat/tiered-verification-harness`
+- **사용자 요청**: 바이브 코딩 생산성 저하를 방지하기 위해 백엔드와 동일한 3단계 검증 체계(Tier 1 lint, Tier 2 typecheck+build, Tier 3 원격 CI) 및 완화된 중앙 컨벤션을 프론트엔드 AGENTS.md에 동기화.
+- **개선 내용**:
+  1. `AGENTS.md`:
+     - 기존 "코드 수정 시마다 tsc와 lint 매번 실행" 강제를 3단계 계층형 검증(Tier 1/2/3)으로 완화.
+     - 중앙 레포에서 완화된 컨벤션(소괄호/대괄호 scope 둘 다 허용, 끝 마침표 허용, 개행 지원, 고려사항 섹션 빈칸 허용) 공식 반영.
+  2. `STATE.md`:
+     - 계층형 검증 체계 도입 완료 스냅샷 추가.
+- **검증**:
+  - `npm run lint` 통과 (0 errors, 8 pre-existing warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 20.31s)
+
 ## 2026-09-29: 구글 클라우드 런(Google Cloud Run) 백엔드 호스팅 URL 이전 및 Cloudflare Worker/Pages 반영
 - 작업 브랜치: `feat/cloud-run-backend-urls`
 - **사용자 요청**: 팀원이 서버 호스팅을 Render에서 Google Cloud Run으로 이전을 완료함에 따라, 백엔드 2종 URL(`https://backend-ai-agent-708438247739.asia-northeast3.run.app/`, `https://backend-core-api-708438247739.asia-northeast3.run.app/`)을 Cloudflare Worker/Pages 및 프론트엔드 환경변수에 업데이트.

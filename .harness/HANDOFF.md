@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: README 전면 최신화 및 실구현 기반 Mermaid 아키텍처 다이어그램 구축
+- 작업 브랜치: `docs/readme-architecture-diagrams`
+- **사용자 요청**: 추천 2단계 작업으로 저장소 `README.md`를 최신화하고, 4종 사서(블루/슈빌/누디/게코), 듀얼 백엔드(Google Cloud Run), 실시간 SSE 토론 및 도서 등록 OCR/YES24 연동 흐름을 직관적인 Mermaid 다이어그램으로 구축.
+- **작업 내용**:
+  1. `README.md`:
+     - 전체 아키텍처 다이어그램(클라이언트 피처 모듈, Core API, AI Agent, Supabase DB/pgvector, 외부 API) 상세화.
+     - 2종의 핵심 시퀀스/플로우차트 다이어그램 추가:
+       1) 실시간 사서 대화 & 3단계 독서 토론 및 내 서재 교차 검증 시퀀스
+       2) 멀티모달 도서 등록 & OCR/주상색/장르 분류 플로우차트
+     - 4종 사서 FOV 28도 표준화 및 선반 캘리브레이션 반영.
+     - 최신 프로젝트 디렉터리 구조(`app/features/register/` 서브 컴포넌트 포함) 동기화.
+     - 계층형 검증 명령어(`check:harness`, `lint`, `typecheck`, `build`) 안내 최신화.
+  2. 하네스 문서(`STATE.md`, `PLAN.md`, `HANDOFF.md`) 최신화 및 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과
+
 ## 2026-10-09: 도서 등록(RegisterBook) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
 - 작업 브랜치: `feat/modularize-register-book`
 - **사용자 요청**: 추천 1단계 작업으로 대형 컴포넌트인 `RegisterBook.jsx`의 서브 컴포넌트 모듈화 및 인라인 스타일을 전면 제거하여 유지보수성 및 코드 품질 개선.
@@ -84,17 +103,3 @@
   - `npm run lint`: 0 errors 통과
   - `npm run typecheck`: 0 errors 통과
   - `npm run build`: Vite 클라이언트 번들링 성공 (466ms)
-
-## 2026-10-01: 계층형 3단계 검증 체계(Tiered Verification) 도입 및 완화된 중앙 컨벤션 연동
-- 작업 브랜치: `feat/tiered-verification-harness`
-- **사용자 요청**: 바이브 코딩 생산성 저하를 방지하기 위해 백엔드와 동일한 3단계 검증 체계(Tier 1 lint, Tier 2 typecheck+build, Tier 3 원격 CI) 및 완화된 중앙 컨벤션을 프론트엔드 AGENTS.md에 동기화.
-- **개선 내용**:
-  1. `AGENTS.md`:
-     - 기존 "코드 수정 시마다 tsc와 lint 매번 실행" 강제를 3단계 계층형 검증(Tier 1/2/3)으로 완화.
-     - 중앙 레포에서 완화된 컨벤션(소괄호/대괄호 scope 둘 다 허용, 끝 마침표 허용, 개행 지원, 고려사항 섹션 빈칸 허용) 공식 반영.
-  2. `STATE.md`:
-     - 계층형 검증 체계 도입 완료 스냅샷 추가.
-- **검증**:
-  - `npm run lint` 통과 (0 errors, 8 pre-existing warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle built in 20.31s)
