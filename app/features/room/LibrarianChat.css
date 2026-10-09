@@ -854,7 +854,13 @@
 }
 
 .lc-mobile-fab-wrap {
+  position: fixed;
   z-index: 85;
+  touch-action: none;
+}
+
+.lc-mobile-fab-wrap.menu-open {
+  z-index: 95;
 }
 
 .lc-mobile-fab {
@@ -959,7 +965,8 @@
 /* --------------------------------------------------------------------------
    Mobile Mini Quick Action Menu (사서 프로필 & 변경 / 사서와 대화하기)
    -------------------------------------------------------------------------- */
-.lc-mobile-mini-menu {
+.lc-mobile-mini-menu,
+.lc-mobile-menu-popup {
   position: absolute;
   bottom: calc(100% + 12px);
   width: 240px;
@@ -971,7 +978,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 90;
+  z-index: 100;
   animation: lcMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1034,6 +1041,8 @@
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .lc-mobile-menu-item:active {
@@ -1415,28 +1424,5 @@
   -webkit-backdrop-filter: blur(2px);
   z-index: 110;
   animation: lcMenuFadeIn 0.2s ease;
-}
-
-.lc-mobile-fab-wrap {
-  position: fixed;
-  z-index: 90;
-  touch-action: none;
-}
-
-.lc-mobile-menu-popup {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  right: 0;
-  width: 240px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 10px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  z-index: 90;
-  animation: lcMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
