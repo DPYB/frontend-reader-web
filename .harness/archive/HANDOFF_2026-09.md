@@ -1,5 +1,24 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 로그인 페이지 비밀번호 입력 필드 마스킹 불릿(•) 글리프 누락 및 클릭 영역 간극 버그 수정
+- 작업 브랜치: `fix/login-password-input`
+- **사용자 요청**: 로그인 페이지에서 비밀번호 입력이 안 되는 원인 분석 및 해결.
+- **원인 분석**:
+  1. `app/index.css` 영문 폰트(`Chau Philomene One`)의 `unicode-range` 제약으로 인해 비밀번호 마스킹 문자(`•` U+2022)가 한글 폰트(`Memoment Kkukkukk`)로 위임되었으나, 폰트 내 불릿 글리프 누락/폭 0 문제로 마스킹 점이 렌더링되지 않아 입력 불가로 오인.
+  2. 비밀번호 입력창(`INPUT_FIELDS.pw.width: 15.0%`)과 발바닥 눈 버튼(`left: 59.2%`) 사이에 0.4% 공백 간극이 존재하여 우측 클릭 시 포커스 누락 발생.
+- **작업 내용**:
+  1. `app/pages/LoginPage.css`:
+     - `.login-input-field` 및 `[type="password"]`에 시스템 폰트 스택(`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`) 명시 및 `letter-spacing: 2.5px`, `line-height: 1.3`, `z-index: 5` 적용.
+     - `::placeholder`에 `letter-spacing: normal`, `font-family: var(--sans)` 보존.
+  2. `app/pages/LoginPage.jsx`:
+     - `INPUT_FIELDS.pw.width`를 `15.4%`로 조정하여 발바닥 눈 버튼(`59.2%`)과의 간극을 완전히 메움.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 디스플레이 규격별 UI/UX 가이드라인 수립 및 표준 반응형 훅 도입 (태블릿~모바일 터치 통합)
 - 작업 브랜치: `feat/responsive-tablet-mobile-unification`
 - **사용자 요청**: 디스플레이 규격별 UI 가이드라인 수립 및 노트북/데스크톱이 아닌 환경(스마트폰부터 12.9" 대형 태블릿까지)을 모바일 터치 통합 UI/UX로 일원화.

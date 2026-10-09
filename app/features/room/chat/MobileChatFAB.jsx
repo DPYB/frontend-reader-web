@@ -23,12 +23,13 @@ export default function MobileChatFAB({
       <>
         {showMobileMenu && (
           <div
-            className="lc-mobile-backdrop"
+            className="lc-mobile-menu-backdrop"
             onClick={() => setShowMobileMenu(false)}
+            aria-hidden="true"
           />
         )}
         <div
-          className="lc-mobile-fab-wrap"
+          className={`lc-mobile-fab-wrap ${showMobileMenu ? 'menu-open' : ''}`}
           style={
             fabPos
               ? { left: `${fabPos.x}px`, top: `${fabPos.y}px` }
