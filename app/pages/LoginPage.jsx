@@ -463,7 +463,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* PC 환경 권장 이용 안내 팝업 모달 */}
+      {/* Welcome to DPYB 안내 팝업 모달 */}
       {showPcNotice && (
         <div
           className="login-notice-backdrop"
@@ -485,21 +485,67 @@ export default function LoginPage() {
               ✕
             </button>
 
-            <div className="login-notice-icon-wrap">
-              <span className="login-notice-icon">💻</span>
+            <div className="login-notice-header">
+              <span className="login-notice-welcome-tag">Welcome to DPYB!</span>
+              <h3 id="login-pc-notice-title" className="login-notice-title">
+                DPYB 이용 전 확인해주세요! 📚
+              </h3>
             </div>
 
-            <h3 id="login-pc-notice-title" className="login-notice-title">
-              서비스 이용 안내
-            </h3>
+            <div className="login-notice-body">
+              {/* 1. PC 환경 권장 */}
+              <div className="login-notice-item">
+                <div className="login-notice-item-header">
+                  <span className="login-notice-item-icon">💻</span>
+                  <strong className="login-notice-item-title">PC 환경 권장</strong>
+                </div>
+                <p className="login-notice-item-desc">
+                  DPYB는 PC 환경에서 더욱 쾌적하게 이용하실 수 있어요.
+                </p>
+              </div>
 
-            <p className="login-notice-highlight">
-              DPYB는 PC 환경에서 훨씬 쾌적하게 이용하실 수 있습니다.
-            </p>
+              {/* 2. 현재 테스트 운영 중 */}
+              <div className="login-notice-item">
+                <div className="login-notice-item-header">
+                  <span className="login-notice-item-icon">🧪</span>
+                  <strong className="login-notice-item-title">현재 테스트 운영 중</strong>
+                </div>
+                <p className="login-notice-item-desc">
+                  현재는 이메일을 통한 회원가입만 지원합니다.
+                </p>
+              </div>
 
-            <p className="login-notice-desc">
-              3D 인터랙티브 서재와 AI 사서 대화, 3단계 독서 토론 및 집중 타이머 등 DPYB의 모든 핵심 기능은 PC(데스크톱/노트북) 화면에 가장 최적화되어 있습니다.
-            </p>
+              {/* 3. DPYB 체험하기 */}
+              <div className="login-notice-item">
+                <div className="login-notice-item-header">
+                  <span className="login-notice-item-icon">🐾</span>
+                  <strong className="login-notice-item-title">DPYB 체험하기</strong>
+                </div>
+                <p className="login-notice-item-desc">
+                  로그인 없이 채팅 기능을 체험해 보실 수 있어요.
+                </p>
+              </div>
+
+              {/* 4. 문의 및 피드백 */}
+              <div className="login-notice-item login-notice-item--feedback">
+                <div className="login-notice-item-header">
+                  <span className="login-notice-item-icon">💌</span>
+                  <strong className="login-notice-item-title">문의 및 피드백</strong>
+                </div>
+                <div className="login-notice-feedback-text">
+                  <p>궁금한 점이나 전하고 싶은 의견이 있으신가요?</p>
+                  <p>아래 이메일로 편하게 보내주세요.</p>
+                  <p>보내주신 이야기는 더 나은 서비스를 만드는 데 큰 도움이 됩니다.</p>
+                </div>
+                <a
+                  href="mailto:dpyb26@gmail.com"
+                  className="login-notice-email-link"
+                  title="이메일 보내기"
+                >
+                  ✉️ dpyb26@gmail.com
+                </a>
+              </div>
+            </div>
 
             <div className="login-notice-footer">
               <label className="login-notice-dismiss-label">

@@ -293,16 +293,18 @@
 
 .login-notice-modal {
   position: relative;
-  width: min(92vw, 440px);
+  width: min(92vw, 460px);
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #fdfaf5;
   border: 1.5px solid rgba(220, 185, 150, 0.85);
   border-radius: 20px;
-  padding: 28px 24px 22px;
+  padding: 26px 22px 20px;
   box-shadow: 0 20px 48px rgba(35, 20, 10, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
   box-sizing: border-box;
   animation: loginNoticePop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -334,6 +336,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+  z-index: 2;
 }
 
 .login-notice-close-btn:hover {
@@ -342,53 +345,119 @@
   transform: rotate(90deg);
 }
 
-.login-notice-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffe3c2 0%, #ffd099 100%);
-  border: 1.5px solid #f0a85d;
+.login-notice-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-  box-shadow: 0 4px 14px rgba(240, 168, 93, 0.28);
+  gap: 6px;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
-.login-notice-icon {
-  font-size: 26px;
-  line-height: 1;
+.login-notice-welcome-tag {
+  font-size: 13px;
+  font-weight: 800;
+  color: #d35400;
+  background: rgba(255, 122, 0, 0.12);
+  border: 1px solid rgba(255, 122, 0, 0.35);
+  padding: 3px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
 }
 
 .login-notice-title {
-  margin: 0 0 10px;
-  font-size: 19px;
+  margin: 0;
+  font-size: 18px;
   font-weight: 800;
   color: #2a1809;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-.login-notice-highlight {
-  margin: 0 0 10px;
-  font-size: 15.5px;
+.login-notice-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.login-notice-item {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(220, 195, 170, 0.7);
+  border-radius: 12px;
+  padding: 11px 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.login-notice-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.login-notice-item-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.login-notice-item-title {
+  font-size: 14.5px;
   font-weight: 700;
-  color: #d35400;
+  color: #2a1809;
+}
+
+.login-notice-item-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #5c4533;
   line-height: 1.45;
   word-break: keep-all;
-  background: rgba(255, 160, 60, 0.12);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border-left: 3px solid #e67e22;
-  width: 100%;
-  box-sizing: border-box;
+  padding-left: 24px;
 }
 
-.login-notice-desc {
-  margin: 0 0 20px;
-  font-size: 13.5px;
-  line-height: 1.55;
+.login-notice-item--feedback {
+  background: linear-gradient(135deg, rgba(255, 248, 238, 0.95) 0%, rgba(255, 240, 224, 0.95) 100%);
+  border-color: rgba(240, 168, 93, 0.65);
+}
+
+.login-notice-feedback-text {
+  font-size: 12.5px;
   color: #5c4533;
+  line-height: 1.5;
+  padding-left: 24px;
+  margin-bottom: 8px;
+}
+
+.login-notice-feedback-text p {
+  margin: 0 0 2px;
   word-break: keep-all;
+}
+
+.login-notice-email-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d35400;
+  text-decoration: none;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(240, 168, 93, 0.6);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  width: fit-content;
+}
+
+.login-notice-email-link:hover {
+  background: #d35400;
+  color: #fff;
+  border-color: #d35400;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(211, 84, 0, 0.25);
 }
 
 .login-notice-footer {
@@ -475,21 +544,32 @@
 
 @media (max-width: 480px) {
   .login-notice-modal {
-    padding: 22px 18px 18px;
+    padding: 22px 16px 16px;
     border-radius: 16px;
   }
 
   .login-notice-title {
-    font-size: 17px;
+    font-size: 16.5px;
   }
 
-  .login-notice-highlight {
+  .login-notice-item {
+    padding: 10px 12px;
+  }
+
+  .login-notice-item-title {
     font-size: 14px;
   }
 
-  .login-notice-desc {
+  .login-notice-item-desc {
     font-size: 12.5px;
-    margin-bottom: 16px;
+  }
+
+  .login-notice-feedback-text {
+    font-size: 12px;
+  }
+
+  .login-notice-email-link {
+    font-size: 12.5px;
   }
 
   .login-notice-footer {

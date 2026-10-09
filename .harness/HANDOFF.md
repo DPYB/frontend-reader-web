@@ -1,5 +1,33 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 로그인 페이지 이용 안내 팝업 모달 콘텐츠 전면 개편
+- 작업 브랜치: `feat/login-welcome-notice-content-update`
+- **사용자 요청**:
+  - 로그인 페이지 접속 안내 팝업 창 내용을 전면 개편:
+    - 타이틀: `Welcome to DPYB!`, `DPYB 이용 전 확인해주세요! 📚`
+    - 1. `💻 PC 환경 권장`: `DPYB는 PC 환경에서 더욱 쾌적하게 이용하실 수 있어요.`
+    - 2. `🧪 현재 테스트 운영 중`: `현재는 이메일을 통한 회원가입만 지원합니다.`
+    - 3. `🐾 DPYB 체험하기`: `로그인 없이 채팅 기능을 체험해 보실 수 있어요.`
+    - 4. `💌 문의 및 피드백`: 안내 문구 3줄 및 이메일(`dpyb26@gmail.com`) 연동
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - 팝업 모달 헤더 구조 개선: `login-notice-welcome-tag`(`Welcome to DPYB!`) 및 `login-notice-title`(`DPYB 이용 전 확인해주세요! 📚`).
+     - 4개 주요 안내 카드 구조화 (`login-notice-body`, `login-notice-item`):
+       - PC 환경 권장 (💻)
+       - 현재 테스트 운영 중 (🧪)
+       - DPYB 체험하기 (🐾)
+       - 문의 및 피드백 (💌) 안내 및 클릭 시 즉시 메일 앱이 연동되는 `mailto:dpyb26@gmail.com` 알약 링크 제공.
+  2. `app/pages/LoginPage.css`:
+     - 안내 항목 카드 디자인 정비: 아이콘 + 볼드 타이틀 수평 배치, 서브 설명 여백 및 가독성 확보.
+     - 문의 및 피드백 전용 그라데이션 배경(`.login-notice-item--feedback`) 및 이메일 링크 버튼 호버 인터랙션 구현.
+     - 반응형 모바일/소형 화면 뷰포트 최적화 (`max-height: min(90vh, 680px)` 및 부드러운 스크롤 지원).
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 회원가입 및 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 결함 수정
 - 작업 브랜치: `fix/signup-password-masking-bullet-visibility`
 - **사용자 요청**:
@@ -85,26 +113,6 @@
   2. `app/pages/LoginPage.css`:
      - `.login-notice-backdrop`, `.login-notice-modal`, `.login-notice-highlight`, `.login-notice-confirm-btn` 등 DPYB 레트로 코지/글래스모피즘 스타일 및 반응형 모바일 뷰포트 레이아웃 구현 (`z-index: 100`).
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 대화창 기본 모드 내 서재(library) 지정 및 탭 모드 전환 롤백 결함 수정
-- 작업 브랜치: `fix/default-library-mode-and-tab-switching`
-- **사용자 요청**:
-  - 채팅창 오픈 시 대화·추천 모드가 아닌 '내 서재' 모드가 default로 먼저 열리도록 변경.
-  - 대화창 내에서 '내 서재', '대화·추천', '토론' 모드 탭 전환이 되지 않던 버그 해결.
-- **원인 분석**:
-  1. `LibrarianChat.jsx`의 세션 복원 `useEffect`가 `[librarian?.id, ..., onAnswer]`를 의존성으로 가지고 있어, 탭 클릭 시 `handleChangeMode` 내부의 `onAnswer(modeAnswers[mode])` 호출로 부모 `LibraryScene`이 리렌더링될 때마다 `useEffect`가 재실행되어 `setChatMode('chat')`로 강제 덮어쓰기(롤백)되던 문제 규명.
-  2. `chatMode` 초기 상태가 `'chat'`으로 하드코딩되어 있던 문제.
-- **작업 내용**:
-  1. `app/features/room/LibrarianChat.jsx`:
-     - `chatMode` 초기 상태를 `'library'`(내 서재 조회 모드)로 변경.
-     - `prevLibrarianIdRef`, `prevUserIdRef`를 도입하여 실제 사서나 로그인 계정이 변경되었을 때만 세션 복원 및 기본 모드(`'library'`) 리셋이 수행되도록 방어.
-     - 탭 전환(`handleChangeMode`) 시 `chatMode`가 안정적으로 유지되고 사용자 선택 모드로 즉각 전환되도록 보장.
-  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
