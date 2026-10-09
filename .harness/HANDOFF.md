@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 로그인 페이지 소셜(카카오/구글) 로그인 버튼 UI 비활성화 및 DPYB 체험하기 호버 반짝임/선택 효과 적용
+- 작업 브랜치: `feat/login-social-disabled-and-guest-hover-glow`
+- **사용자 요청**:
+  - 로그인 페이지에서 Kakao 로그인 및 Google 로그인 버튼 UI 적으로만 비활성화 처리.
+  - DPYB 체험하기 버튼에 마우스 커서를 올렸을 때(Hover) 선택된 것처럼 반짝이는 인터랙션 효과 적용.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 배열 내 `kakao` 및 `google` 툴팁을 `카카오 로그인 (준비 중)`, `Google 로그인 (준비 중)`으로 정돈.
+     - `isButtonDisabled`: `kakao`, `google`을 비활성(`disabled = true`) 목록에 추가하여 클릭 인터랙션 차단.
+     - `handleClick`: `case 'google'`, `case 'kakao'` 핸들러 분기 비활성화.
+     - `LoginButton`: `isDpyb`(`btn.id === 'dpyb'`) 판별 및 호버 시 내부 쉬머 스윕(`.login-dpyb-sparkle-shine`)과 트윙클 별(`.login-dpyb-star`) 컴포넌트 렌더링.
+  2. `app/pages/LoginPage.css`:
+     - `.login-layer-img--dpyb-glow`: DPYB 체험하기 버튼 호버 시 웜 골드/앰버 글로우(`drop-shadow`) 및 펄스 호버 애니메이션(`dpyb-pulse-glow`) 적용.
+     - `.login-hit-area--dpyb-hover`: 방사형 앰버 하이라이트 배경, 골드 네온 섀도우 및 스케일업(`transform: scale(1.025)`) 마이크로 인터랙션 구현.
+     - `.login-dpyb-sparkle-shine` & `.login-dpyb-star`: 쉬머 스윕 광선 애니메이션(`@keyframes dpyb-shimmer-sweep`) 및 별빛 트윙클 애니메이션(`@keyframes dpyb-star-twinkle`) 구현.
+     - `.login-hit-area--disabled .login-hit-tooltip`: 비활성 버튼 툴팁 디자인(준비 중 앰버 보더) 정비.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 도서 등록 표지/바코드 촬영 OCR 파일 페이로드 바인딩 및 10/13자리 ISBN 인식 결함 해결
 - 작업 브랜치: `fix/isbn-scan-file-payload-and-recognition`
 - **사용자 요청**:
@@ -96,28 +119,6 @@
      - `LibraryScene`의 `setShowGuide(true)`를 `LibrarianChat` ➔ `MobileChatFAB`으로 관통 연결.
      - `LibrarianChat.css`의 `.lc-mobile-menu-popup`에 `max-height: min(340px, calc(100dvh - 120px))` 및 `overflow-y: auto`를 적용하여 5개 메뉴 쾌적한 스크롤 레이아웃 보장.
   5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 모바일 채팅 버튼 아바타 깜빡임 제거 및 미니 메뉴 좌측 정렬(오버플로 방지) 개선
-- 작업 브랜치: `fix/mobile-chat-fab-image-and-menu-position`
-- **사용자 요청**:
-  - 모바일에서 채팅 FAB 버튼 클릭 시 아바타 이미지가 계속 바뀌며 깜빡이는 결함 수정.
-  - 미니 퀵 액션 메뉴가 상단 우측으로 치우쳐져 화면 밖으로 넘어가던 문제를 좌측 정렬(뷰포트 안쪽으로 자연스럽게 전개)되도록 개선.
-- **원인 분석**:
-  1. **아바타 깜빡임**: `MobileChatFAB.jsx`에서 `isSpecialMotion && librarian.imageHover` 분기 처리로 인해, 사용자가 FAB 터치 시 `clickMotion`(500ms) 동안 `imageHover` 커서 gif/webp로 교체되었다가 다시 `profileImage`로 되돌아가는 깜빡임 발생.
-  2. **메뉴 우측 치우침/오버플로**: `.lc-mobile-menu-popup`에 `right: 0` 또는 좌우 정렬 클래스가 누락되어 기본 `left: 0`으로 렌더링되면서 우측 하단 FAB에서 오른쪽 바깥으로 240px 메뉴가 튀어나가 화면에 잘리고 우측으로 치우침.
-- **작업 내용**:
-  1. `app/features/room/chat/MobileChatFAB.jsx`:
-     - 원형 FAB 아바타 `src`를 `librarian.profileImage || librarian.image`로 고정하여 터치 시 이미지 전환 깜빡임 제거.
-     - FAB 위치(`fabPos.x`)에 따라 화면 좌측/우측을 동적으로 판별하는 `menuAlignClass`(`align-left` / `align-right`) 적용.
-  2. `app/features/room/LibrarianChat.css`:
-     - `.lc-mobile-mini-menu`, `.lc-mobile-menu-popup`의 기본 정렬을 `right: 0`, `transform-origin: bottom right`로 설정하여 우측에 위치한 버튼 기준으로 메뉴가 좌측(화면 안쪽)으로 깔끔하게 펼쳐지도록 개선.
-     - `.align-left`(`left: 0; right: auto`), `.align-right`(`right: 0; left: auto`) 클래스 매핑 완비.
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

@@ -59,13 +59,13 @@ const BUTTONS = [
   {
     id: 'kakao',
     src: '/button/kakao_btn.webp',
-    tooltip: '카카오 계정으로 로그인',
+    tooltip: '카카오 로그인 (준비 중)',
     left: 44.0, top: 85.83, width: 13.98, height: 3.75,
   },
   {
     id: 'google',
     src: '/button/google_btn.webp',
-    tooltip: 'Google 계정으로 로그인',
+    tooltip: 'Google 로그인 (준비 중)',
     left: 44.0, top: 91.25, width: 13.98, height: 3.75,
   },
 ];
@@ -78,11 +78,12 @@ const INPUT_FIELDS = {
 
 function LoginButton({ btn, onClick, disabled, active }) {
   const [hovered, setHovered] = useState(false);
+  const isDpyb = btn.id === 'dpyb';
 
   return (
     <>
       <img
-        className={`login-layer-img${!disabled && (hovered || active) ? ' login-layer-img--hover' : ''}${disabled ? ' login-layer-img--disabled' : ''}`}
+        className={`login-layer-img${!disabled && (hovered || active) ? ' login-layer-img--hover' : ''}${disabled ? ' login-layer-img--disabled' : ''}${isDpyb && (hovered || active) ? ' login-layer-img--dpyb-glow' : ''}`}
         src={btn.src}
         alt=""
         width={2560}
@@ -91,7 +92,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
         draggable={false}
       />
       <button
-        className={`login-hit-area${disabled ? ' login-hit-area--disabled' : ''}`}
+        className={`login-hit-area${disabled ? ' login-hit-area--disabled' : ''}${isDpyb ? ' login-hit-area--dpyb' : ''}${isDpyb && hovered ? ' login-hit-area--dpyb-hover' : ''}`}
         style={{
           left: `${btn.left}%`,
           top: `${btn.top}%`,
@@ -100,10 +101,17 @@ function LoginButton({ btn, onClick, disabled, active }) {
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onClick={disabled ? undefined : onClick}
-        disabled={disabled}
+        onClick={disabled ? (e) => { e.preventDefault(); } : onClick}
+        aria-disabled={disabled}
         aria-label={btn.tooltip}
       >
+        {isDpyb && hovered && (
+          <div className="login-dpyb-sparkle-wrap">
+            <span className="login-dpyb-sparkle-shine" />
+            <span className="login-dpyb-star login-dpyb-star--1">✨</span>
+            <span className="login-dpyb-star login-dpyb-star--2">✨</span>
+          </div>
+        )}
         {hovered && <span className="login-hit-tooltip">{btn.tooltip}</span>}
       </button>
     </>
@@ -319,10 +327,10 @@ export default function LoginPage() {
         handleEyeClick();
         break;
       case 'google':
-        handleGoogleClick();
+        if (!isButtonDisabled('google')) handleGoogleClick();
         break;
       case 'kakao':
-        handleKakaoClick();
+        if (!isButtonDisabled('kakao')) handleKakaoClick();
         break;
       case 'dpyb':
         handleGuestLogin();
@@ -330,11 +338,11 @@ export default function LoginPage() {
     }
   };
 
-  /** 버튼별 비활성 조건 — 비밀번호찾기(BETA 비활성), 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
+  /** 버튼별 비활성 조건 — 비밀번호찾기·카카오·구글(준비 중 비활성), 로그인은 입력 검증, 체험은 요청 중(loading)일 때 잠근다. */
   const isButtonDisabled = (id) => {
-    if (id === 'password') return true;
+    if (id === 'password' || id === 'kakao' || id === 'google') return true;
     if (id === 'login') return !isLoginEnabled;
-    if (id === 'google' || id === 'kakao' || id === 'dpyb') return loading;
+    if (id === 'dpyb') return loading;
     return false;
   };
 
