@@ -969,6 +969,7 @@
 .lc-mobile-menu-popup {
   position: absolute;
   bottom: calc(100% + 12px);
+  right: 0;
   width: 240px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -979,15 +980,20 @@
   flex-direction: column;
   gap: 6px;
   z-index: 100;
+  transform-origin: bottom right;
   animation: lcMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lc-mobile-mini-menu.align-right {
+.lc-mobile-mini-menu.align-right,
+.lc-mobile-menu-popup.align-right {
+  left: auto;
   right: 0;
   transform-origin: bottom right;
 }
 
-.lc-mobile-mini-menu.align-left {
+.lc-mobile-mini-menu.align-left,
+.lc-mobile-menu-popup.align-left {
+  right: auto;
   left: 0;
   transform-origin: bottom left;
 }

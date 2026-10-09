@@ -4,7 +4,6 @@ export default function MobileChatFAB({
   setOpen,
   librarian,
   librarianNames,
-  clickMotion,
   showMobileMenu,
   setShowMobileMenu,
   fabPos,
@@ -17,7 +16,10 @@ export default function MobileChatFAB({
   if (open) return null;
 
   if (isMobile) {
-    const isSpecialMotion = clickMotion;
+    const isLeftDocked = fabPos
+      ? fabPos.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 200)
+      : false;
+    const menuAlignClass = isLeftDocked ? 'align-left' : 'align-right';
 
     return (
       <>
@@ -44,11 +46,7 @@ export default function MobileChatFAB({
           >
             <div className="lc-mobile-fab-avatar">
               <img
-                src={
-                  isSpecialMotion && librarian.imageHover
-                    ? librarian.imageHover
-                    : librarian.profileImage || librarian.image
-                }
+                src={librarian.profileImage || librarian.image}
                 alt={librarian.displayName || librarian.name}
                 className="lc-mobile-fab-avatar-img"
               />
@@ -59,7 +57,7 @@ export default function MobileChatFAB({
           </button>
 
           {showMobileMenu && (
-            <div className="lc-mobile-menu-popup" role="menu">
+            <div className={`lc-mobile-menu-popup ${menuAlignClass}`} role="menu">
               {/* 1. 사서와 대화하기 */}
               <button
                 type="button"
