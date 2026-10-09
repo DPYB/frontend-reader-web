@@ -10,6 +10,7 @@ import {
   loadSavedChatSessionByLibrarian,
   saveChatSessionByLibrarian,
 } from '../../store/librarianStore';
+import { useAuth } from '../../store/authStore';
 import { DEBATE_PERSONAS } from '../../data/debatePersonas';
 import { LIBRARIANS } from '../../data/librarians';
 import { useTheme } from '../../store/themeStore';
@@ -127,11 +128,13 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const { theme, setTheme } = useTheme();
+  const { member, isGuest } = useAuth();
+  const currentUserId = isGuest ? 'guest' : (member?.member_id || member?.id || member?.sub || member?.email || 'user');
   const navigate = useNavigate();
 
   // CLIAR-257: 추천 도서 등록 후 뒤로가기 시 대화/추천 카드 복원
   const [open, setOpen] = useState(() => {
-    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id, currentUserId, 'chat');
     if (saved?.open !== undefined) return saved.open;
     return Boolean(answer?.text);
   });
@@ -184,7 +187,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   // 사서별 & 모드별 독립 대화 세션 및 메시지 히스토리 관리
   const [modeSessions, setModeSessions] = useState(() => {
-    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id, currentUserId, 'chat');
     return {
       chat: saved?.sessionId || generateSessionId(),
       debate: generateSessionId(),
@@ -205,7 +208,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   // 모드별 메시지 히스토리 분리
   const [modeMessages, setModeMessages] = useState(() => {
-    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id, currentUserId, 'chat');
     const initialChatMessages = [];
     if (saved?.messages && Array.isArray(saved.messages) && saved.messages.length > 0) {
       initialChatMessages.push(...saved.messages);
@@ -232,7 +235,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   // 모드별 최신 답변 객체 캐시
   const [modeAnswers, setModeAnswers] = useState(() => {
-    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id, currentUserId, 'chat');
     const initialChatAnswer = saved?.answer || answer || null;
     return {
       chat: initialChatAnswer,
@@ -435,7 +438,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       sessionId: newId,
       lastUserMessage: '',
       open: true,
-    });
+    }, currentUserId, chatMode);
   };
 
   // 🏁 독서 토론 마무리 요청
@@ -472,7 +475,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       sessionId: chatSessionId,
       lastUserMessage,
       open: true,
-    });
+    }, currentUserId, 'chat');
 
     navigate('/register', {
       state: {
@@ -781,7 +784,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     }
   }, [currentMessages, loading, open]);
 
-  // 사서가 변경되면 사서별 분리된 대화 세션 및 메시지 히스토리를 로드하여 복원
+  // 사서 또는 사용자 계정이 변경되면 사서별 & 계정별 분리된 대화 세션 및 메시지 히스토리를 로드하여 복원
   useEffect(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -789,7 +792,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     }
     setLoading(false);
 
-    const saved = loadSavedChatSessionByLibrarian(librarian?.id);
+    const saved = loadSavedChatSessionByLibrarian(librarian?.id, currentUserId, 'chat');
     if (saved && (saved.answer || (saved.messages && saved.messages.length > 0))) {
       const savedMessages = saved.messages || (saved.answer ? [{
         role: 'assistant',
@@ -828,7 +831,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       }
     }
     setChatMode('chat');
-  }, [librarian?.id, librarian?.displayName, librarian?.name, librarianNames, onAnswer, setChatSessionId, setLastUserMessage]);
+  }, [librarian?.id, librarian?.displayName, librarian?.name, librarianNames, currentUserId, onAnswer, setChatSessionId, setLastUserMessage]);
 
   const handleSendMessage = (textToSend, action = 'chat') => {
     const text = (textToSend ?? input).trim();

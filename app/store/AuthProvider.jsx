@@ -99,12 +99,14 @@ export function AuthProvider({ children }) {
   const login = useCallback(async ({ email, password }) => {
     // 개발용 우회 모드: 입력값과 무관하게 가짜 회원으로 즉시 통과
     if (AUTH_BYPASS) {
+      clearChatSession();
       const data = { member: { ...BYPASS_MEMBER, email: email || BYPASS_MEMBER.email } };
       setMember(data.member);
       setStatus('authenticated');
       return data;
     }
     const data = await apiLogin({ email, password });
+    clearChatSession();
     setMember(data?.member ?? null);
     setStatus('authenticated');
     return data;
@@ -112,12 +114,14 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = useCallback(async (idToken) => {
     if (AUTH_BYPASS) {
+      clearChatSession();
       const data = { member: { ...BYPASS_MEMBER, email: 'google_user@test.com' } };
       setMember(data.member);
       setStatus('authenticated');
       return data;
     }
     const data = await apiLoginWithGoogle(idToken);
+    clearChatSession();
     setMember(data?.member ?? null);
     setStatus('authenticated');
     return data;
@@ -125,6 +129,7 @@ export function AuthProvider({ children }) {
 
   const loginWithKakao = useCallback(async (kakaoToken) => {
     if (AUTH_BYPASS) {
+      clearChatSession();
       const data = { member: { ...BYPASS_MEMBER, email: 'kakao_user@test.com' } };
       setMember(data.member);
       setRole('user');
@@ -132,6 +137,7 @@ export function AuthProvider({ children }) {
       return data;
     }
     const data = await apiLoginWithKakao(kakaoToken);
+    clearChatSession();
     setMember(data?.member ?? null);
     setRole(getCurrentRole() || 'user');
     setStatus('authenticated');
@@ -139,6 +145,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginAsGuest = useCallback(async (guestId = null) => {
+    clearChatSession();
     if (AUTH_BYPASS) {
       const guestSub = guestId || 'guest-dev-bypass';
       const guestMember = {
