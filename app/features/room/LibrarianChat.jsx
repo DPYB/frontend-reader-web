@@ -553,189 +553,189 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
       onAnswer(initialAns);
     }
 
-    const location = await getUserLocation();
+    try {
+      const location = await getUserLocation();
 
-    if (controller.signal.aborted) return;
+      if (controller.signal.aborted) return;
 
-    const activeSessionId = isDebate ? debateSessionId : chatSessionId;
-    const currentSenderIcon = isDebate
-      ? selectedDebatePersona?.icon || '💡'
-      : '🐾';
-    const currentSenderName = isDebate
-      ? selectedDebatePersona?.name || '토론 파트너'
-      : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
+      const activeSessionId = isDebate ? debateSessionId : chatSessionId;
+      const currentSenderIcon = isDebate
+        ? selectedDebatePersona?.icon || '💡'
+        : '🐾';
+      const currentSenderName = isDebate
+        ? selectedDebatePersona?.name || '토론 파트너'
+        : librarianNames[librarian?.id] || librarian?.displayName || librarian?.name || '사서';
 
-    let hasReceivedFirstToken = false;
+      let hasReceivedFirstToken = false;
 
-    const streamResult = await streamChatMessage({
-      message,
-      sessionId: activeSessionId,
-      librarianId: targetLibrarianId,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      mode: isDebate ? 'debate' : 'chat',
-      persona: isDebate ? debaterPersona : null,
-      bookId: isDebate && selectedDebateBook ? String(selectedDebateBook.bookId ?? selectedDebateBook.id) : null,
-      topic: isDebate ? (selectedDebateBook ? selectedDebateBook.title : '자유 주제') : null,
-      action,
-      signal: controller.signal,
-      onMetadata: (meta) => {
-        if (controller.signal.aborted) return;
-        if (meta?.session_id) {
-          if (isDebate) {
-            setDebateSessionId(meta.session_id);
-          } else {
-            setChatSessionId(meta.session_id);
+      const streamResult = await streamChatMessage({
+        message,
+        sessionId: activeSessionId,
+        librarianId: targetLibrarianId,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        mode: isDebate ? 'debate' : 'chat',
+        persona: isDebate ? debaterPersona : null,
+        bookId: isDebate && selectedDebateBook ? String(selectedDebateBook.bookId ?? selectedDebateBook.id) : null,
+        topic: isDebate ? (selectedDebateBook ? selectedDebateBook.title : '자유 주제') : null,
+        action,
+        signal: controller.signal,
+        onMetadata: (meta) => {
+          if (controller.signal.aborted) return;
+          if (meta?.session_id) {
+            if (isDebate) {
+              setDebateSessionId(meta.session_id);
+            } else {
+              setChatSessionId(meta.session_id);
+            }
           }
-        }
-        if (meta?.signals) {
+          if (meta?.signals) {
+            setModeAnswers((prev) => ({
+              ...prev,
+              [activeMode]: { ...(prev[activeMode] || {}), signals: meta.signals },
+            }));
+          }
+        },
+        onToken: (delta, accumulated) => {
+          if (controller.signal.aborted) return;
+          if (!hasReceivedFirstToken) {
+            hasReceivedFirstToken = true;
+            setLoading(false);
+            const initialAssistantMsg = {
+              role: 'assistant',
+              text: accumulated,
+              senderIcon: currentSenderIcon,
+              senderName: currentSenderName,
+              recommendedBooks: [],
+              libraryBooks: [],
+              isConcluded: false,
+              debateSummary: null,
+              signals: null,
+              switchTo: null,
+            };
+            setModeMessages((prev) => ({
+              ...prev,
+              [activeMode]: [...(prev[activeMode] || []), initialAssistantMsg],
+            }));
+          } else {
+            setModeMessages((prev) => {
+              const list = prev[activeMode] || [];
+              if (list.length === 0) return prev;
+              const updated = [...list];
+              const last = { ...updated[updated.length - 1], text: accumulated };
+              updated[updated.length - 1] = last;
+              return { ...prev, [activeMode]: updated };
+            });
+          }
           setModeAnswers((prev) => ({
             ...prev,
-            [activeMode]: { ...(prev[activeMode] || {}), signals: meta.signals },
+            [activeMode]: { ...(prev[activeMode] || {}), text: accumulated },
           }));
-        }
-      },
-      onToken: (delta, accumulated) => {
-        if (controller.signal.aborted) return;
-        if (!hasReceivedFirstToken) {
-          hasReceivedFirstToken = true;
-          setLoading(false);
-          const initialAssistantMsg = {
-            role: 'assistant',
-            text: accumulated,
-            senderIcon: currentSenderIcon,
-            senderName: currentSenderName,
-            recommendedBooks: [],
-            libraryBooks: [],
-            isConcluded: false,
-            debateSummary: null,
-            signals: null,
-            switchTo: null,
-          };
-          setModeMessages((prev) => ({
+        },
+        onBooks: (curatedBooks) => {
+          if (controller.signal.aborted) return;
+          setModeAnswers((prev) => ({
             ...prev,
-            [activeMode]: [...(prev[activeMode] || []), initialAssistantMsg],
+            [activeMode]: {
+              ...(prev[activeMode] || {}),
+              recommendedBooks: curatedBooks,
+              recommended_books: curatedBooks,
+            },
           }));
-        } else {
           setModeMessages((prev) => {
             const list = prev[activeMode] || [];
             if (list.length === 0) return prev;
             const updated = [...list];
-            const last = { ...updated[updated.length - 1], text: accumulated };
+            const last = { ...updated[updated.length - 1], recommendedBooks: curatedBooks };
             updated[updated.length - 1] = last;
             return { ...prev, [activeMode]: updated };
           });
-        }
-        setModeAnswers((prev) => ({
-          ...prev,
-          [activeMode]: { ...(prev[activeMode] || {}), text: accumulated },
-        }));
-      },
-      onBooks: (curatedBooks) => {
-        if (controller.signal.aborted) return;
-        setModeAnswers((prev) => ({
-          ...prev,
-          [activeMode]: {
-            ...(prev[activeMode] || {}),
-            recommendedBooks: curatedBooks,
-            recommended_books: curatedBooks,
-          },
-        }));
-        setModeMessages((prev) => {
-          const list = prev[activeMode] || [];
-          if (list.length === 0) return prev;
-          const updated = [...list];
-          const last = { ...updated[updated.length - 1], recommendedBooks: curatedBooks };
-          updated[updated.length - 1] = last;
-          return { ...prev, [activeMode]: updated };
-        });
-      },
-      onSwitchSuggestion: (suggestion) => {
-        if (controller.signal.aborted) return;
-        setModeAnswers((prev) => ({
-          ...prev,
-          [activeMode]: {
-            ...(prev[activeMode] || {}),
-            switchTo: suggestion,
-          },
-        }));
-        setModeMessages((prev) => {
-          const list = prev[activeMode] || [];
-          if (list.length === 0) return prev;
-          const updated = [...list];
-          const last = { ...updated[updated.length - 1], switchTo: suggestion };
-          updated[updated.length - 1] = last;
-          return { ...prev, [activeMode]: updated };
-        });
-      },
-    });
-
-    if (controller.signal.aborted) {
-      return;
-    }
-    if (abortControllerRef.current === controller) {
-      abortControllerRef.current = null;
-    }
-
-    if (streamResult) {
-      if (streamResult.sessionId) {
-        if (isDebate) {
-          setDebateSessionId(streamResult.sessionId);
-        } else {
-          setChatSessionId(streamResult.sessionId);
-        }
-      }
-      if (isDebate && (action === 'conclude' || streamResult.action === 'conclude')) {
-        setModeSummaries((prev) => ({
-          ...prev,
-          debate: {
-            isConcluded: true,
-            summary: streamResult.debateSummary || streamResult.summary || null,
-          },
-        }));
-      }
-
-      setModeAnswers((prev) => {
-        const updated = {
-          ...prev,
-          [activeMode]: {
-            text: streamResult.text || prev[activeMode]?.text || '',
-            switchTo: streamResult.switchTo || prev[activeMode]?.switchTo || null,
-            library_books: streamResult.library_books || prev[activeMode]?.library_books || [],
-            libraryBooks: streamResult.library_books || prev[activeMode]?.libraryBooks || [],
-            recommended_books: streamResult.recommended_books || prev[activeMode]?.recommended_books || [],
-            recommendedBooks: streamResult.recommended_books || prev[activeMode]?.recommendedBooks || [],
-            signals: streamResult.signals || prev[activeMode]?.signals || null,
-          },
-        };
-        if (onAnswer) onAnswer(updated[activeMode]);
-        return updated;
+        },
+        onSwitchSuggestion: (suggestion) => {
+          if (controller.signal.aborted) return;
+          setModeAnswers((prev) => ({
+            ...prev,
+            [activeMode]: {
+              ...(prev[activeMode] || {}),
+              switchTo: suggestion,
+            },
+          }));
+          setModeMessages((prev) => {
+            const list = prev[activeMode] || [];
+            if (list.length === 0) return prev;
+            const updated = [...list];
+            const last = { ...updated[updated.length - 1], switchTo: suggestion };
+            updated[updated.length - 1] = last;
+            return { ...prev, [activeMode]: updated };
+          });
+        },
       });
 
-      setModeMessages((prev) => {
-        const list = prev[activeMode] || [];
-        if (list.length === 0) return prev;
-        const updated = [...list];
-        const lastIdx = updated.length - 1;
-        if (updated[lastIdx].role === 'assistant') {
-          updated[lastIdx] = {
-            ...updated[lastIdx],
-            text: streamResult.text || updated[lastIdx].text,
-            recommendedBooks: streamResult.recommended_books || updated[lastIdx].recommendedBooks,
-            libraryBooks: streamResult.library_books || updated[lastIdx].libraryBooks,
-            isConcluded: isDebate && (action === 'conclude' || streamResult.action === 'conclude'),
-            debateSummary: streamResult.debateSummary || null,
-            signals: streamResult.signals || null,
-            switchTo: streamResult.switchTo || null,
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+
+      if (streamResult) {
+        if (streamResult.sessionId) {
+          if (isDebate) {
+            setDebateSessionId(streamResult.sessionId);
+          } else {
+            setChatSessionId(streamResult.sessionId);
+          }
+        }
+        if (isDebate && (action === 'conclude' || streamResult.action === 'conclude')) {
+          setModeSummaries((prev) => ({
+            ...prev,
+            debate: {
+              isConcluded: true,
+              summary: streamResult.debateSummary || streamResult.summary || null,
+            },
+          }));
+        }
+
+        setModeAnswers((prev) => {
+          const updated = {
+            ...prev,
+            [activeMode]: {
+              text: streamResult.text || prev[activeMode]?.text || '',
+              switchTo: streamResult.switchTo || prev[activeMode]?.switchTo || null,
+              library_books: streamResult.library_books || prev[activeMode]?.library_books || [],
+              libraryBooks: streamResult.library_books || prev[activeMode]?.libraryBooks || [],
+              recommended_books: streamResult.recommended_books || prev[activeMode]?.recommended_books || [],
+              recommendedBooks: streamResult.recommended_books || prev[activeMode]?.recommendedBooks || [],
+              signals: streamResult.signals || prev[activeMode]?.signals || null,
+            },
           };
-        }
-        return { ...prev, [activeMode]: updated };
-      });
-      return;
-    }
+          if (onAnswer) onAnswer(updated[activeMode]);
+          return updated;
+        });
 
-    // SSE 스트리밍 실패 시 로컬 chatEngine 폴백
-    try {
+        setModeMessages((prev) => {
+          const list = prev[activeMode] || [];
+          if (list.length === 0) return prev;
+          const updated = [...list];
+          const lastIdx = updated.length - 1;
+          if (updated[lastIdx].role === 'assistant') {
+            updated[lastIdx] = {
+              ...updated[lastIdx],
+              text: streamResult.text || updated[lastIdx].text,
+              recommendedBooks: streamResult.recommended_books || updated[lastIdx].recommendedBooks,
+              libraryBooks: streamResult.library_books || updated[lastIdx].libraryBooks,
+              isConcluded: isDebate && (action === 'conclude' || streamResult.action === 'conclude'),
+              debateSummary: streamResult.debateSummary || null,
+              signals: streamResult.signals || null,
+              switchTo: streamResult.switchTo || null,
+            };
+          }
+          return { ...prev, [activeMode]: updated };
+        });
+        return;
+      }
+
+      // SSE 스트리밍 실패 시 로컬 chatEngine 폴백
       const fallback = await answerQuestion(librarian, message, books);
       if (controller.signal.aborted) return;
       const fallbackAns = {
@@ -874,171 +874,180 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   // 열린 상태 (open === true)
   return (
-    <div className={`lc-chat-panel ${isMobile ? 'mobile' : 'desktop'}`}>
-      {/* 1. 최상단 헤더 */}
-      <ChatHeader
-        librarian={librarian}
-        chatMode={chatMode}
-        onNewChat={handleNewChat}
-        onClose={() => setOpen(false)}
-      />
-
-      {/* 2. 모드 전환 탭 */}
-      <ChatModeTabs
-        chatMode={chatMode}
-        onChangeMode={handleChangeMode}
-      />
-
-      {/* 3. 상단 고정 날씨·시간대·무드 뱃지 */}
-      {chatMode === 'chat' && currentAnswer?.signals && !loading && (
-        <div className="lc-weather-badge-wrap">
-          <WeatherMoodBadge signals={currentAnswer.signals} />
-        </div>
+    <>
+      {isMobile && (
+        <div
+          className="lc-mobile-backdrop"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
       )}
+      <div className={`lc-chat-panel ${isMobile ? 'mobile' : 'desktop'}`}>
+        {/* 1. 최상단 헤더 */}
+        <ChatHeader
+          librarian={librarian}
+          chatMode={chatMode}
+          onNewChat={handleNewChat}
+          onClose={() => setOpen(false)}
+        />
 
-      {/* 3-1. 토론 모드 상단 설정 배너 */}
-      <DebateSetupSection
-        chatMode={chatMode}
-        debateCollapsed={debateCollapsed}
-        setDebateCollapsed={setDebateCollapsed}
-        debateStep={debateStep}
-        setDebateStep={setDebateStep}
-        debaterPersona={debaterPersona}
-        setDebaterPersona={setDebaterPersona}
-        selectedDebatePersona={selectedDebatePersona}
-        selectedDebateBook={selectedDebateBook}
-        setSelectedDebateBook={setSelectedDebateBook}
-        debateBookQuery={debateBookQuery}
-        setDebateBookQuery={setDebateBookQuery}
-        debateLibraryBooks={debateLibraryBooks}
-        books={books}
-        loading={loading}
-        modeAnswers={modeAnswers}
-        modeMessages={modeMessages}
-        onConcludeDebate={handleConcludeDebate}
-      />
+        {/* 2. 모드 전환 탭 */}
+        <ChatModeTabs
+          chatMode={chatMode}
+          onChangeMode={handleChangeMode}
+        />
 
-      {/* 스크롤 가능한 본문 영역 */}
-      <div className="lc-content-body">
-        {/* 모드 1: 내 서재 빠른 조회 */}
-        {chatMode === 'library' && (
-          <div className="lc-library-view">
-            <input
-              type="text"
-              className="lc-library-search-input"
-              value={libraryQuery}
-              onChange={(e) => setLibraryQuery(e.target.value)}
-              placeholder="내 서재 책 제목 또는 저자 검색..."
-            />
-            <div className="lc-library-filter-pills">
-              <button
-                type="button"
-                className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
-                onClick={() => setLibraryFilter('ALL')}
-              >
-                전체 ({books.length})
-              </button>
-              <button
-                type="button"
-                className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
-                onClick={() => setLibraryFilter('READING')}
-              >
-                읽는 중
-              </button>
-              <button
-                type="button"
-                className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
-                onClick={() => setLibraryFilter('COMPLETED')}
-              >
-                완독
-              </button>
-              <button
-                type="button"
-                className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
-                onClick={() => setLibraryFilter('PLANNED')}
-              >
-                시작 전
-              </button>
-            </div>
-
-            <div className="lc-library-list">
-              {filteredLibraryBooks.length === 0 ? (
-                <div className="lc-library-empty">
-                  {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
-                </div>
-              ) : (
-                filteredLibraryBooks.map((b) => (
-                  <div key={b.bookId || b.id} className="lc-library-item">
-                    <div className="lc-library-item-info">
-                      <span className="lc-library-item-title">{b.title}</span>
-                      <div className="lc-library-item-meta">
-                        {b.author && <span>{b.author}</span>}
-                        <span className="lc-library-item-badge">{b.status}</span>
-                        {b.progress != null && <span>{b.progress}%</span>}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="lc-library-open-btn"
-                      onClick={() => handleOpenDetail(b)}
-                    >
-                      책 열기 ➔
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+        {/* 3. 상단 고정 날씨·시간대·무드 뱃지 */}
+        {chatMode === 'chat' && currentAnswer?.signals && !loading && (
+          <div className="lc-weather-badge-wrap">
+            <WeatherMoodBadge signals={currentAnswer.signals} />
           </div>
         )}
 
-        {/* 모드 2 & 3: 메시지 리스트 */}
-        {(chatMode !== 'debate' || debateCollapsed) && (
-          <ChatMessageList
-            currentMessages={currentMessages}
-            recommendedBooks={recommendedBooks}
-            books={books}
-            librarian={librarian}
-            librarianNames={librarianNames}
-            selectedDebatePersona={selectedDebatePersona}
-            chatMode={chatMode}
-            loading={loading}
-            turnCount={turnCount}
-            lastUserMessage={lastUserMessage}
-            isBookRecommendationQuery={isBookRecommendationQuery}
-            getRecommendationLoadingMessage={getRecommendationLoadingMessage}
-            targetSwitchName={targetSwitchName}
-            currentAnswer={currentAnswer}
-            isConcluded={isConcluded}
-            debateSummary={debateSummary}
-            onRegisterBook={handleRegisterBook}
-            onOpenDetail={handleOpenDetail}
-            messagesEndRef={messagesEndRef}
-          />
-        )}
-
-        {/* 추천 및 서재 액션 카드 */}
-        <ChatBookCards
+        {/* 3-1. 토론 모드 상단 설정 배너 */}
+        <DebateSetupSection
           chatMode={chatMode}
-          libraryBooks={libraryBooks}
-          recommendedBooks={recommendedBooks}
+          debateCollapsed={debateCollapsed}
+          setDebateCollapsed={setDebateCollapsed}
+          debateStep={debateStep}
+          setDebateStep={setDebateStep}
+          debaterPersona={debaterPersona}
+          setDebaterPersona={setDebaterPersona}
+          selectedDebatePersona={selectedDebatePersona}
+          selectedDebateBook={selectedDebateBook}
+          setSelectedDebateBook={setSelectedDebateBook}
+          debateBookQuery={debateBookQuery}
+          setDebateBookQuery={setDebateBookQuery}
+          debateLibraryBooks={debateLibraryBooks}
+          books={books}
           loading={loading}
-          currentAnswer={currentAnswer}
-          onOpenDetail={handleOpenDetail}
-          onRegisterBook={handleRegisterBook}
+          modeAnswers={modeAnswers}
+          modeMessages={modeMessages}
+          onConcludeDebate={handleConcludeDebate}
+        />
+
+        {/* 스크롤 가능한 본문 영역 */}
+        <div className="lc-content-body">
+          {/* 모드 1: 내 서재 빠른 조회 */}
+          {chatMode === 'library' && (
+            <div className="lc-library-view">
+              <input
+                type="text"
+                className="lc-library-search-input"
+                value={libraryQuery}
+                onChange={(e) => setLibraryQuery(e.target.value)}
+                placeholder="내 서재 책 제목 또는 저자 검색..."
+              />
+              <div className="lc-library-filter-pills">
+                <button
+                  type="button"
+                  className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setLibraryFilter('ALL')}
+                >
+                  전체 ({books.length})
+                </button>
+                <button
+                  type="button"
+                  className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
+                  onClick={() => setLibraryFilter('READING')}
+                >
+                  읽는 중
+                </button>
+                <button
+                  type="button"
+                  className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
+                  onClick={() => setLibraryFilter('COMPLETED')}
+                >
+                  완독
+                </button>
+                <button
+                  type="button"
+                  className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
+                  onClick={() => setLibraryFilter('PLANNED')}
+                >
+                  시작 전
+                </button>
+              </div>
+
+              <div className="lc-library-list">
+                {filteredLibraryBooks.length === 0 ? (
+                  <div className="lc-library-empty">
+                    {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
+                  </div>
+                ) : (
+                  filteredLibraryBooks.map((b) => (
+                    <div key={b.bookId || b.id} className="lc-library-item">
+                      <div className="lc-library-item-info">
+                        <span className="lc-library-item-title">{b.title}</span>
+                        <div className="lc-library-item-meta">
+                          {b.author && <span>{b.author}</span>}
+                          <span className="lc-library-item-badge">{b.status}</span>
+                          {b.progress != null && <span>{b.progress}%</span>}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="lc-library-open-btn"
+                        onClick={() => handleOpenDetail(b)}
+                      >
+                        책 열기 ➔
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 모드 2 & 3: 메시지 리스트 */}
+          {(chatMode !== 'debate' || debateCollapsed) && (
+            <ChatMessageList
+              currentMessages={currentMessages}
+              recommendedBooks={recommendedBooks}
+              books={books}
+              librarian={librarian}
+              librarianNames={librarianNames}
+              selectedDebatePersona={selectedDebatePersona}
+              chatMode={chatMode}
+              loading={loading}
+              turnCount={turnCount}
+              lastUserMessage={lastUserMessage}
+              isBookRecommendationQuery={isBookRecommendationQuery}
+              getRecommendationLoadingMessage={getRecommendationLoadingMessage}
+              targetSwitchName={targetSwitchName}
+              currentAnswer={currentAnswer}
+              isConcluded={isConcluded}
+              debateSummary={debateSummary}
+              onRegisterBook={handleRegisterBook}
+              onOpenDetail={handleOpenDetail}
+              messagesEndRef={messagesEndRef}
+            />
+          )}
+
+          {/* 추천 및 서재 액션 카드 */}
+          <ChatBookCards
+            chatMode={chatMode}
+            libraryBooks={libraryBooks}
+            recommendedBooks={recommendedBooks}
+            loading={loading}
+            currentAnswer={currentAnswer}
+            onOpenDetail={handleOpenDetail}
+            onRegisterBook={handleRegisterBook}
+          />
+        </div>
+
+        {/* 메시지 입력창 */}
+        <ChatInputForm
+          input={input}
+          setInput={setInput}
+          loading={loading}
+          chatMode={chatMode}
+          selectedDebateBook={selectedDebateBook}
+          selectedDebatePersona={selectedDebatePersona}
+          maxMessageLength={MAX_MESSAGE_LENGTH}
+          onSubmit={handleSubmit}
         />
       </div>
-
-      {/* 메시지 입력창 */}
-      <ChatInputForm
-        input={input}
-        setInput={setInput}
-        loading={loading}
-        chatMode={chatMode}
-        selectedDebateBook={selectedDebateBook}
-        selectedDebatePersona={selectedDebatePersona}
-        maxMessageLength={MAX_MESSAGE_LENGTH}
-        onSubmit={handleSubmit}
-      />
-    </div>
+    </>
   );
 }

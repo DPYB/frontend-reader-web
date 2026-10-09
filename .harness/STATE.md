@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 모바일 사서 대화창 뷰포트 줌 방지(font-size: 16px/메타태그), .lc-content-body 내부 스크롤 보장, 모바일 백드롭 탈출 지원 및 탭 터치 인터랙션 개선 완료
 - 사서 대화 세션 캐시 사용자/모드별 격리(`myReadingRoom.chatSession.{memberId}.{mode}.{librarianId}`) 및 상태 누수(State Leaking) 결함 해결 완료
 - 챗버튼 사서 프로필 아바타 이미지(profileImage) 연동 누락 및 검정색 배경 렌더링 버그 수정 완료
 - 로그인 페이지 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 및 클릭 영역 간극 버그 수정 완료
