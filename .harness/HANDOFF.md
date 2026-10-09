@@ -1,5 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 도서 등록(RegisterBook) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
+- 작업 브랜치: `feat/modularize-register-book`
+- **사용자 요청**: 추천 1단계 작업으로 대형 컴포넌트인 `RegisterBook.jsx`의 서브 컴포넌트 모듈화 및 인라인 스타일을 전면 제거하여 유지보수성 및 코드 품질 개선.
+- **작업 내용**:
+  1. `app/features/register/` 서브 컴포넌트 분리:
+     - `RecommendationBanner.jsx`: AI 사서 도서 추천 안내 배너 분리.
+     - `BookSearchSection.jsx`: YES24 키워드 검색바, 추천 키워드 칩스, 결과 카드 그리드, 즉시 서재 담기/정보 확인 액션 분리.
+     - `BookIsbnScanSection.jsx`: ISBN 촬영/업로드 버튼, 웹캠 모달 연동, 표지 미리보기, OCR 상태 및 수동 ISBN 검색바 분리.
+     - `BookRegisterForm.jsx`: 도서 메타데이터(제목·저자·ISBN·장르·사서별 색상 팔레트·쪽수·독서상태·두께) 폼 및 제출/에러 영역 분리.
+     - `IsbnGuideModal.jsx`: ISBN 촬영 가이드 모달 포탈 분리.
+  2. `app/pages/RegisterBook.css`:
+     - 모든 인라인 스타일(`style={{ ... }}`)을 전용 CSS 클래스로 전환.
+     - 모바일 및 반응형 뷰포트 레이아웃 최적화.
+  3. `app/pages/RegisterBook.jsx`:
+     - 상위 컨테이너에서 상태 관리 및 핸들러 로직을 총괄하고 하위 서브 컴포넌트를 합성(Composition)하는 구조로 간결화.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 4.85s)
+
 ## 2026-10-09: 사서 서재(슈빌·누디) 3D 도서 가시성 개선, 고아 파일 삭제 및 컨벤션 리팩토링
 - 작업 브랜치: `feat/fix-librarian-shelves-and-refactor`
 - **사용자 요청**:
@@ -77,24 +98,3 @@
   - `npm run lint` 통과 (0 errors, 8 pre-existing warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle built in 20.31s)
-
-## 2026-09-29: 구글 클라우드 런(Google Cloud Run) 백엔드 호스팅 URL 이전 및 Cloudflare Worker/Pages 반영
-- 작업 브랜치: `feat/cloud-run-backend-urls`
-- **사용자 요청**: 팀원이 서버 호스팅을 Render에서 Google Cloud Run으로 이전을 완료함에 따라, 백엔드 2종 URL(`https://backend-ai-agent-708438247739.asia-northeast3.run.app/`, `https://backend-core-api-708438247739.asia-northeast3.run.app/`)을 Cloudflare Worker/Pages 및 프론트엔드 환경변수에 업데이트.
-- **개선 내용**:
-  1. `frontend-reader-web/.env.example` & `frontend/.env`:
-     - `VITE_CORE_API_BASE_URL=https://backend-core-api-708438247739.asia-northeast3.run.app/api/v1`
-     - `VITE_AI_API_BASE_URL=https://backend-ai-agent-708438247739.asia-northeast3.run.app/api/v1`
-     - `MAIN_BACKEND_URL` & `AI_BACKEND_URL` 주소를 Google Cloud Run 호스트로 갱신.
-  2. `frontend-reader-web/app/api/apiBase.js`:
-     - 프로덕션 폴백 주소를 기존 Render에서 Google Cloud Run 주소로 변경 (`import.meta.env.DEV` ? `/api/v1` : `https://.../api/v1`).
-  3. `frontend-reader-web/wrangler.jsonc`:
-     - Cloudflare Worker / Cloudflare Pages 배포용 `vars` 블록 추가하여 `VITE_CORE_API_BASE_URL`, `VITE_AI_API_BASE_URL` 바인딩 반영.
-  4. `frontend-reader-web/README.md`:
-     - 아키텍처 다이어그램 및 문서 내 백엔드 호스팅 주체 표기를 `Google Cloud Run`으로 갱신.
-- **검증**:
-  - `npx tsc --noEmit` 통과 (0 errors)
-  - `npm run lint` 통과 (0 errors)
-  - `npm run build` 성공 (Vite bundle built in 19.81s)
-
-
