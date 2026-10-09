@@ -120,6 +120,45 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const googleBtnRef = useRef(null);
 
+  // PC 환경 최적화 안내 팝업 상태 (오늘 하루 보지 않기 여부 검사)
+  const [showPcNotice, setShowPcNotice] = useState(() => {
+    try {
+      const dismissed = localStorage.getItem('dpyb_pc_notice_dismissed');
+      if (dismissed) {
+        const exp = Number(dismissed);
+        if (Date.now() < exp) return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  });
+  const [dontShowPcNoticeToday, setDontShowPcNoticeToday] = useState(false);
+
+  const handleClosePcNotice = useCallback(() => {
+    if (dontShowPcNoticeToday) {
+      try {
+        const tomorrow = new Date();
+        tomorrow.setHours(23, 59, 59, 999);
+        localStorage.setItem('dpyb_pc_notice_dismissed', String(tomorrow.getTime()));
+      } catch {
+        // 무시
+      }
+    }
+    setShowPcNotice(false);
+  }, [dontShowPcNoticeToday]);
+
+  useEffect(() => {
+    if (!showPcNotice) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleClosePcNotice();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPcNotice, handleClosePcNotice]);
+
   const handleGuestLogin = async () => {
     if (loading) return;
     setLoading(true);
@@ -419,6 +458,67 @@ export default function LoginPage() {
       {AUTH_BYPASS && (
         <div className="login-dev-badge">
           개발 모드: 아무 값으로도 로그인됩니다 🐾
+        </div>
+      )}
+
+      {/* PC 환경 권장 이용 안내 팝업 모달 */}
+      {showPcNotice && (
+        <div
+          className="login-notice-backdrop"
+          onClick={handleClosePcNotice}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="login-pc-notice-title"
+        >
+          <div
+            className="login-notice-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="login-notice-close-btn"
+              onClick={handleClosePcNotice}
+              aria-label="안내 팝업 닫기"
+            >
+              ✕
+            </button>
+
+            <div className="login-notice-icon-wrap">
+              <span className="login-notice-icon">💻</span>
+            </div>
+
+            <h3 id="login-pc-notice-title" className="login-notice-title">
+              서비스 이용 안내
+            </h3>
+
+            <p className="login-notice-highlight">
+              DPYB는 PC 환경에서 훨씬 쾌적하게 이용하실 수 있습니다.
+            </p>
+
+            <p className="login-notice-desc">
+              3D 인터랙티브 서재와 AI 사서 대화, 3단계 독서 토론 및 집중 타이머 등 DPYB의 모든 핵심 기능은 PC(데스크톱/노트북) 화면에 가장 최적화되어 있습니다.
+            </p>
+
+            <div className="login-notice-footer">
+              <label className="login-notice-dismiss-label">
+                <input
+                  type="checkbox"
+                  className="login-notice-checkbox"
+                  checked={dontShowPcNoticeToday}
+                  onChange={(e) => setDontShowPcNoticeToday(e.target.checked)}
+                />
+                <span>오늘 하루 보지 않기</span>
+              </label>
+
+              <button
+                type="button"
+                className="login-notice-confirm-btn"
+                onClick={handleClosePcNotice}
+              >
+                확인
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

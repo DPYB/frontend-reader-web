@@ -1,5 +1,31 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 사서 대화 세션 캐시 사용자/모드별 격리 및 상태 누수(State Leaking) 결함 해결
+- 작업 브랜치: `fix/chat-session-isolation-per-user-mode`
+- **사용자/백엔드 요청**:
+  - 현상: 회원 계정(`dpyb`)의 토론 답변/메시지 내역이 로그아웃 후 게스트(체험하기) 대화 추천 모드에 그대로 노출되는 클라이언트 상태 누수(State Leaking) 결함 해결.
+- **원인 분석**:
+  1. `app/store/librarianStore.js`의 세션스토리지 키(`myReadingRoom.chatSession.${librarianId}`)에 `memberId` 및 `mode` 구분이 없어 모든 사용자와 대화/토론 모드가 단일 캐시 키를 공유.
+  2. `clearChatSession()`이 단일 키(`myReadingRoom.chatSession`)만 `removeItem`하여 접미사 키(`myReadingRoom.chatSession.cat` 등)가 브라우저에 영구 잔존.
+  3. 로그아웃 또는 게스트 로그인 시 이전 회원의 캐시가 클리어되지 않아 게스트 진입 시 브라우저가 이전 회원 토론 내역을 그대로 복원.
+- **작업 내용**:
+  1. `app/store/librarianStore.js`:
+     - 세션 스토리지 키 격리 패턴 도입: `myReadingRoom.chatSession.{memberId || 'guest'}.{mode || 'chat'}.{librarianId}` (`getChatSessionStorageKey`).
+     - `loadSavedChatSessionByLibrarian`, `saveChatSessionByLibrarian`, `clearChatSessionByLibrarian`에 `memberId`와 `mode` 파라미터 지원.
+     - `clearChatSession()` 일괄 정리 로직 개선: `sessionStorage` 순회를 통해 `myReadingRoom.chatSession` 접두사로 시작하는 모든 키를 완벽히 일괄 제거.
+  2. `app/store/AuthProvider.jsx`:
+     - `login`, `loginWithGoogle`, `loginWithKakao`, `loginAsGuest` 호출 시 `clearChatSession()`을 선제 실행하여 계정 전환/게스트 진입 시 잔존 캐시 완벽 차단.
+     - `logout` 및 `onSessionExpired` 시 `clearChatSession()` 연동 보장.
+  3. `app/features/room/LibraryScene.jsx` & `LibrarianChat.jsx`:
+     - `useAuth`로부터 현재 로그인 사용자 식별자(`currentUserId: member_id || 'guest'`)를 획득하여 사서별/모드별 세션 로드 및 저장 시 정확한 격리 키 전달.
+     - 사용자 변경 및 사서 변경(`[librarian?.id, currentUserId]`) 시 안전한 세션 복원 및 빈 세션 초기화 연동.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 챗버튼 사서 프로필 아바타 이미지(profileImage) 연동 누락 및 검정색 배경 렌더링 버그 수정
 - 작업 브랜치: `fix/librarian-chat-button-avatar`
 - **사용자 요청**: 챗버튼에 사서 프로필 이미지가 안 뜨고 검정색으로 표시되는 원인 분석 및 해결.

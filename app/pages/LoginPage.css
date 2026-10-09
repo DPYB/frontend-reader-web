@@ -262,3 +262,248 @@
  * 세 버튼은 이제 다른 버튼들과 동일하게 LoginPage.jsx의 BUTTONS 이미지 레이어 +
  * .login-hit-area(선 안쪽 좌표) 방식으로 처리한다.
  */
+
+/* ==========================================================================
+   PC 환경 권장 이용 안내 팝업 모달
+   ========================================================================== */
+
+.login-notice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 14, 10, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 16px;
+  box-sizing: border-box;
+  animation: loginNoticeFadeIn 0.22s ease-out forwards;
+}
+
+@keyframes loginNoticeFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.login-notice-modal {
+  position: relative;
+  width: min(92vw, 440px);
+  background: #fdfaf5;
+  border: 1.5px solid rgba(220, 185, 150, 0.85);
+  border-radius: 20px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 20px 48px rgba(35, 20, 10, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  animation: loginNoticePop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes loginNoticePop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.login-notice-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(180, 145, 115, 0.35);
+  background: rgba(245, 230, 210, 0.45);
+  color: #5c3a21;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.login-notice-close-btn:hover {
+  background: rgba(230, 205, 175, 0.85);
+  color: #2a1809;
+  transform: rotate(90deg);
+}
+
+.login-notice-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffe3c2 0%, #ffd099 100%);
+  border: 1.5px solid #f0a85d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(240, 168, 93, 0.28);
+}
+
+.login-notice-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.login-notice-title {
+  margin: 0 0 10px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #2a1809;
+  letter-spacing: -0.02em;
+}
+
+.login-notice-highlight {
+  margin: 0 0 10px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #d35400;
+  line-height: 1.45;
+  word-break: keep-all;
+  background: rgba(255, 160, 60, 0.12);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #e67e22;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-notice-desc {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #5c4533;
+  word-break: keep-all;
+}
+
+.login-notice-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(220, 195, 170, 0.6);
+}
+
+.login-notice-dismiss-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #7d6350;
+  transition: color 0.15s ease;
+}
+
+.login-notice-dismiss-label:hover {
+  color: #2a1809;
+}
+
+.login-notice-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #a88a70;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.login-notice-checkbox:checked {
+  background: #d35400;
+  border-color: #d35400;
+}
+
+.login-notice-checkbox:checked::before {
+  content: '';
+  width: 7px;
+  height: 4px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(0.5px, -0.5px);
+}
+
+.login-notice-confirm-btn {
+  padding: 8px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(211, 84, 0, 0.3);
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.login-notice-confirm-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(211, 84, 0, 0.4);
+}
+
+.login-notice-confirm-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+@media (max-width: 480px) {
+  .login-notice-modal {
+    padding: 22px 18px 18px;
+    border-radius: 16px;
+  }
+
+  .login-notice-title {
+    font-size: 17px;
+  }
+
+  .login-notice-highlight {
+    font-size: 14px;
+  }
+
+  .login-notice-desc {
+    font-size: 12.5px;
+    margin-bottom: 16px;
+  }
+
+  .login-notice-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .login-notice-dismiss-label {
+    justify-content: center;
+  }
+
+  .login-notice-confirm-btn {
+    width: 100%;
+    padding: 10px 0;
+  }
+}

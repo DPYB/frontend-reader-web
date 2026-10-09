@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 로그인 페이지 접속 시 PC 환경 권장 이용 안내 팝업 모달 추가
+- 작업 브랜치: `feat/login-pc-environment-notice-modal`
+- **사용자 요청**:
+  - 사이트 접속 시 로그인 페이지에서 "DPYB는 PC 환경에서 훨씬 쾌적하게 이용하실 수 있습니다." 문구를 담은 팝업 모달 노출.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `showPcNotice` 상태 및 `localStorage` 기반 '오늘 하루 보지 않기'(`dpyb_pc_notice_dismissed`) 지원.
+     - 키보드 ESC 키 및 백드롭 클릭 닫기 핸들러 연동.
+     - PC 환경 권장 안내 팝업 모달 렌더링:
+       - 헤드라인: 서비스 이용 안내 (💻 아이콘)
+       - 강조 문구: `DPYB는 PC 환경에서 훨씬 쾌적하게 이용하실 수 있습니다.`
+       - 상세 설명: 3D 인터랙티브 서재와 AI 사서 대화, 3단계 독서 토론 및 집중 타이머 등 DPYB의 모든 핵심 기능 최적화 안내
+       - 액션: [오늘 하루 보지 않기] 체크박스 및 [확인] 버튼, 우측 상단 닫기(✕) 버튼.
+  2. `app/pages/LoginPage.css`:
+     - `.login-notice-backdrop`, `.login-notice-modal`, `.login-notice-highlight`, `.login-notice-confirm-btn` 등 DPYB 레트로 코지/글래스모피즘 스타일 및 반응형 모바일 뷰포트 레이아웃 구현 (`z-index: 100`).
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 대화창 기본 모드 내 서재(library) 지정 및 탭 모드 전환 롤백 결함 수정
 - 작업 브랜치: `fix/default-library-mode-and-tab-switching`
 - **사용자 요청**:
@@ -92,32 +114,6 @@
   3. `app/features/room/LibrarianChat.jsx`:
      - 모바일 열림 시 `<div className="lc-mobile-backdrop" onClick={() => setOpen(false)} />` 렌더링.
      - `sendQuery` 함수 전체를 `try { ... } finally { if (!controller.signal.aborted) setLoading(false); }`로 감싸 어떤 경우에도 `loading` 상태 해제 보장.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 사서 대화 세션 캐시 사용자/모드별 격리 및 상태 누수(State Leaking) 결함 해결
-- 작업 브랜치: `fix/chat-session-isolation-per-user-mode`
-- **사용자/백엔드 요청**:
-  - 현상: 회원 계정(`dpyb`)의 토론 답변/메시지 내역이 로그아웃 후 게스트(체험하기) 대화 추천 모드에 그대로 노출되는 클라이언트 상태 누수(State Leaking) 결함 해결.
-- **원인 분석**:
-  1. `app/store/librarianStore.js`의 세션스토리지 키(`myReadingRoom.chatSession.${librarianId}`)에 `memberId` 및 `mode` 구분이 없어 모든 사용자와 대화/토론 모드가 단일 캐시 키를 공유.
-  2. `clearChatSession()`이 단일 키(`myReadingRoom.chatSession`)만 `removeItem`하여 접미사 키(`myReadingRoom.chatSession.cat` 등)가 브라우저에 영구 잔존.
-  3. 로그아웃 또는 게스트 로그인 시 이전 회원의 캐시가 클리어되지 않아 게스트 진입 시 브라우저가 이전 회원 토론 내역을 그대로 복원.
-- **작업 내용**:
-  1. `app/store/librarianStore.js`:
-     - 세션 스토리지 키 격리 패턴 도입: `myReadingRoom.chatSession.{memberId || 'guest'}.{mode || 'chat'}.{librarianId}` (`getChatSessionStorageKey`).
-     - `loadSavedChatSessionByLibrarian`, `saveChatSessionByLibrarian`, `clearChatSessionByLibrarian`에 `memberId`와 `mode` 파라미터 지원.
-     - `clearChatSession()` 일괄 정리 로직 개선: `sessionStorage` 순회를 통해 `myReadingRoom.chatSession` 접두사로 시작하는 모든 키를 완벽히 일괄 제거.
-  2. `app/store/AuthProvider.jsx`:
-     - `login`, `loginWithGoogle`, `loginWithKakao`, `loginAsGuest` 호출 시 `clearChatSession()`을 선제 실행하여 계정 전환/게스트 진입 시 잔존 캐시 완벽 차단.
-     - `logout` 및 `onSessionExpired` 시 `clearChatSession()` 연동 보장.
-  3. `app/features/room/LibraryScene.jsx` & `LibrarianChat.jsx`:
-     - `useAuth`로부터 현재 로그인 사용자 식별자(`currentUserId: member_id || 'guest'`)를 획득하여 사서별/모드별 세션 로드 및 저장 시 정확한 격리 키 전달.
-     - 사용자 변경 및 사서 변경(`[librarian?.id, currentUserId]`) 시 안전한 세션 복원 및 빈 세션 초기화 연동.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
