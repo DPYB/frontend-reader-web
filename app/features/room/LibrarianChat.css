@@ -1058,4 +1058,318 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
+}
+
+/* --------------------------------------------------------------------------
+   LibrarianChat Subcomponent & Layout Styles
+   -------------------------------------------------------------------------- */
+
+.lc-chat-toggle-wrap {
+  position: fixed;
+  right: min(16px, 2vw);
+  bottom: min(16px, 2vh);
+  z-index: 20;
+  font-size: 17px;
+}
+
+.lc-chat-toggle-icon {
+  font-size: 20px;
+}
+
+.lc-chat-panel {
+  position: fixed;
+  right: min(16px, 2vw);
+  bottom: min(16px, 2vh);
+  z-index: 20;
+  width: min(340px, calc(100vw - 32px));
+  font-size: 17px;
+  background: var(--bubble-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text-h);
+  height: auto;
+  min-height: min(460px, calc(100vh - 173px));
+  max-height: min(700px, calc(100vh - 173px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lc-chat-panel.mobile {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 10px;
+  right: 10px;
+  max-width: 440px;
+  margin: 0 auto;
+  z-index: 120;
+  max-height: calc(100dvh - 58px - env(safe-area-inset-top, 0px) - 2mm - 16px - env(safe-area-inset-bottom, 0px));
+  min-height: min(360px, calc(100dvh - 120px));
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.lc-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.lc-chat-header-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-h);
+}
+
+.lc-chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lc-help-btn-wrap {
+  position: relative;
+}
+
+.lc-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  cursor: help;
+  user-select: none;
+}
+
+.lc-help-popover {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  width: 230px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  line-height: 1.5;
+  font-size: 12px;
+  z-index: 50;
+  color: var(--text);
+}
+
+.lc-help-popover.debate-mode {
+  width: 260px;
+}
+
+.lc-weather-badge-wrap {
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.lc-switch-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-size: 13px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.lc-switch-tip-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.lc-messages-loading-box {
+  margin-bottom: 8px;
+  background: var(--code-bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.lc-chat-books-card-box {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: var(--code-bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  max-height: 160px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.lc-chat-books-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.lc-chat-books-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lc-chat-book-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.lc-chat-book-item-info {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.lc-chat-book-item-title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.lc-chat-book-item-author {
+  font-size: 15px;
+  color: var(--text);
+  margin-left: 4px;
+}
+
+.lc-chat-book-item-status {
+  font-size: 14px;
+  color: var(--accent);
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.lc-chat-book-open-btn {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border, var(--accent));
+  background: var(--accent-bg, rgba(0, 229, 255, 0.1));
+  color: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lc-chat-book-reg-btn {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border, var(--accent));
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lc-chat-input-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lc-chat-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.lc-chat-input-field {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--answer-border);
+  background: var(--answer-bg);
+  color: var(--text-h);
+  font-size: 14px;
+  outline: none;
+}
+
+.lc-chat-input-field:disabled {
+  opacity: 0.6;
+}
+
+.lc-chat-input-submit-btn {
+  padding: 0 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 16px;
+  transition: opacity 0.15s ease;
+}
+
+.lc-chat-input-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lc-chat-input-counter {
+  align-self: flex-end;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.lc-chat-input-counter.max-exceeded {
+  color: #e05a4e;
+}
+
+.lc-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 85;
+}
+
+.lc-mobile-fab-wrap {
+  position: fixed;
+  z-index: 90;
+  touch-action: none;
+}
+
+.lc-mobile-menu-popup {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 240px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 90;
+  animation: lcMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
