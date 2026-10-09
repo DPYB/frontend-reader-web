@@ -9,6 +9,7 @@ import ScrapGallery from './ScrapGallery'
 import ReadingTimerModal from './ReadingTimerModal'
 import ReadingSessionHistory from './ReadingSessionHistory'
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage'
+import { useResponsive } from '../../hooks/useResponsive'
 
 const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
 
@@ -49,15 +50,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
   const [detail, setDetail] = useState(null) // 서버 상세(전체 메타 — 저장 시 full payload에 필요)
   const [saving, setSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768)
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  const { isUnifiedMobileUX: isMobile } = useResponsive()
   // 우측 문장 갤러리의 편집 내용을 "완료" 시 함께 저장하기 위한 핸들 (CLIAR-241)
   const galleryRef = useRef(null)
 

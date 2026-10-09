@@ -28,6 +28,7 @@ import {
 } from './shelfLayout';
 import { getColorPresets } from '../register/ocrUtils';
 import { getColorIndex } from './bookExtractor';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const isDev = import.meta.env.DEV;
 const CALIB_KEY_PREFIX = 'myReadingRoom.calibration';
@@ -308,15 +309,7 @@ export default function LibraryScene() {
 
   // 사서(librarianId)가 변경되면 커서 말풍선도 해당 사서의 저장된 마지막 응답(또는 null)으로 즉시 교체
   const prevSceneLibrarianRef = useRef(librarianId);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
   useEffect(() => {
     if (prevSceneLibrarianRef.current !== librarianId) {
       prevSceneLibrarianRef.current = librarianId;

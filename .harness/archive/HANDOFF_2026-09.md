@@ -1,5 +1,21 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-07: 하네스 문서 슬림화, 롤링 아카이빙 및 Node.js 자동 검증 체계 구축
+- 작업 브랜치: `feat/harness-slim-and-verification`
+- **사용자 요청**: DPYB 표준 하네스 규격(backend-ai-agent#59)을 이식하여 하네스 문서 슬림화 및 Node.js 기반 자동 검증 체계 구축.
+- **작업 내용**:
+  1. `.harness/archive/HANDOFF_2026-09.md`: 2026-09-29 이전 세션 로그 백업 아카이빙 및 본문 83줄 슬림화.
+  2. `scripts/check_harness.mjs`: 순수 Node 내장 모듈 기반 하네스 규격(세션 수, 라인 수, 용량, 타 레포 격리) 자동 검증 스크립트 작성 및 실행 권한 부여.
+  3. `package.json`: `npm run check:harness` 스크립트 등록.
+  4. `.agyignore` 및 `.claude/settings.json`: 토큰 보호를 위한 아카이브 읽기 차단 설정 추가.
+  5. `AGENTS.md`: 1~3절 DPYB 표준 규격 동기화, `npm run check:harness` 지침 추가 (React 19/Vite 및 3단계 계층형 검증 보존).
+  6. `.github/workflows/ci.yml`: checkout 직후 하네스 규격 자동 검증 스텝 연동.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 318ms)
+
 ## 2026-10-02: 월간 독서 리포트 가짜 목데이터 제거 및 정직한 Empty State & 게스트 배너 연동
 - 작업 브랜치: `feat/monthly-report-real-data-and-empty-state`
 - **사용자 요청**: 월간 독서 리포트에서 백엔드 실제 데이터가 아니라 칼 세이건 《코스모스》 등 가짜 목데이터가 강제로 뜨는 문제 해결 및 게스트 모드 공용 서재 연동 고려.

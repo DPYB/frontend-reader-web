@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 디스플레이 규격별 UI/UX 가이드라인 수립 및 표준 반응형 훅 도입 (태블릿~모바일 터치 통합)
+- 작업 브랜치: `feat/responsive-tablet-mobile-unification`
+- **사용자 요청**: 디스플레이 규격별 UI 가이드라인 수립 및 노트북/데스크톱이 아닌 환경(스마트폰부터 12.9" 대형 태블릿까지)을 모바일 터치 통합 UI/UX로 일원화.
+- **작업 내용**:
+  1. `docs/UI_RESPONSIVE_GUIDELINE.md` 공식 가이드라인 문서 작성:
+     - Desktop/Laptop (마우스·키보드 전용) vs Mobile & Tablet (스마트폰 ~ 12.9" 대형 태블릿 터치 통합) 인터랙션 이원화 설계.
+     - 뷰포트 규격, 포인터 감지(`pointer: coarse`), 3D 서재(선반 탭 셀렉터 & 바텀시트), 플로팅 사서 FAB, 단일 열 수직 스크롤 폼 규격 정립.
+  2. `app/hooks/useResponsive.js` 표준 반응형 훅 구현:
+     - 뷰포트 너비 및 터치 환경(`pointer: coarse`, `ontouchstart`, `maxTouchPoints`) 기반 `isUnifiedMobileUX` 플래그 제공.
+  3. 6개 핵심 컴포넌트 하드코딩(`innerWidth <= 768`) 제거 및 일원화:
+     - `LibrarianChat.jsx`: 플로팅 FAB & 바텀시트 챗봇
+     - `LibraryScene.jsx`: 선반 탭 셀렉터 & 3D 서재 조작
+     - `SentenceCollectModal.jsx`: 수직 1열 스크롤 & 문장 OCR 모달
+     - `BookDetail.jsx`: 모바일/태블릿 맞춤 1열 도서 상세 모달
+     - `RegisterBook.jsx`: 카메라/앨범 스캔 및 도서 등록 폼
+     - `ScrapGallery.jsx`: 수직 카드 스크롤 갤러리
+  4. `README.md`에 가이드라인 링크 및 핵심 요약 추가.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: AI 사서 대화(LibrarianChat) 서브 컴포넌트 모듈화 및 인라인 스타일 분리
 - 작업 브랜치: `feat/modularize-librarian-chat`
 - **사용자 요청**: 추천 3단계 작업으로 프론트엔드 최대 파일(82KB, 1950줄)이었던 `LibrarianChat.jsx`의 서브 컴포넌트 모듈화 및 80여 개 인라인 스타일을 전면 클래스화하여 유지보수성 및 코드 가독성 개선.
@@ -91,18 +114,3 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle built in 3.74s)
 
-## 2026-10-07: 하네스 문서 슬림화, 롤링 아카이빙 및 Node.js 자동 검증 체계 구축
-- 작업 브랜치: `feat/harness-slim-and-verification`
-- **사용자 요청**: DPYB 표준 하네스 규격(backend-ai-agent#59)을 이식하여 하네스 문서 슬림화 및 Node.js 기반 자동 검증 체계 구축.
-- **작업 내용**:
-  1. `.harness/archive/HANDOFF_2026-09.md`: 2026-09-29 이전 세션 로그 백업 아카이빙 및 본문 83줄 슬림화.
-  2. `scripts/check_harness.mjs`: 순수 Node 내장 모듈 기반 하네스 규격(세션 수, 라인 수, 용량, 타 레포 격리) 자동 검증 스크립트 작성 및 실행 권한 부여.
-  3. `package.json`: `npm run check:harness` 스크립트 등록.
-  4. `.agyignore` 및 `.claude/settings.json`: 토큰 보호를 위한 아카이브 읽기 차단 설정 추가.
-  5. `AGENTS.md`: 1~3절 DPYB 표준 규격 동기화, `npm run check:harness` 지침 추가 (React 19/Vite 및 3단계 계층형 검증 보존).
-  6. `.github/workflows/ci.yml`: checkout 직후 하네스 규격 자동 검증 스텝 연동.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle built in 318ms)

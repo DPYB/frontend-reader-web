@@ -2,6 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'r
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
 import { SCRAP_PAGE_SIZE } from '../../api/bookApi';
+import { useResponsive } from '../../hooks/useResponsive';
 import './ScrapGallery.css';
 
 /**
@@ -41,16 +42,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   const [selectedScrapId, setSelectedScrapId] = useState(null);
   const [editingScrapId, setEditingScrapId] = useState(null);
   const [savingScrapId, setSavingScrapId] = useState(null);
-
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
 
   // 수정 중인 값 { [scrapId]: { text, memo, page } }
   const [drafts, setDrafts] = useState({});

@@ -9,6 +9,7 @@ import WebcamCaptureModal from './WebcamCaptureModal';
 // [크롭 모달 임시 비활성화] 재활성화 시 하단 주석과 함께 이 import도 복원
 // import ImageCropModal from '../../components/ImageCropModal';
 import LoadingSequence from '../../components/LoadingSequence';
+import { useResponsive } from '../../hooks/useResponsive';
 
 
 /**
@@ -63,7 +64,7 @@ export default function SentenceCollectModal({ book, onClose }) {
   // backend-book이 scrapImageUrl을 필수로 요구하므로, 저장 시 이 값을 함께 보낸다.
   // 새 문장은 스캔을 해야 이 값이 생기고, 값이 없으면 저장할 수 없다.
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
 
   // 책의 현재 독서 진행 페이지 번호 및 페이지 확인 모달 상태
   const [currentBookPage, setCurrentBookPage] = useState(() => Number(book?.currentPage ?? book?.current_page ?? 0));
@@ -82,14 +83,6 @@ export default function SentenceCollectModal({ book, onClose }) {
         .catch(() => {});
     }
   }, [book]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // 문장 목록 로드 (서버)
   const reloadQuotes = useCallback(async () => {
