@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 회원가입 및 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 결함 수정
+- 작업 브랜치: `fix/signup-password-masking-bullet-visibility`
+- **사용자 요청**:
+  - 회원가입(`SignupPage`) 및 비밀번호 재설정(`PasswordReset`) 입력란에서 비밀번호 보기 기능이 꺼져 있을 때(`type="password"`), 글자를 몇 자 입력했는지 마스킹 불릿 점(`•`)조차 보이지 않아 작성 중인지 인지하기 어려운 결함 해결.
+- **원인 분석**:
+  - `index.css` 전역에서 `button, input, textarea, select`에 `font-family: inherit` (`--sans`: `Chau Philomene One`, `Memoment Kkukkukk`)을 상속하도록 설정되어 있음.
+  - 커스텀 폰트(`Chau Philomene One`, `Memoment Kkukkukk`)에는 브라우저 기본 비밀번호 마스킹 문자(불릿 `•` / `●`, U+2022) 글리프가 없거나 0-width로 렌더링되어, `type="password"` 상태에서 입력된 마스킹 문자가 화면상에 완전히 투명/공백으로 표시되는 현상 발생.
+- **작업 내용**:
+  1. `app/index.css`:
+     - 전역 `input[type='password']`에 시스템 산세리프 폰트 스택(`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif`) 및 `letter-spacing: 2px`을 적용하여 전역 모든 비밀번호 입력란에서 마스킹 불릿이 선명하게 렌더링되도록 보장.
+  2. `app/pages/SignupPage.css`:
+     - `.signup-field input[type='password']`, `.signup-pw-input-wrap input[type='password']`에 시스템 산세리프 폰트와 `letter-spacing: 2px`을 명시적으로 적용.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 회원가입 버튼 활성화, 서비스 이용 가이드 슬라이드 줌인 및 모바일 채팅 FAB 5번째 메뉴 추가
 - 작업 브랜치: `feat/signup-button-guide-zoom-and-mobile-fab-menu`
 - **사용자 요청**:
@@ -86,32 +105,6 @@
      - `prevLibrarianIdRef`, `prevUserIdRef`를 도입하여 실제 사서나 로그인 계정이 변경되었을 때만 세션 복원 및 기본 모드(`'library'`) 리셋이 수행되도록 방어.
      - 탭 전환(`handleChangeMode`) 시 `chatMode`가 안정적으로 유지되고 사용자 선택 모드로 즉각 전환되도록 보장.
   2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 모바일 채팅 FAB 미니 메뉴 백드롭 z-index 계층 분리 및 터치 인터랙션 정상화
-- 작업 브랜치: `fix/mobile-chat-menu-backdrop-layering`
-- **사용자 요청**:
-  - 모바일에서 사서 채팅 FAB 버튼 클릭 시 미니 메뉴가 배경과 동일하게 블러 처리되고 메뉴 아이템 선택이 안 되는 결함 해결.
-- **원인 분석**:
-  1. `MobileChatFAB.jsx`에서 미니 메뉴 팝업 오픈 시 사용하는 백드롭 클래스가 대화 패널 전용 백드롭(`.lc-mobile-backdrop`, `z-index: 110`)으로 바인딩되어 있었음.
-  2. 미니 메뉴 컨테이너(`.lc-mobile-fab-wrap`, `z-index: 85`/`90`)보다 백드롭(`z-index: 110`)이 더 높은 z-index로 렌더링되어 미니 메뉴 전체가 백드롭 블러(`backdrop-filter: blur(2px)`) 아래로 가려짐.
-  3. 사용자가 메뉴 항목(사서와 대화하기, 타이머, 프로필, 테마 토글)을 터치할 때 최상위 백드롭(`z-index: 110`)이 탭 이벤트를 가로채 메뉴가 닫히기만 하고 항목 선택이 불가했음.
-- **작업 내용**:
-  1. `app/features/room/chat/MobileChatFAB.jsx`:
-     - 미니 메뉴 전용 백드롭 클래스를 `lc-mobile-menu-backdrop` (`z-index: 84`)으로 정확히 분리.
-     - 메뉴 오픈 시 `.lc-mobile-fab-wrap`에 `menu-open` 클래스를 부여하여 백드롭 상단으로 완벽 부상.
-  2. `app/features/room/LibrarianChat.css`:
-     - z-index 레이어링 재정립:
-       - `.lc-mobile-menu-backdrop`: `z-index: 84` (3D 서재 및 일반 FAB 상단)
-       - `.lc-mobile-fab-wrap.menu-open`: `z-index: 95` (메뉴 백드롭 상단)
-       - `.lc-mobile-mini-menu`, `.lc-mobile-menu-popup`: `z-index: 100` (최상위 인터랙션)
-     - `.lc-mobile-menu-item`에 `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`, `user-select: none` 적용하여 모바일 터치 반응성 보장.
-     - 파일 하단에 중복 선언되어 있던 레거시 `.lc-mobile-fab-wrap`, `.lc-mobile-menu-popup` CSS 블록 정리.
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
