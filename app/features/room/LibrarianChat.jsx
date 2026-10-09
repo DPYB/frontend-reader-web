@@ -161,7 +161,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [clickMotion, setClickMotion] = useState(false);
 
   // 대화 모드: 'library'(내 서재 조회, 기본값) | 'chat'(일반 대화 및 도서 추천) | 'debate'(AI 독서 토론)
   const [chatMode, setChatMode] = useState('library');
@@ -330,8 +329,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
     // 드래그하지 않고 가볍게 탭/클릭한 경우: 모바일 미니 메뉴 토글
     if (!dragRef.current.hasMoved) {
       setShowMobileMenu((prev) => !prev);
-      setClickMotion(true);
-      setTimeout(() => setClickMotion(false), 500);
     }
   };
 
@@ -870,7 +867,6 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         setOpen={setOpen}
         librarian={librarian}
         librarianNames={librarianNames}
-        clickMotion={clickMotion}
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
         fabPos={fabPos}

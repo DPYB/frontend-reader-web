@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 모바일 채팅 버튼 아바타 깜빡임 제거 및 미니 메뉴 좌측 정렬(오버플로 방지) 개선
+- 작업 브랜치: `fix/mobile-chat-fab-image-and-menu-position`
+- **사용자 요청**:
+  - 모바일에서 채팅 FAB 버튼 클릭 시 아바타 이미지가 계속 바뀌며 깜빡이는 결함 수정.
+  - 미니 퀵 액션 메뉴가 상단 우측으로 치우쳐져 화면 밖으로 넘어가던 문제를 좌측 정렬(뷰포트 안쪽으로 자연스럽게 전개)되도록 개선.
+- **원인 분석**:
+  1. **아바타 깜빡임**: `MobileChatFAB.jsx`에서 `isSpecialMotion && librarian.imageHover` 분기 처리로 인해, 사용자가 FAB 터치 시 `clickMotion`(500ms) 동안 `imageHover` 커서 gif/webp로 교체되었다가 다시 `profileImage`로 되돌아가는 깜빡임 발생.
+  2. **메뉴 우측 치우침/오버플로**: `.lc-mobile-menu-popup`에 `right: 0` 또는 좌우 정렬 클래스가 누락되어 기본 `left: 0`으로 렌더링되면서 우측 하단 FAB에서 오른쪽 바깥으로 240px 메뉴가 튀어나가 화면에 잘리고 우측으로 치우침.
+- **작업 내용**:
+  1. `app/features/room/chat/MobileChatFAB.jsx`:
+     - 원형 FAB 아바타 `src`를 `librarian.profileImage || librarian.image`로 고정하여 터치 시 이미지 전환 깜빡임 제거.
+     - FAB 위치(`fabPos.x`)에 따라 화면 좌측/우측을 동적으로 판별하는 `menuAlignClass`(`align-left` / `align-right`) 적용.
+  2. `app/features/room/LibrarianChat.css`:
+     - `.lc-mobile-mini-menu`, `.lc-mobile-menu-popup`의 기본 정렬을 `right: 0`, `transform-origin: bottom right`로 설정하여 우측에 위치한 버튼 기준으로 메뉴가 좌측(화면 안쪽)으로 깔끔하게 펼쳐지도록 개선.
+     - `.align-left`(`left: 0; right: auto`), `.align-right`(`right: 0; left: auto`) 클래스 매핑 완비.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 로그인 페이지 접속 시 PC 환경 권장 이용 안내 팝업 모달 추가
 - 작업 브랜치: `feat/login-pc-environment-notice-modal`
 - **사용자 요청**:
@@ -87,34 +109,6 @@
        - 5/6: '독서 타이머 & 집중 모드'
        - 6/6: '사서와의 대화 & 추천'
   2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 모바일 사서 대화창 뷰포트 줌 방지, 내부 스크롤 보장 및 탭 터치 인터랙션 개선
-- 작업 브랜치: `fix/mobile-chat-zoom-and-interaction`
-- **사용자 요청**:
-  - 모바일에서 대화·추천 모드 사용 시 뷰포트가 갑자기 줌인되어 채팅창을 나가거나 내부 스크롤이 불가능해지는 현상 및 내 서재/토론 모드 탭 클릭 불가 현상 해결.
-- **원인 분석**:
-  1. **모바일 뷰포트 자동 줌(Auto-Zoom)**: iOS Safari/웹킷 브라우저는 `font-size < 16px`인 `<input>`/`<textarea>` 포커스 시 화면을 강제 확대하며, 확대 시 `position: fixed` 요소가 화면 밖으로 벗어나 탭과 닫기 버튼 터치가 불가능해짐.
-  2. **스크롤 컨테이너 CSS 누락**: `LibrarianChat.jsx`에서 바디 래퍼로 렌더링하던 `.lc-content-body`의 CSS 정의가 누락되어 패널 내부 메시지 리스트에 독립적인 스크롤 컨텍스트가 생성되지 않음.
-  3. **모바일 백드롭 오버레이 부재**: 모바일 채팅 패널 오픈 시 패널 외 영역 터치로 닫을 수 있는 전용 백드롭(`lc-mobile-backdrop`)이 없어 탈출이 어려움.
-  4. **스트리밍 완료 후 loading 상태 잠김 방어**: `streamResult` 반환 시점의 예외 상황에서 `loading` 상태가 풀리지 않을 경우 모드 탭 클릭이 차단될 위험 방어.
-- **작업 내용**:
-  1. `index.html`:
-     - 뷰포트 메타 태그에 `maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content` 추가하여 가상 키보드 및 포커스 시 비정상 줌 방지.
-  2. `app/features/room/LibrarianChat.css`:
-     - `.lc-content-body` 스크롤 컨테이너 정의: `flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; touch-action: pan-y;`.
-     - 입력창 폰트 크기 표준화: `.lc-chat-input-field`, `.lc-library-search-input`, `.lc-debate-book-search-input`의 `font-size: 16px` 적용으로 모바일 줌 원천 차단.
-     - 탭 터치 인터랙션 강화: `.lc-mode-tabs` 및 `.lc-mode-tab`에 `flex-shrink: 0`, `min-height: 36px`, `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent` 적용.
-     - `.lc-mobile-backdrop` 오버레이 추가 (`z-index: 110`, 바깥 탭 시 자동 닫힘).
-     - 모바일 패널 높이를 `height: min(580px, calc(100dvh - 90px))`로 세로 플렉스 컨테이너화하여 키보드/하단바 간섭 방지.
-  3. `app/features/room/LibrarianChat.jsx`:
-     - 모바일 열림 시 `<div className="lc-mobile-backdrop" onClick={() => setOpen(false)} />` 렌더링.
-     - `sendQuery` 함수 전체를 `try { ... } finally { if (!controller.signal.aborted) setLoading(false); }`로 감싸 어떤 경우에도 `loading` 상태 해제 보장.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
