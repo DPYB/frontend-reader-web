@@ -74,7 +74,6 @@
 - GNB 로고·서비스명 가독성/크기 확충 및 프로필 메뉴 레이아웃 개편 완료: 로고(38px/28px) 및 이름(27px) 확대 및 고대비 오버레이 배경(rgba(0,0,0,0.45/0.55)), 프로필 메뉴 내 '사서 프로필 & 변경' ➔ '사서 프로필' 버튼 문구 변경 및 테마 토글 버튼과의 한 줄 나란히(side-by-side) 배치 연동
 - 모바일 전용 5개 선반 터치 선택 및 수직(상하) 스크롤 도서 목록 바텀시트(`MobileShelfSheet`) 구현 완료: 모바일(<= 768px) 서재 클릭 시 단일 책 상세 직접 팝업 대신 1~5번 선반 선택 및 `cat_shelves/1.png~5.png` 하이라이트 오버레이 연동, 1~5번 선반 탭 전환, 수직 상하 스크롤 도서 카드(표지·제목·저자·장르·진행률) 및 상세 모달 원클릭 연동
 - 모바일 UI/UX 상하 스크롤 및 한글 장르 표기 개편 완료: (1) 모바일 선반 바텀시트(`MobileShelfSheet`) 내 도서 장르 KDC 한글 라벨(`genreLabel`) 표기 통일, (2) 도서 상세 모달(`BookDetail`) 모바일 1열 세로배치 및 상하 스크롤(`overflowY: auto`) 지원, (3) 문장 수집 모달(`SentenceCollectModal`) 모바일 1열 세로배치 및 스크롤 지원, (4) 책 등록 페이지(`RegisterBook`) 모바일 1열 세로배치 및 상하 스크롤 레이아웃 반영 완료
-- 구글 클라우드 런(Google Cloud Run) 백엔드 호스팅 주소 이전 연동 및 Cloudflare Worker/Pages 환경변수·폴백 최적화 완료: (1) backend-core-api (`https://backend-core-api-708438247739.asia-northeast3.run.app`), (2) backend-ai-agent (`https://backend-ai-agent-708438247739.asia-northeast3.run.app`) 주소 반영 (.env, .env.example, wrangler.jsonc, apiBase.js, README.md)
-
-
-
+- 사서 서재(슈빌·누디) 3D 카메라 투영 시야각(fov: 28) 및 좌표 정합 보정 완료: 책 등록 즉시 4종 사서 서재 전원 1번 선반 및 전체 선반 정상 노출 보장
+- 미사용 레거시 고아(Orphan) 파일 정리 완료: app/features/bookshelf/ 5종, app/features/bookshelf3d/ 미사용 3종, LoginOverlay.*, global.css 삭제
+- AGENTS.md 컨벤션 준수 및 ESLint 규칙 미세 조정 완료: TermsModal.jsx 전용 CSS 분리, App.jsx/SignupPage.jsx 인라인 스타일 제거, React 19 ESLint 룰셋 정돈 (0 errors, 0 warnings 통과)

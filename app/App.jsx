@@ -20,7 +20,7 @@ const PasswordReset = lazy(() => import('./pages/PasswordReset'));
 
 function PageLoader() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', color: 'var(--text-h)', fontSize: 16 }}>
+    <div className="page-loader">
       페이지를 불러오는 중입니다... 🐾
     </div>
   );

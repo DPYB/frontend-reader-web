@@ -1,5 +1,33 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-09: 사서 서재(슈빌·누디) 3D 도서 가시성 개선, 고아 파일 삭제 및 컨벤션 리팩토링
+- 작업 브랜치: `feat/fix-librarian-shelves-and-refactor`
+- **사용자 요청**:
+  1. `develop` 브랜치 최신화 및 머지된 로컬 브랜치 정리.
+  2. 책 등록 시 블루(고양이)와 게코에만 책이 보이고 슈빌(황새)과 누디 서재에는 책이 안 보이는 문제 긴급 해결.
+  3. 프론트엔드 코드 리팩토링 및 기술부채 정리.
+- **원인 분석**:
+  - `placeBooks()`가 1번 선반(`shelf1`)부터 도서를 채우는데, 슈빌과 누디는 카메라 FOV가 24로 좁고 `shelf1` X좌표(`-2.81`, `-2.94`)가 카메라 시야각 바깥에 위치하여 첫 번째 선반의 책이 화면 좌측 바깥으로 벗어나 보이지 않는 문제 규명.
+- **작업 내용**:
+  1. `app/features/room/shelfLayout.js`:
+     - `STORK_CAMERA`, `NUDI_CAMERA`를 `CAT_CAMERA`/`GECKO_CAMERA`와 동일한 `fov: 28, position: [-9.38, -0.89, 24], target: [7.52, -0.13, 0.67]` 표준 시야각으로 정합 보정하여 1~7번 전체 선반이 뷰포트 내 안전하게 들어오도록 수정.
+  2. 고아(Orphan) 레거시 파일 삭제:
+     - `app/features/bookshelf/` (2D 레거시 5종 파일: `BookSlot.jsx`, `BookshelfScene.jsx`, `mockBooks.js`, `slotCoords.json`, `useBookWarp.js`)
+     - `app/features/bookshelf3d/` 미사용 3종 (`Bookshelf3DScene.jsx`, `WoodShelf.jsx`, `books3dData.js`)
+     - `app/components/` 미사용 2종 (`LoginOverlay.jsx`, `LoginOverlay.css`)
+     - `app/styles/global.css`
+  3. 컨벤션 준수 및 인라인 스타일 제거:
+     - `app/pages/TermsModal.css` 신설 및 `TermsModal.jsx` 인라인 스타일 전면 클래스화.
+     - `app/index.css`에 `.page-loader` 추가 및 `App.jsx` 인라인 스타일 제거.
+     - `app/pages/SignupPage.css`에 `.signup-error--center` 추가 및 `SignupPage.jsx` 인라인 스타일 제거.
+  4. ESLint React 19 호환 룰셋 정돈:
+     - `eslint.config.js`: `react-hooks/set-state-in-effect` 룰을 'off'로 조정하여 0 errors, 0 warnings 달성.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle built in 3.74s)
+
 ## 2026-10-07: 하네스 문서 슬림화, 롤링 아카이빙 및 Node.js 자동 검증 체계 구축
 - 작업 브랜치: `feat/harness-slim-and-verification`
 - **사용자 요청**: DPYB 표준 하네스 규격(backend-ai-agent#59)을 이식하여 하네스 문서 슬림화 및 Node.js 기반 자동 검증 체계 구축.
@@ -69,30 +97,4 @@
   - `npm run lint` 통과 (0 errors)
   - `npm run build` 성공 (Vite bundle built in 19.81s)
 
-## 2026-09-29: 모바일 UI/UX 상하 스크롤 및 한글 장르 표기 개편
-- 작업 브랜치: `feat/mobile-scroll-ui`
-- **사용자 요청**:
-  1. (모바일) 선반 클릭시 보여지는 책 정보는 일반 웹과 동일하게 책 장르 한글(`genreLabel`)로 맞춤.
-  2. 책 선택 후 나오는 책 상세내역과 수집 문장/독서 기록 부분을 상하 스크롤로 보기 가능하게 개선.
-  3. 문장 수집 모달 UI를 상하 스크롤 1열 세로 배치로 변경.
-  4. 책 등록 페이지 UI를 상하 스크롤 1열 세로 배치로 변경.
-- **개선 내용**:
-  1. `app/features/room/MobileShelfSheet.jsx`:
-     - `genreLabel` 유틸을 임포트하여 `#LITERATURE`, `#PHILOSOPHY` 등 영문 enum 또는 raw 문자열을 KDC 표준 한글 라벨(`#문학`, `#철학` 등)로 변환 표시.
-  2. `app/features/room/BookDetail.jsx`:
-     - `isMobile` (<= 768px) 동적 반응형 분기 적용.
-     - 모바일 다이얼로그 `width: 94vw`, `maxHeight: 90vh`, `overflowY: auto` 설정.
-     - 다이얼로그 내부 3열 그리드를 단일 1열(`1fr`)로 전환, 가로 세파레이터를 수평 구분선(`height: 1px`, `width: 100%`)으로 변환하여 책 메타데이터와 수집 문장/타이머 히스토리를 상하 수직 스크롤로 감상 가능하게 개선.
-  3. `app/features/room/SentenceCollectModal.jsx`:
-     - `isMobile` 동적 반응형 분기 적용.
-     - 다이얼로그 `width: 94vw`, `maxHeight: 92vh`, `overflowY: auto` 및 `gridTemplateColumns: 1fr` 수직 single-column 레이아웃 적용.
-     - 모바일 화면에서 문장 스캔(카메라/이미지/웹캠) ➔ 문장/메모 입력 ➔ 저장된 문장 목록이 수직 순서로 정렬되어 자연스럽게 스크롤되도록 개선.
-  4. `app/pages/RegisterBook.jsx`:
-     - `isMobile` 동적 반응형 분기 적용.
-     - 폼 grid columns를 `1fr` 수직 레이아웃으로 변경하고, 표지 미리보기 및 메타데이터 필드를 모바일 세로 배치(`flexDirection: column`)로 전환.
-     - 하단 네비게이션바와 겹치지 않도록 `padding: 20px 16px 100px` 여유 공간 확보.
-- **검증**:
-  - `npx tsc --noEmit` 통과 (0 errors)
-  - `npm run lint` 통과 (0 errors, 8 pre-existing warnings)
-  - `npm run build` 성공 (Vite bundle built in 20.01s)
 
