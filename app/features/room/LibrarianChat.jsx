@@ -124,7 +124,7 @@ function getRecommendationLoadingMessage(librarianId) {
 /**
  * LibrarianChat — 오른쪽 하단 질문 입력 패널 및 사서 인터랙션.
  */
-export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange, onOpenTimer }) {
+export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange, onOpenTimer, onOpenGuide }) {
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const { theme, setTheme } = useTheme();
@@ -872,6 +872,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
         fabPos={fabPos}
         onFabPointerDown={handleFabPointerDown}
         onOpenTimer={onOpenTimer}
+        onOpenGuide={onOpenGuide}
         theme={theme}
         setTheme={setTheme}
         navigate={navigate}

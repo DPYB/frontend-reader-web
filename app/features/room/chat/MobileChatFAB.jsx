@@ -9,6 +9,7 @@ export default function MobileChatFAB({
   fabPos,
   onFabPointerDown,
   onOpenTimer,
+  onOpenGuide,
   theme,
   setTheme,
   navigate,
@@ -119,6 +120,22 @@ export default function MobileChatFAB({
                 <div className="lc-mobile-menu-item-text">
                   <strong>{theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}</strong>
                   <span>{theme === 'dark' ? '밝고 화사한 화면' : '눈이 편안한 밤 화면'}</span>
+                </div>
+              </button>
+              {/* 5. 서비스 이용 가이드 */}
+              <button
+                type="button"
+                className="lc-mobile-menu-item"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  if (onOpenGuide) onOpenGuide();
+                }}
+                role="menuitem"
+              >
+                <span className="lc-mobile-menu-item-icon">📖</span>
+                <div className="lc-mobile-menu-item-text">
+                  <strong>서비스 이용 가이드</strong>
+                  <span>서재 이용 팁 <span className="lc-ampersand">&amp;</span> 사용 안내</span>
                 </div>
               </button>
             </div>

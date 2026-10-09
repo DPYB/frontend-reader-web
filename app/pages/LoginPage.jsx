@@ -19,7 +19,7 @@ const BUTTONS = [
   {
     id: 'signup',
     src: '/button/signup_btn.webp',
-    tooltip: '회원가입 (BETA 기간 준비 중)',
+    tooltip: '회원가입',
     left: 40.9, top: 61.5, width: 7.8, height: 8.5,
   },
   {
@@ -310,8 +310,10 @@ export default function LoginPage() {
         handleLogin();
         break;
       case 'signup':
+        navigate('/signup');
+        break;
       case 'password':
-        // BETA 테스트 기간 동안 회원가입 및 비밀번호 찾기 비활성화
+        // BETA 테스트 기간 동안 비밀번호 찾기 비활성화
         break;
       case 'eye':
         handleEyeClick();
@@ -328,9 +330,9 @@ export default function LoginPage() {
     }
   };
 
-  /** 버튼별 비활성 조건 — 회원가입/비밀번호찾기(BETA 비활성), 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
+  /** 버튼별 비활성 조건 — 비밀번호찾기(BETA 비활성), 로그인은 입력 검증, 소셜/체험은 요청 중(loading)일 때 잠근다. */
   const isButtonDisabled = (id) => {
-    if (id === 'signup' || id === 'password') return true;
+    if (id === 'password') return true;
     if (id === 'login') return !isLoginEnabled;
     if (id === 'google' || id === 'kakao' || id === 'dpyb') return loading;
     return false;
