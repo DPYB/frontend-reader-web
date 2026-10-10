@@ -1,5 +1,24 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-10: 기본 도서('방구석 미술관') 수정 및 삭제 UI 비활성화 보호
+- 작업 브랜치: `feat/protect-default-book-actions`
+- **사용자 요청**:
+  - `dpyb@gmail.com` 계정에 유일하게 등록된 '방구석 미술관' 도서만 수정 및 삭제 기능(UI 버튼 클릭 불가)을 비활성화.
+  - 이 다음에 새롭게 추가되는 책들은 기존과 동일하게 수정 및 삭제가 가능하도록 유지.
+- **작업 내용**:
+  1. `app/features/room/BookDetail.jsx`:
+     - `useAuth()`에서 `member` 정보를 연동하고, 사용자 이메일(`dpyb@gmail.com` / `dpyb26@gmail.com`) 및 도서명(`방구석 미술관`)을 기반으로 `isProtectedBook` 판별 플래그 산출.
+     - `수정` 버튼: `isProtectedBook`일 때 `disabled`, `cursor: not-allowed`, 흐림(`opacity: 0.45`), 비활성 테두리/텍스트 스타일 및 툴팁(`기본 도서는 수정할 수 없습니다`) 적용.
+     - `삭제` 버튼: `isProtectedBook`일 때 `disabled`, `cursor: not-allowed`, 흐림(`opacity: 0.45`), 비활성 테두리/텍스트 스타일 및 툴팁(`기본 도서는 삭제할 수 없습니다`) 적용.
+     - `handleSave` 및 `handleDelete` 핸들러에 `isProtectedBook` 방어 가드 추가 및 삭제 모달(`confirmDelete`) 방어.
+     - 신규 추가된 도서는 `isProtectedBook`이 `false`로 판별되어 정상적으로 수정 및 삭제 가능.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 슈빌(황새) 서재 커서 크기 배율 최적화 (게코 < 슈빌 < 기존)
 - 작업 브랜치: `feat/adjust-shoebill-cursor-size`
 - **사용자 요청**:
@@ -86,25 +105,6 @@
      - 안내 항목 카드 디자인 정비: 아이콘 + 볼드 타이틀 수평 배치, 서브 설명 여백 및 가독성 확보.
      - 문의 및 피드백 전용 그라데이션 배경(`.login-notice-item--feedback`) 및 이메일 링크 버튼 호버 인터랙션 구현.
      - 반응형 모바일/소형 화면 뷰포트 최적화 (`max-height: min(90vh, 680px)` 및 부드러운 스크롤 지원).
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-09: 회원가입 및 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 결함 수정
-- 작업 브랜치: `fix/signup-password-masking-bullet-visibility`
-- **사용자 요청**:
-  - 회원가입(`SignupPage`) 및 비밀번호 재설정(`PasswordReset`) 입력란에서 비밀번호 보기 기능이 꺼져 있을 때(`type="password"`), 글자를 몇 자 입력했는지 마스킹 불릿 점(`•`)조차 보이지 않아 작성 중인지 인지하기 어려운 결함 해결.
-- **원인 분석**:
-  - `index.css` 전역에서 `button, input, textarea, select`에 `font-family: inherit` (`--sans`: `Chau Philomene One`, `Memoment Kkukkukk`)을 상속하도록 설정되어 있음.
-  - 커스텀 폰트(`Chau Philomene One`, `Memoment Kkukkukk`)에는 브라우저 기본 비밀번호 마스킹 문자(불릿 `•` / `●`, U+2022) 글리프가 없거나 0-width로 렌더링되어, `type="password"` 상태에서 입력된 마스킹 문자가 화면상에 완전히 투명/공백으로 표시되는 현상 발생.
-- **작업 내용**:
-  1. `app/index.css`:
-     - 전역 `input[type='password']`에 시스템 산세리프 폰트 스택(`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif`) 및 `letter-spacing: 2px`을 적용하여 전역 모든 비밀번호 입력란에서 마스킹 불릿이 선명하게 렌더링되도록 보장.
-  2. `app/pages/SignupPage.css`:
-     - `.signup-field input[type='password']`, `.signup-pw-input-wrap input[type='password']`에 시스템 산세리프 폰트와 `letter-spacing: 2px`을 명시적으로 적용.
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)

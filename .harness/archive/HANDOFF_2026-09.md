@@ -1,5 +1,24 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 회원가입 및 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 결함 수정
+- 작업 브랜치: `fix/signup-password-masking-bullet-visibility`
+- **사용자 요청**:
+  - 회원가입(`SignupPage`) 및 비밀번호 재설정(`PasswordReset`) 입력란에서 비밀번호 보기 기능이 꺼져 있을 때(`type="password"`), 글자를 몇 자 입력했는지 마스킹 불릿 점(`•`)조차 보이지 않아 작성 중인지 인지하기 어려운 결함 해결.
+- **원인 분석**:
+  - `index.css` 전역에서 `button, input, textarea, select`에 `font-family: inherit` (`--sans`: `Chau Philomene One`, `Memoment Kkukkukk`)을 상속하도록 설정되어 있음.
+  - 커스텀 폰트(`Chau Philomene One`, `Memoment Kkukkukk`)에는 브라우저 기본 비밀번호 마스킹 문자(불릿 `•` / `●`, U+2022) 글리프가 없거나 0-width로 렌더링되어, `type="password"` 상태에서 입력된 마스킹 문자가 화면상에 완전히 투명/공백으로 표시되는 현상 발생.
+- **작업 내용**:
+  1. `app/index.css`:
+     - 전역 `input[type='password']`에 시스템 산세리프 폰트 스택(`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif`) 및 `letter-spacing: 2px`을 적용하여 전역 모든 비밀번호 입력란에서 마스킹 불릿이 선명하게 렌더링되도록 보장.
+  2. `app/pages/SignupPage.css`:
+     - `.signup-field input[type='password']`, `.signup-pw-input-wrap input[type='password']`에 시스템 산세리프 폰트와 `letter-spacing: 2px`을 명시적으로 적용.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 회원가입 버튼 활성화, 서비스 이용 가이드 슬라이드 줌인 및 모바일 채팅 FAB 5번째 메뉴 추가
 - 작업 브랜치: `feat/signup-button-guide-zoom-and-mobile-fab-menu`
 - **사용자 요청**:

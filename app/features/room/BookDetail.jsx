@@ -21,7 +21,7 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
  * @param {()=>void} [onBackToShelf] - 선반으로 되돌아가기 콜백 (모바일 등)
  */
 export default function BookDetail({ book, onClose, onBackToShelf }) {
-  const { isGuest } = useAuth()
+  const { isGuest, member } = useAuth()
   const { removeBook, saveReadingProgress, saveBookMeta } = useBooks()
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPage, setTotalPage] = useState(0)
@@ -53,6 +53,13 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
   const { isUnifiedMobileUX: isMobile } = useResponsive()
   // 우측 문장 갤러리의 편집 내용을 "완료" 시 함께 저장하기 위한 핸들 (CLIAR-241)
   const galleryRef = useRef(null)
+
+  // dpyb@gmail.com 계정의 기본 도서('방구석 미술관') 수정/삭제 보호 판별
+  const userEmail = (member?.email || '').toLowerCase().trim()
+  const bookTitle = (detail?.title || book?.title || '').trim()
+  const isProtectedBook =
+    (userEmail === 'dpyb@gmail.com' || userEmail === 'dpyb26@gmail.com') &&
+    (bookTitle.includes('방구석 미술관') || bookTitle.replace(/\s+/g, '').includes('방구석미술관'))
 
   // 목록 요약엔 페이지/장르 등이 없어, 상세를 조회해 현재/총 페이지·상태를 초기화한다.
   useEffect(() => {
@@ -92,7 +99,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
    * 현재 페이지는 입력란에서 엔터로 따로 저장하므로 여기서 다루지 않는다.
    */
   const handleSave = async () => {
-    if (saving) return
+    if (saving || isProtectedBook) return
     setSaving(true)
     setActionError(null)
     try {
@@ -179,6 +186,10 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
   }
 
   const handleDelete = async () => {
+    if (isProtectedBook) {
+      setConfirmDelete(false)
+      return
+    }
     try {
       await removeBook(book.bookId)
       onClose()
@@ -239,7 +250,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
   }
 
   // 삭제 확인 팝업
-  if (confirmDelete) {
+  if (confirmDelete && !isProtectedBook) {
     return (
       <div style={narrowPanelStyle}>
         <p
@@ -733,32 +744,38 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               ) : (
                 <>
                   <button
-                    onClick={() => setEditing(true)}
+                    onClick={isProtectedBook ? undefined : () => setEditing(true)}
+                    disabled={isProtectedBook}
+                    title={isProtectedBook ? '기본 도서는 수정할 수 없습니다' : '도서 정보 및 기록 수정'}
                     style={{
                       padding: '4px 10px',
                       borderRadius: 6,
-                      border: '1px solid var(--accent)',
+                      border: isProtectedBook ? '1px solid var(--border)' : '1px solid var(--accent)',
                       background: 'transparent',
-                      color: 'var(--accent)',
+                      color: isProtectedBook ? 'var(--text-muted, #888)' : 'var(--accent)',
                       fontSize: 15,
                       fontWeight: 600,
-                      cursor: 'pointer',
+                      cursor: isProtectedBook ? 'not-allowed' : 'pointer',
+                      opacity: isProtectedBook ? 0.45 : 1,
                     }}
                   >
                     수정
                   </button>
                   {!isGuest && (
                     <button
-                      onClick={() => setConfirmDelete(true)}
+                      onClick={isProtectedBook ? undefined : () => setConfirmDelete(true)}
+                      disabled={isProtectedBook}
+                      title={isProtectedBook ? '기본 도서는 삭제할 수 없습니다' : '도서 삭제'}
                       style={{
                         padding: '4px 10px',
                         borderRadius: 6,
-                        border: '1px solid #e74c3c',
+                        border: isProtectedBook ? '1px solid var(--border)' : '1px solid #e74c3c',
                         background: 'transparent',
-                        color: '#e74c3c',
+                        color: isProtectedBook ? 'var(--text-muted, #888)' : '#e74c3c',
                         fontSize: 15,
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor: isProtectedBook ? 'not-allowed' : 'pointer',
+                        opacity: isProtectedBook ? 0.45 : 1,
                       }}
                     >
                       삭제
