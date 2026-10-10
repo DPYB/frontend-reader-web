@@ -519,18 +519,9 @@ export default function LoginPage() {
                   <strong className="login-notice-item-title">현재 테스트 운영 중</strong>
                 </div>
                 <p className="login-notice-item-desc">
-                  현재는 이메일을 통한 회원가입만 지원합니다.
-                </p>
-              </div>
-
-              {/* 3. DPYB 체험하기 */}
-              <div className="login-notice-item">
-                <div className="login-notice-item-header">
-                  <span className="login-notice-item-icon">🐾</span>
-                  <strong className="login-notice-item-title">DPYB 체험하기</strong>
-                </div>
-                <p className="login-notice-item-desc">
-                  로그인 없이 채팅 기능을 체험해 보실 수 있어요.
+                  로그인 없이 DPYB 체험하기 버튼을 눌러
+                  <br />
+                  AI 사서와 자유롭게 대화해 보세요.
                 </p>
               </div>
 

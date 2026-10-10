@@ -1,5 +1,33 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 로그인 페이지 이용 안내 팝업 모달 콘텐츠 전면 개편
+- 작업 브랜치: `feat/login-welcome-notice-content-update`
+- **사용자 요청**:
+  - 로그인 페이지 접속 안내 팝업 창 내용을 전면 개편:
+    - 타이틀: `Welcome to DPYB!`, `DPYB 이용 전 확인해주세요! 📚`
+    - 1. `💻 PC 환경 권장`: `DPYB는 PC 환경에서 더욱 쾌적하게 이용하실 수 있어요.`
+    - 2. `🧪 현재 테스트 운영 중`: `현재는 이메일을 통한 회원가입만 지원합니다.`
+    - 3. `🐾 DPYB 체험하기`: `로그인 없이 채팅 기능을 체험해 보실 수 있어요.`
+    - 4. `💌 문의 및 피드백`: 안내 문구 3줄 및 이메일(`dpyb26@gmail.com`) 연동
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - 팝업 모달 헤더 구조 개선: `login-notice-welcome-tag`(`Welcome to DPYB!`) 및 `login-notice-title`(`DPYB 이용 전 확인해주세요! 📚`).
+     - 4개 주요 안내 카드 구조화 (`login-notice-body`, `login-notice-item`):
+       - PC 환경 권장 (💻)
+       - 현재 테스트 운영 중 (🧪)
+       - DPYB 체험하기 (🐾)
+       - 문의 및 피드백 (💌) 안내 및 클릭 시 즉시 메일 앱이 연동되는 `mailto:dpyb26@gmail.com` 알약 링크 제공.
+  2. `app/pages/LoginPage.css`:
+     - 안내 항목 카드 디자인 정비: 아이콘 + 볼드 타이틀 수평 배치, 서브 설명 여백 및 가독성 확보.
+     - 문의 및 피드백 전용 그라데이션 배경(`.login-notice-item--feedback`) 및 이메일 링크 버튼 호버 인터랙션 구현.
+     - 반응형 모바일/소형 화면 뷰포트 최적화 (`max-height: min(90vh, 680px)` 및 부드러운 스크롤 지원).
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 회원가입 및 비밀번호 입력 필드 마스킹 불릿(•) 렌더링 글리프 누락 결함 수정
 - 작업 브랜치: `fix/signup-password-masking-bullet-visibility`
 - **사용자 요청**:
