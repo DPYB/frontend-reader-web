@@ -1,5 +1,28 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 로그인 페이지 소셜(카카오/구글) 로그인 버튼 UI 비활성화 및 DPYB 체험하기 호버 반짝임/선택 효과 적용
+- 작업 브랜치: `feat/login-social-disabled-and-guest-hover-glow`
+- **사용자 요청**:
+  - 로그인 페이지에서 Kakao 로그인 및 Google 로그인 버튼 UI 적으로만 비활성화 처리.
+  - DPYB 체험하기 버튼에 마우스 커서를 올렸을 때(Hover) 선택된 것처럼 반짝이는 인터랙션 효과 적용.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 배열 내 `kakao` 및 `google` 툴팁을 `카카오 로그인 (준비 중)`, `Google 로그인 (준비 중)`으로 정돈.
+     - `isButtonDisabled`: `kakao`, `google`을 비활성(`disabled = true`) 목록에 추가하여 클릭 인터랙션 차단.
+     - `handleClick`: `case 'google'`, `case 'kakao'` 핸들러 분기 비활성화.
+     - `LoginButton`: `isDpyb`(`btn.id === 'dpyb'`) 판별 및 호버 시 내부 쉬머 스윕(`.login-dpyb-sparkle-shine`)과 트윙클 별(`.login-dpyb-star`) 컴포넌트 렌더링.
+  2. `app/pages/LoginPage.css`:
+     - `.login-layer-img--dpyb-glow`: DPYB 체험하기 버튼 호버 시 웜 골드/앰버 글로우(`drop-shadow`) 및 펄스 호버 애니메이션(`dpyb-pulse-glow`) 적용.
+     - `.login-hit-area--dpyb-hover`: 방사형 앰버 하이라이트 배경, 골드 네온 섀도우 및 스케일업(`transform: scale(1.025)`) 마이크로 인터랙션 구현.
+     - `.login-dpyb-sparkle-shine` & `.login-dpyb-star`: 쉬머 스윕 광선 애니메이션(`@keyframes dpyb-shimmer-sweep`) 및 별빛 트윙클 애니메이션(`@keyframes dpyb-star-twinkle`) 구현.
+     - `.login-hit-area--disabled .login-hit-tooltip`: 비활성 버튼 툴팁 디자인(준비 중 앰버 보더) 정비.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 도서 등록 표지/바코드 촬영 OCR 파일 페이로드 바인딩 및 10/13자리 ISBN 인식 결함 해결
 - 작업 브랜치: `fix/isbn-scan-file-payload-and-recognition`
 - **사용자 요청**:
