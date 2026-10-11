@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibrarian } from '../store/librarianStore';
 import { genreLabelForLibrarian } from '../data/librarians';
+import { useLanguage } from '../store/languageStore';
 import './LibrarianProfiles.css';
 
 /**
@@ -12,6 +13,7 @@ import './LibrarianProfiles.css';
  * - 사서 이름(닉네임)은 이 페이지에서 사용자가 직접 변경합니다. (기본값: 고양이=블루, 황새=슈빌)
  */
 export default function LibrarianProfiles() {
+  const { t } = useLanguage();
   const { librarians, activeId, setActiveId, renameLibrarian, representativeId } = useLibrarian();
   const navigate = useNavigate();
   const [editingId, setEditingId] = useState(null);
@@ -39,8 +41,8 @@ export default function LibrarianProfiles() {
 
   return (
     <section className="lp">
-      <h2 className="lp-heading">사서 프로필</h2>
-      <p className="lp-desc">사서를 고르고, 나만의 서재를 만들어보세요.🐾</p>
+      <h2 className="lp-heading">{t('profiles.title', '사서 프로필')}</h2>
+      <p className="lp-desc">{t('profiles.desc', '사서를 고르고, 나만의 서재를 만들어보세요.🐾')}</p>
 
       <div className="lp-grid">
         {librarians.map((lib) => {
@@ -49,9 +51,9 @@ export default function LibrarianProfiles() {
 
           return (
             <article key={lib.id} className={`lp-card${isActive ? ' lp-card--active' : ''}`}>
-              {isActive && <span className="lp-badge lp-badge--active">활동 중</span>}
+              {isActive && <span className="lp-badge lp-badge--active">{t('profiles.badgeActive', '활동 중')}</span>}
               {lib.id === representativeId && (
-                <span className="lp-badge lp-badge--rep">대표 사서</span>
+                <span className="lp-badge lp-badge--rep">{t('profiles.badgeRepresentative', '대표 사서')}</span>
               )}
 
               <div className="lp-avatar">
@@ -75,13 +77,13 @@ export default function LibrarianProfiles() {
                       autoFocus
                       aria-label="사서 이름"
                     />
-                    <button className="lp-btn lp-btn--primary" onClick={() => saveEdit(lib.id)}>저장</button>
-                    <button className="lp-btn lp-btn--ghost" onClick={() => setEditingId(null)}>취소</button>
+                    <button className="lp-btn lp-btn--primary" onClick={() => saveEdit(lib.id)}>{t('common.save', '저장')}</button>
+                    <button className="lp-btn lp-btn--ghost" onClick={() => setEditingId(null)}>{t('common.cancel', '취소')}</button>
                   </>
                 ) : (
                   <>
                     <strong className="lp-name">{lib.displayName}</strong>
-                    <button className="lp-btn lp-btn--ghost" onClick={() => startEdit(lib)}>수정</button>
+                    <button className="lp-btn lp-btn--ghost" onClick={() => startEdit(lib)}>{t('common.edit', '수정')}</button>
                   </>
                 )}
               </div>
@@ -97,7 +99,7 @@ export default function LibrarianProfiles() {
                 onClick={() => handleSelect(lib.id)}
                 disabled={isActive}
               >
-                {isActive ? '활동 중인 사서' : '서재 열기'}
+                {isActive ? t('profiles.currentlyActive', '활동 중인 사서') : t('profiles.openLibrary', '서재 열기')}
               </button>
 
               {/*

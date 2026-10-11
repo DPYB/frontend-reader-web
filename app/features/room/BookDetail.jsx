@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom'
 import { useBooks } from '../../store/booksStore'
 import { useAuth } from '../../store/authStore'
 import { getLibraryBook, toReadingStatus } from '../../api/bookApi'
-import { GENRE_NONE, genreLabel } from '../../data/genres'
+import { GENRE_NONE } from '../../data/genres'
 import SentenceCollectModal from './SentenceCollectModal'
 import ScrapGallery from './ScrapGallery'
 import ReadingTimerModal from './ReadingTimerModal'
 import ReadingSessionHistory from './ReadingSessionHistory'
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage'
 import { useResponsive } from '../../hooks/useResponsive'
+import { useLanguage } from '../../store/languageStore'
 
 const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
 
@@ -21,6 +22,7 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
  * @param {()=>void} [onBackToShelf] - 선반으로 되돌아가기 콜백 (모바일 등)
  */
 export default function BookDetail({ book, onClose, onBackToShelf }) {
+  const { t, formatStatus, formatGenre } = useLanguage()
   const { isGuest, member } = useAuth()
   const { removeBook, saveReadingProgress, saveBookMeta } = useBooks()
   const [currentPage, setCurrentPage] = useState(0)
@@ -261,7 +263,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
             textAlign: 'center',
           }}
         >
-          정말 삭제하시겠습니까?
+          {t('bookDetail.deleteConfirmTitle', '정말 삭제하시겠습니까?')}
         </p>
         <p
           style={{
@@ -271,14 +273,14 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
             textAlign: 'center',
           }}
         >
-          삭제된 도서는 복구할 수 없습니다.
+          {t('bookDetail.deleteConfirmDesc', '삭제된 도서는 복구할 수 없습니다.')}
         </p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           <button
             onClick={handleDelete}
             style={{ ...btnStyle, background: '#e74c3c', color: '#fff' }}
           >
-            삭제
+            {t('common.delete', '삭제')}
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
@@ -288,7 +290,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               color: 'var(--text-h)',
             }}
           >
-            취소
+            {t('common.cancel', '취소')}
           </button>
         </div>
       </div>
@@ -469,7 +471,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   fontWeight: 600,
                 }}
               >
-                #{genreLabel(genre) || '장르 미지정'}
+                #{formatGenre(genre)}
               </span>
 
               {/* 진행 상태 */}
@@ -477,7 +479,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  aria-label="진행 상태"
+                  aria-label={t('bookDetail.readingStatus', '진행 상태')}
                   style={{
                     padding: '2px 6px',
                     borderRadius: 8,
@@ -489,7 +491,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {formatStatus(s)}
                     </option>
                   ))}
                 </select>
@@ -503,7 +505,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                     fontSize: 13,
                   }}
                 >
-                  {status}
+                  {formatStatus(status)}
                 </span>
               )}
 
@@ -531,7 +533,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                     }
                   }}
                   disabled={savingProgress}
-                  aria-label="현재 읽은 페이지"
+                  aria-label={t('bookDetail.currentPage', '현재 읽은 페이지')}
                   style={{
                     width: 46,
                     boxSizing: 'border-box',
@@ -544,7 +546,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                     color: 'var(--text-h)',
                   }}
                 />
-                <span>/ {Number(totalPage) > 0 ? totalPage : '-'} 쪽</span>
+                <span>/ {Number(totalPage) > 0 ? totalPage : '-'} {t('bookDetail.pageUnit', '쪽')}</span>
               </span>
             </div>
 
@@ -557,8 +559,8 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
             }}
           >
             {savingProgress
-              ? '저장 중...'
-              : '현재 페이지를 입력하고 엔터를 누르면 저장돼요'}
+              ? t('bookDetail.saving', '저장 중...')
+              : t('bookDetail.pressEnterToSave', '현재 페이지를 입력하고 엔터를 누르면 저장돼요')}
           </span>
 
           {/* 저장은 우측 상단 "완료" 버튼에서 처리한다 (CLIAR-241) */}
@@ -595,7 +597,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                 gap: 4,
               }}
             >
-              <span>⏱️</span> 독서 타이머
+              <span>⏱️</span> {t('bookDetail.readingTimer', '독서 타이머')}
             </button>
             <button
               onClick={() => setShowSentenceModal(true)}
@@ -610,7 +612,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                 cursor: 'pointer',
               }}
             >
-              문장 수집
+              {t('bookDetail.collectQuotes', '문장 수집')}
             </button>
           </div>
         </div>
@@ -675,7 +677,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>📸</span> 수집한 문장
+                <span>📸</span> {t('bookDetail.savedQuotesTab', '수집한 문장')}
               </button>
               <button
                 type="button"
@@ -695,7 +697,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>⏱️</span> 독서 타이머 기록
+                <span>⏱️</span> {t('bookDetail.timerHistoryTab', '독서 타이머 기록')}
               </button>
             </div>
 
@@ -717,7 +719,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                       opacity: saving ? 0.6 : 1,
                     }}
                   >
-                    {saving ? '저장 중...' : '완료'}
+                    {saving ? t('bookDetail.saving', '저장 중...') : t('common.done', '완료')}
                   </button>
                   <button
                     onClick={() => {
@@ -738,7 +740,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                       cursor: saving ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    취소
+                    {t('common.cancel', '취소')}
                   </button>
                 </>
               ) : (
@@ -746,7 +748,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   <button
                     onClick={isProtectedBook ? undefined : () => setEditing(true)}
                     disabled={isProtectedBook}
-                    title={isProtectedBook ? '기본 도서는 수정할 수 없습니다' : '도서 정보 및 기록 수정'}
+                    title={isProtectedBook ? t('bookDetail.defaultBookNoEdit', '기본 도서는 수정할 수 없습니다') : t('bookDetail.editTip', '도서 정보 및 기록 수정')}
                     style={{
                       padding: '4px 10px',
                       borderRadius: 6,
@@ -759,13 +761,13 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                       opacity: isProtectedBook ? 0.45 : 1,
                     }}
                   >
-                    수정
+                    {t('common.edit', '수정')}
                   </button>
                   {!isGuest && (
                     <button
                       onClick={isProtectedBook ? undefined : () => setConfirmDelete(true)}
                       disabled={isProtectedBook}
-                      title={isProtectedBook ? '기본 도서는 삭제할 수 없습니다' : '도서 삭제'}
+                      title={isProtectedBook ? t('bookDetail.defaultBookNoDelete', '기본 도서는 삭제할 수 없습니다') : t('bookDetail.deleteTip', '도서 삭제')}
                       style={{
                         padding: '4px 10px',
                         borderRadius: 6,
@@ -778,7 +780,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                         opacity: isProtectedBook ? 0.45 : 1,
                       }}
                     >
-                      삭제
+                      {t('common.delete', '삭제')}
                     </button>
                   )}
                 </>

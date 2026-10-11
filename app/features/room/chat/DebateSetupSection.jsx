@@ -1,4 +1,5 @@
 import { DEBATE_PERSONAS } from '../../../data/debatePersonas';
+import { useLanguage } from '../../../store/languageStore';
 
 export default function DebateSetupSection({
   chatMode,
@@ -20,6 +21,8 @@ export default function DebateSetupSection({
   modeMessages,
   onConcludeDebate,
 }) {
+  const { t, isEn, formatStatus } = useLanguage();
+
   if (chatMode !== 'debate') return null;
 
   // 상단 고정 배너 (대화 진행 중일 때)
@@ -40,12 +43,14 @@ export default function DebateSetupSection({
             setDebateStep('topic');
           }
         }}
-        title="토론 설정 펼치기"
+        title={isEn ? 'Expand debate settings' : '토론 설정 펼치기'}
       >
         <span className="lc-debate-badge">DEBATE</span>
         <span className="lc-debate-banner-title">
           {selectedDebatePersona.icon} <strong>{selectedDebatePersona.name}</strong> ·{' '}
-          {selectedDebateBook ? `《${selectedDebateBook.title}》 토론 중` : '나만의 주제로 토론 중'}
+          {selectedDebateBook
+            ? (isEn ? `Discussing 《${selectedDebateBook.title}》` : `《${selectedDebateBook.title}》 토론 중`)
+            : t('debate.customTopicShort', '나만의 주제로 토론 중')}
         </span>
         <div className="lc-debate-banner-actions">
           <button
@@ -56,11 +61,11 @@ export default function DebateSetupSection({
               onConcludeDebate();
             }}
             disabled={loading}
-            title="토론 끝내기 및 맞춤 책 추천받기"
+            title={isEn ? 'Wrap up debate and get recommendations' : '토론 끝내기 및 맞춤 책 추천받기'}
           >
-            🏁 끝내기
+            {t('debate.concludeBtn', '🏁 끝내기')}
           </button>
-          <span className="lc-debate-banner-toggle">설정 ▾</span>
+          <span className="lc-debate-banner-toggle">{t('debate.settingsToggle', '설정 ▾')}</span>
         </div>
       </div>
     );
@@ -73,9 +78,9 @@ export default function DebateSetupSection({
         /* [1단계] 토론 상대 선택 */
         <div className="lc-debate-step-box">
           <div className="lc-debate-step-header">
-            <span className="lc-debate-step-tag">1단계</span>
+            <span className="lc-debate-step-tag">{t('debate.step1Tag', '1단계')}</span>
             <label className="lc-debate-label">
-              토론 파트너 선택 (AI 전문 토론자 4인)
+              {t('debate.step1Label', '토론 파트너 선택 (AI 전문 토론자 4인)')}
             </label>
           </div>
           <div className="lc-debater-grid">
@@ -118,16 +123,16 @@ export default function DebateSetupSection({
               type="button"
               className="lc-debate-change-partner-btn"
               onClick={() => setDebateStep('debater')}
-              title="다른 토론자로 변경"
+              title={isEn ? 'Change to another debater' : '다른 토론자로 변경'}
             >
-              파트너 변경 ↺
+              {t('debate.changePartner', '파트너 변경 ↺')}
             </button>
           </div>
 
           <div className="lc-debate-step-header">
-            <span className="lc-debate-step-tag">2단계</span>
+            <span className="lc-debate-step-tag">{t('debate.step2Tag', '2단계')}</span>
             <label className="lc-debate-label">
-              토론할 주제나 책을 선택해 주세요
+              {t('debate.step2Label', '토론할 주제나 책을 선택해 주세요')}
             </label>
           </div>
 
@@ -144,20 +149,20 @@ export default function DebateSetupSection({
             <div className="lc-debate-custom-topic-main">
               <span className="lc-debate-custom-topic-icon">✨</span>
               <div className="lc-debate-custom-topic-text">
-                <span className="lc-debate-custom-topic-title">나만의 주제로 토론하기</span>
+                <span className="lc-debate-custom-topic-title">{t('debate.customTopicTitle', '나만의 주제로 토론하기')}</span>
                 <span className="lc-debate-custom-topic-desc">
-                  서재의 책 없이도 원하는 주제나 질문으로 자유롭게 대화해요
+                  {t('debate.customTopicDesc', '서재의 책 없이도 원하는 주제나 질문으로 자유롭게 대화해요')}
                 </span>
               </div>
             </div>
-            <span className="lc-debate-start-arrow">시작 ➔</span>
+            <span className="lc-debate-start-arrow">{t('debate.startArrow', '시작 ➔')}</span>
           </button>
 
           {/* 내 서재 도서 선택 섹션 */}
           <div className="lc-debate-book-section">
             <div className="lc-debate-section-title">
-              <span>📖 또는 내 서재의 책으로 토론하기</span>
-              <span className="lc-debate-book-count">({books.length}권)</span>
+              <span>{t('debate.orDebateWithBook', '📖 또는 내 서재의 책으로 토론하기')}</span>
+              <span className="lc-debate-book-count">({books.length}{isEn ? ' books' : '권'})</span>
             </div>
 
             {books.length > 2 && (
@@ -166,20 +171,30 @@ export default function DebateSetupSection({
                 className="lc-debate-book-search-input"
                 value={debateBookQuery}
                 onChange={(e) => setDebateBookQuery(e.target.value)}
-                placeholder="서재 책 제목 또는 저자 검색..."
+                placeholder={t('debate.searchBookPlaceholder', '서재 책 제목 또는 저자 검색...')}
               />
             )}
 
             <div className="lc-debate-book-list">
               {books.length === 0 ? (
                 <div className="lc-debate-empty-books">
-                  서재에 등록된 도서가 없습니다.
-                  <br />
-                  위의 <strong>'나만의 주제로 토론하기'</strong>를 눌러 바로 시작해 보세요!
+                  {isEn ? (
+                    <>
+                      No books registered in library.
+                      <br />
+                      Click <strong>'Debate Custom Topic'</strong> above to start right away!
+                    </>
+                  ) : (
+                    <>
+                      서재에 등록된 도서가 없습니다.
+                      <br />
+                      위의 <strong>'나만의 주제로 토론하기'</strong>를 눌러 바로 시작해 보세요!
+                    </>
+                  )}
                 </div>
               ) : debateLibraryBooks.length === 0 ? (
                 <div className="lc-debate-empty-books">
-                  일치하는 서재 도서가 없습니다.
+                  {t('debate.emptySearch', '일치하는 서재 도서가 없습니다.')}
                 </div>
               ) : (
                 debateLibraryBooks.map((b) => {
@@ -207,11 +222,11 @@ export default function DebateSetupSection({
                         <span className="lc-debate-book-title">{b.title}</span>
                         <div className="lc-debate-book-meta">
                           {b.author && <span>{b.author}</span>}
-                          {b.status && <span className="lc-debate-book-badge">{b.status}</span>}
+                          {b.status && <span className="lc-debate-book-badge">{formatStatus(b.status)}</span>}
                           {b.progress != null && <span>{b.progress}%</span>}
                         </div>
                       </div>
-                      <span className="lc-debate-book-select-action">선택 ➔</span>
+                      <span className="lc-debate-book-select-action">{t('debate.selectArrow', '선택 ➔')}</span>
                     </div>
                   );
                 })
@@ -226,7 +241,7 @@ export default function DebateSetupSection({
               className="lc-debate-return-btn"
               onClick={() => setDebateCollapsed(true)}
             >
-              대화창으로 돌아가기 ▾
+              {t('debate.returnToChat', '대화창으로 돌아가기 ▾')}
             </button>
           )}
         </div>

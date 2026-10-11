@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../store/themeStore';
 import { useLibrarian } from '../store/librarianStore';
 import { useAuth } from '../store/authStore';
+import { useLanguage } from '../store/languageStore';
 import './Gnb.css';
 
 function SunIcon() {
@@ -103,6 +104,7 @@ export default function Gnb() {
     const { theme, setTheme } = useTheme();
     const { librarian } = useLibrarian();
     const { logout } = useAuth();
+    const { t } = useLanguage();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const profileWrapRef = useRef(null);
@@ -189,7 +191,7 @@ export default function Gnb() {
                         type="button"
                         className={`gnb-mobile-hamburger-btn${showMobileNavMenu ? ' active' : ''}`}
                         onClick={handleBrandClick}
-                        aria-label={showMobileNavMenu ? "메뉴 닫기" : "메뉴 열기"}
+                        aria-label={showMobileNavMenu ? t('gnb.menuClose', '메뉴 닫기') : t('gnb.menuOpen', '메뉴 열기')}
                         aria-expanded={showMobileNavMenu}
                     >
                         {showMobileNavMenu ? (
@@ -214,7 +216,7 @@ export default function Gnb() {
                     <NavLink
                         to="/library"
                         className="gnb-desktop-brand-link"
-                        aria-label="내 서재로 이동"
+                        aria-label={t('gnb.myLibrary', '내 서재로 이동')}
                     >
                         <span className="gnb-logo-wrap gnb-logo-wrap--desktop">
                             <img
@@ -245,7 +247,7 @@ export default function Gnb() {
                     <NavLink
                         to="/library"
                         className="gnb-mobile-glass-logo-link"
-                        aria-label="내 서재로 이동"
+                        aria-label={t('gnb.myLibrary', '내 서재로 이동')}
                     >
                         <span className="gnb-logo-wrap gnb-logo-wrap--glass">
                             <img
@@ -262,10 +264,10 @@ export default function Gnb() {
 
                 {/* 4. 데스크톱 상단 중앙: 네비게이션 메뉴 (중앙으로 다시 이동) */}
                 <nav className="gnb-menu" aria-label="메인 메뉴">
-                    <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>내 서재</NavLink>
-                    <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>책 등록</NavLink>
-                    <NavLink to="/reports" className={({ isActive }) => (isActive ? 'on' : undefined)}>독서 리포트</NavLink>
-                    <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'on' : undefined)}>마이페이지</NavLink>
+                    <NavLink to="/library" className={({ isActive }) => (isActive ? 'on' : undefined)}>{t('gnb.myLibrary', '내 서재')}</NavLink>
+                    <NavLink to="/register" className={({ isActive }) => (isActive ? 'on' : undefined)}>{t('gnb.registerBook', '책 등록')}</NavLink>
+                    <NavLink to="/reports" className={({ isActive }) => (isActive ? 'on' : undefined)}>{t('gnb.readingReport', '독서 리포트')}</NavLink>
+                    <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'on' : undefined)}>{t('gnb.myPage', '마이페이지')}</NavLink>
                 </nav>
 
                 <div className="gnb-right">
@@ -276,14 +278,14 @@ export default function Gnb() {
 
                     {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
-                        {loggingOut ? '로그아웃 중...' : '로그아웃'}
+                        {loggingOut ? t('gnb.loggingOut', '로그아웃 중...') : t('gnb.logout', '로그아웃')}
                     </button>
 
                     <div className="gnb-profile-wrap" ref={profileWrapRef}>
                         <button
                             className={`gnb-profile-btn${showProfileMenu ? ' active' : ''}`}
                             onClick={() => setShowProfileMenu((prev) => !prev)}
-                            aria-label="사서 프로필 메뉴"
+                            aria-label={t('gnb.librarianProfile', '사서 프로필 메뉴')}
                             aria-expanded={showProfileMenu}
                             aria-haspopup="dialog"
                         >
@@ -301,7 +303,7 @@ export default function Gnb() {
                                     onClick={() => setShowProfileMenu(false)}
                                     aria-hidden="true"
                                 />
-                                <div className="gnb-profile-sheet" role="dialog" aria-modal="true" aria-label="사서 프로필 상세">
+                                <div className="gnb-profile-sheet" role="dialog" aria-modal="true" aria-label={t('gnb.profileDetail', '사서 프로필 상세')}>
                                     <div className="gnb-sheet-handle" />
                                     <div className="gnb-sheet-header">
                                         <div className="gnb-sheet-librarian-avatar">
@@ -321,7 +323,7 @@ export default function Gnb() {
                                         <button
                                             className="gnb-sheet-close-btn"
                                             onClick={() => setShowProfileMenu(false)}
-                                            aria-label="닫기"
+                                            aria-label={t('common.close', '닫기')}
                                         >
                                             <CloseIcon />
                                         </button>
@@ -337,21 +339,21 @@ export default function Gnb() {
                                         <div className="gnb-sheet-action-row">
                                             <button className="gnb-sheet-btn gnb-sheet-btn--primary" onClick={() => goTo('/librarians')}>
                                                 <SparklesIcon />
-                                                <span>사서 프로필</span>
+                                                <span>{t('gnb.librarianProfile', '사서 프로필')}</span>
                                             </button>
 
                                             <div className="gnb-theme">
                                                 <button
                                                     className={theme === 'light' ? 'on' : undefined}
                                                     onClick={() => setTheme('light')}
-                                                    aria-label="라이트 모드 선택"
+                                                    aria-label={t('gnb.lightMode', '라이트 모드 선택')}
                                                 >
                                                     <SunIcon />
                                                 </button>
                                                 <button
                                                     className={theme === 'dark' ? 'on' : undefined}
                                                     onClick={() => setTheme('dark')}
-                                                    aria-label="다크 모드 선택"
+                                                    aria-label={t('gnb.darkMode', '다크 모드 선택')}
                                                 >
                                                     <MoonIcon />
                                                 </button>
@@ -360,7 +362,7 @@ export default function Gnb() {
 
                                         <button className="gnb-sheet-btn gnb-sheet-btn--logout" onClick={handleLogout} disabled={loggingOut}>
                                             <LogoutIcon />
-                                            <span>{loggingOut ? '로그아웃 중...' : '로그아웃'}</span>
+                                            <span>{loggingOut ? t('gnb.loggingOut', '로그아웃 중...') : t('gnb.logout', '로그아웃')}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -399,7 +401,7 @@ export default function Gnb() {
                                 type="button"
                                 className="gnb-fullscreen-close-btn"
                                 onClick={() => setShowMobileNavMenu(false)}
-                                aria-label="메뉴 닫기"
+                                aria-label={t('common.close', '메뉴 닫기')}
                             >
                                 <CloseIcon />
                             </button>
@@ -415,7 +417,7 @@ export default function Gnb() {
                                     onClick={() => setShowMobileNavMenu(false)}
                                 >
                                     <span className="gnb-fullscreen-nav-icon"><LibraryIcon /></span>
-                                    <span className="gnb-fullscreen-nav-label">내 서재</span>
+                                    <span className="gnb-fullscreen-nav-label">{t('gnb.myLibrary', '내 서재')}</span>
                                 </NavLink>
                             </div>
 
@@ -428,7 +430,7 @@ export default function Gnb() {
                                         onClick={() => setShowMobileNavMenu(false)}
                                     >
                                         <span className="gnb-fullscreen-nav-icon"><RegisterIcon /></span>
-                                        <span className="gnb-fullscreen-nav-label">책 등록</span>
+                                        <span className="gnb-fullscreen-nav-label">{t('gnb.registerBook', '책 등록')}</span>
                                     </NavLink>
                                     <button
                                         type="button"
@@ -447,7 +449,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/register', { tab: 'search' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">🔍</span>
-                                            <span>도서 검색</span>
+                                            <span>{t('gnb.searchBook', '도서 검색')}</span>
                                         </button>
                                         <button
                                             type="button"
@@ -455,7 +457,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/register', { tab: 'camera' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">📷</span>
-                                            <span>ISBN·표지 촬영</span>
+                                            <span>{t('gnb.scanIsbn', 'ISBN·표지 촬영')}</span>
                                         </button>
                                         <button
                                             type="button"
@@ -463,7 +465,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/register', { tab: 'manual' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">✍️</span>
-                                            <span>직접 입력</span>
+                                            <span>{t('gnb.manualEntry', '직접 입력')}</span>
                                         </button>
                                     </div>
                                 )}
@@ -477,7 +479,7 @@ export default function Gnb() {
                                     onClick={() => setShowMobileNavMenu(false)}
                                 >
                                     <span className="gnb-fullscreen-nav-icon"><ReportIcon /></span>
-                                    <span className="gnb-fullscreen-nav-label">독서 리포트</span>
+                                    <span className="gnb-fullscreen-nav-label">{t('gnb.readingReport', '독서 리포트')}</span>
                                 </NavLink>
                             </div>
 
@@ -490,7 +492,7 @@ export default function Gnb() {
                                         onClick={() => setShowMobileNavMenu(false)}
                                     >
                                         <span className="gnb-fullscreen-nav-icon"><UserIcon /></span>
-                                        <span className="gnb-fullscreen-nav-label">마이페이지</span>
+                                        <span className="gnb-fullscreen-nav-label">{t('gnb.myPage', '마이페이지')}</span>
                                     </NavLink>
                                     <button
                                         type="button"
@@ -509,7 +511,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/mypage', { tab: 'books' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">📚</span>
-                                            <span>독서 리스트</span>
+                                            <span>{t('gnb.readingList', '독서 리스트')}</span>
                                         </button>
                                         <button
                                             type="button"
@@ -517,7 +519,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/mypage', { tab: 'calendar' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">📅</span>
-                                            <span>독서 캘린더</span>
+                                            <span>{t('gnb.readingCalendar', '독서 캘린더')}</span>
                                         </button>
                                         <button
                                             type="button"
@@ -525,7 +527,7 @@ export default function Gnb() {
                                             onClick={() => goTo('/mypage', { tab: 'profile' })}
                                         >
                                             <span className="gnb-fullscreen-subicon">👤</span>
-                                            <span>내 정보</span>
+                                            <span>{t('gnb.myInfo', '내 정보')}</span>
                                         </button>
                                     </div>
                                 )}
@@ -541,7 +543,7 @@ export default function Gnb() {
                                 disabled={loggingOut}
                             >
                                 <LogoutIcon />
-                                <span>{loggingOut ? '로그아웃 중...' : '로그아웃'}</span>
+                                <span>{loggingOut ? t('gnb.loggingOut', '로그아웃 중...') : t('gnb.logout', '로그아웃')}</span>
                             </button>
                         </div>
                     </div>

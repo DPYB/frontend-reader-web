@@ -14,7 +14,6 @@ import ServiceGuideModal from '../guide/ServiceGuideModal';
 import { shouldShowGuideModal, isGuideSeenInSession } from '../guide/guideStorage';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { useAuth } from '../../store/authStore';
-import { toKoreanStatus } from '../../api/bookApi';
 import './LibrarianChat.css';
 import { TransformControls } from '@react-three/drei';
 import {
@@ -30,6 +29,7 @@ import {
 import { getColorPresets } from '../register/ocrUtils';
 import { getColorIndex } from './bookExtractor';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useLanguage } from '../../store/languageStore';
 
 const isDev = import.meta.env.DEV;
 const CALIB_KEY_PREFIX = 'myReadingRoom.calibration';
@@ -288,6 +288,7 @@ function loadCalibration(librarianId) {
 export default function LibraryScene() {
   const { books } = useBooks();
   const { theme } = useTheme();
+  const { t, formatStatus } = useLanguage();
   const isDark = theme === 'dark';
   const [selectedId, setSelectedId] = useState(null);
   const [showTimer, setShowTimer] = useState(false);
@@ -1068,7 +1069,7 @@ export default function LibraryScene() {
             zIndex: 10,
           }}
         >
-          <span style={{ fontWeight: 700 }}>📖 {hoveredBook.title || '제목 미상'}</span>
+          <span style={{ fontWeight: 700 }}>📖 {hoveredBook.title || t('library.unknownTitle', '제목 미상')}</span>
           {hoveredBook.author && (
             <span style={{ display: 'block', fontSize: 16, color: 'var(--text)', marginTop: 2 }}>
               ✍️ {hoveredBook.author}
@@ -1129,7 +1130,7 @@ export default function LibraryScene() {
                   bookId: bookId,
                   title: bookOrId.title,
                   author: bookOrId.author,
-                  status: toKoreanStatus(bookOrId.reading_status || bookOrId.readingStatus || bookOrId.status),
+                  status: formatStatus(bookOrId.reading_status || bookOrId.readingStatus || bookOrId.status),
                   progress: bookOrId.progress,
                 });
               }
@@ -1166,11 +1167,11 @@ export default function LibraryScene() {
             type="button"
             className="lc-timer-toggle-btn"
             onClick={() => setShowTimer(true)}
-            aria-label="독서 집중 타이머 시작"
-            title="독서 집중 타이머 시작"
+            aria-label={t('library.readingTimerStart', '독서 집중 타이머 시작')}
+            title={t('library.readingTimerStart', '독서 집중 타이머 시작')}
           >
             <span style={{ fontSize: 20 }}>⏱️</span>
-            독서 타이머
+            {t('library.readingTimer', '독서 타이머')}
           </button>
         </div>
       )}

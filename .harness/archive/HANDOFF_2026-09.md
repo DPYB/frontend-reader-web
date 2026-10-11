@@ -1,5 +1,22 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-10: 로그인 페이지 이용 안내 팝업 모달 문구 정돈 (테스트 운영 중 설명 교체 및 DPYB 체험하기 항목 제거)
+- 작업 브랜치: `feat/update-login-notice-content`
+- **사용자 요청**:
+  - `🧪 현재 테스트 운영 중` 항목 설명을 "로그인 없이 DPYB 체험하기 버튼을 눌러 AI 사서와 자유롭게 대화해 보세요."로 교체.
+  - `🐾 DPYB 체험하기` 항목 제거.
+  - 나머지 항목(PC 환경 권장, 문의 및 피드백 등)은 그대로 유지.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `🧪 현재 테스트 운영 중` 카드의 설명 문구를 `로그인 없이 DPYB 체험하기 버튼을 눌러` / `AI 사서와 자유롭게 대화해 보세요.`로 업데이트.
+     - 중복 안내가 된 `🐾 DPYB 체험하기` 카드 항목 제거.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-10: 기본 도서('방구석 미술관') 수정 및 삭제 UI 비활성화 보호
 - 작업 브랜치: `feat/protect-default-book-actions`
 - **사용자 요청**:
