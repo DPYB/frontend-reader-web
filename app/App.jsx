@@ -7,6 +7,7 @@ import { ToastProvider } from './components/Toast';
 import { AuthProvider } from './store/AuthProvider';
 import { BooksProvider } from './store/BooksProvider';
 import { ThemeProvider } from './store/ThemeProvider';
+import { LanguageProvider } from './store/LanguageProvider';
 import { LibrarianProvider } from './store/LibrarianProvider';
 
 // 라우트 레벨 코드 스플리팅 — 페이지별 전용 번들 분리
@@ -51,20 +52,22 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <ThemeProvider>
-          <LibrarianProvider>
-            <BooksProvider>
-              <BrowserRouter>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/password/forgot" element={<PasswordReset />} />
-                    <Route path="/*" element={<AppLayout />} />
-                  </Routes>
-                </Suspense>
-              </BrowserRouter>
-            </BooksProvider>
-          </LibrarianProvider>
+          <LanguageProvider>
+            <LibrarianProvider>
+              <BooksProvider>
+                <BrowserRouter>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/signup" element={<SignupPage />} />
+                      <Route path="/password/forgot" element={<PasswordReset />} />
+                      <Route path="/*" element={<AppLayout />} />
+                    </Routes>
+                  </Suspense>
+                </BrowserRouter>
+              </BooksProvider>
+            </LibrarianProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </AuthProvider>
     </ToastProvider>

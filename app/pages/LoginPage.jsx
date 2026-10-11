@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
+import { useLanguage } from '../store/languageStore';
 import { AUTH_BYPASS } from '../store/authBypass';
 import { ApiError } from '../api/authApi';
 import { renderGoogleButton, triggerGoogleLogin, triggerKakaoLogin } from '../utils/socialAuth';
@@ -15,19 +16,22 @@ const BUTTONS = [
   {
     id: 'login',
     src: '/button/login_btn.webp',
-    tooltip: '로그인',
+    tooltipKo: '로그인',
+    tooltipEn: 'Log In',
     left: 55.9, top: 61.9, width: 5.6, height: 8.8,
   },
   {
     id: 'signup',
     src: '/button/signup_btn.webp',
-    tooltip: '회원가입 (준비 중)',
+    tooltipKo: '회원가입 (준비 중)',
+    tooltipEn: 'Sign Up (Coming Soon)',
     left: 40.9, top: 61.5, width: 7.8, height: 8.5,
   },
   {
     id: 'password',
     src: '/button/forgotpw_btn.webp',
-    tooltip: '비밀번호 찾기 (BETA 기간 준비 중)',
+    tooltipKo: '비밀번호 찾기 (BETA 기간 준비 중)',
+    tooltipEn: 'Forgot Password (Coming Soon)',
     left: 50.2, top: 62.1, width: 4.3, height: 7.2,
   },
   {
@@ -36,38 +40,33 @@ const BUTTONS = [
     // 분홍(paw_pink)으로 바뀌고 다시 회색으로 돌아온다. (아래 map에서 eyeActive로 스왑)
     src: '/button/paw_gray.webp',
     srcActive: '/button/paw_pink.webp',
-    tooltip: '비밀번호 보기',
+    tooltipKo: '비밀번호 보기',
+    tooltipEn: 'Show Password',
     left: 59.2, top: 53.3, width: 2.2, height: 3.8,
   },
   /*
    * 하단 3버튼 (2026-09 신규 UI). 기존 버튼들과 동일한 방식 — 배경 시안에 버튼이
    * 그려져 있고, 같은 좌표의 투명 2560x1440 레이어를 덮어 hover 밝기 효과를 준다.
-   *
-   * 세 버튼은 테두리 선만 있는 둥근 사각형이고 내부는 완전히 비어 있어(알파 0),
-   * 클릭 영역은 "선 안쪽"이 되도록 알파 bbox에서 선 두께만큼 안쪽으로 줄인 값을 쓴다.
-   * 2560x1440 기준 실측:
-   *   알파 bbox(선 외곽 포함)  366x63 — dpyb +1123+1154 / kakao +1123+1232 / google +1123+1310
-   *   선 두께                  좌우·상하 각 약 3~4px
-   *   선 안쪽(내부) 영역        bbox 기준 x 4~361(358px), y 4~57(54px)
-   * → left 1127/2560=44.0%, width 358/2560=13.98%, height 54/1440=3.75%
-   *   top  dpyb 1158/1440=80.42% / kakao 1236/1440=85.83% / google 1314/1440=91.25%
    */
   {
     id: 'dpyb',
     src: '/button/dpyb_btn.webp',
-    tooltip: 'DPYB 체험하기 (로그인 없이 둘러보기)',
+    tooltipKo: 'DPYB 체험하기 (로그인 없이 둘러보기)',
+    tooltipEn: 'Try DPYB (Explore without login)',
     left: 44.0, top: 80.42, width: 13.98, height: 3.75,
   },
   {
     id: 'kakao',
     src: '/button/kakao_btn.webp',
-    tooltip: '카카오 로그인 (준비 중)',
+    tooltipKo: '카카오 로그인 (준비 중)',
+    tooltipEn: 'Kakao Login (Coming Soon)',
     left: 44.0, top: 85.83, width: 13.98, height: 3.75,
   },
   {
     id: 'google',
     src: '/button/google_btn.webp',
-    tooltip: 'Google 로그인 (준비 중)',
+    tooltipKo: 'Google 로그인 (준비 중)',
+    tooltipEn: 'Google Login (Coming Soon)',
     left: 44.0, top: 91.25, width: 13.98, height: 3.75,
   },
 ];
@@ -78,9 +77,18 @@ const INPUT_FIELDS = {
   pw: { left: 43.8, top: 53.3, width: 15.4, height: 3.8 },
 };
 
-function LoginButton({ btn, onClick, disabled, active }) {
+// 언어 변환 버튼 위치 (public/lang_switcher.png 좌표: 1214, 232, 1405, 292)
+const LANG_SWITCHER_POS = {
+  left: 47.42,
+  top: 16.11,
+  width: 7.46,
+  height: 4.17,
+};
+
+function LoginButton({ btn, onClick, disabled, active, lang }) {
   const [hovered, setHovered] = useState(false);
   const isDpyb = btn.id === 'dpyb';
+  const tooltip = lang === 'en' ? (btn.tooltipEn || btn.tooltipKo) : btn.tooltipKo;
 
   return (
     <>
@@ -105,7 +113,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
         onMouseLeave={() => setHovered(false)}
         onClick={disabled ? (e) => { e.preventDefault(); } : onClick}
         aria-disabled={disabled}
-        aria-label={btn.tooltip}
+        aria-label={tooltip}
       >
         {isDpyb && hovered && (
           <div className="login-dpyb-sparkle-wrap">
@@ -114,7 +122,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
             <span className="login-dpyb-star login-dpyb-star--2">✨</span>
           </div>
         )}
-        {hovered && <span className="login-hit-tooltip">{btn.tooltip}</span>}
+        {hovered && <span className="login-hit-tooltip">{tooltip}</span>}
       </button>
     </>
   );
@@ -124,6 +132,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loginWithGoogle, loginWithKakao, loginAsGuest } = useAuth();
+  const { lang, setLang, isEn, isKo } = useLanguage();
   const [eyeActive, setEyeActive] = useState(false);
   const [email, setEmail] = useState('');
   const [userPw, setUserPw] = useState('');
@@ -203,7 +212,7 @@ export default function LoginPage() {
       await loginAsGuest();
       navigate('/library', { replace: true });
     } catch (err) {
-      setError(err?.message || '체험 모드 진입에 실패했습니다.');
+      setError(err?.message || (isEn ? 'Failed to enter guest mode.' : '체험 모드 진입에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -248,16 +257,16 @@ export default function LoginPage() {
           return;
         }
         if (err.status === 403) {
-          setError('탈퇴한 계정이에요. 다른 계정으로 로그인해 주세요.');
+          setError(isEn ? 'This account has been deleted. Please log in with another account.' : '탈퇴한 계정이에요. 다른 계정으로 로그인해 주세요.');
         } else if (err.status === 401) {
-          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+          setError(isEn ? 'Invalid email or password.' : '이메일 또는 비밀번호가 올바르지 않습니다.');
         } else if (err.status === 429) {
-          setError('요청이 많아요. 잠시 후 다시 시도해 주세요.');
+          setError(isEn ? 'Too many requests. Please try again later.' : '요청이 많아요. 잠시 후 다시 시도해 주세요.');
         } else {
-          setError('로그인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
+          setError(isEn ? 'An error occurred during login. Please try again.' : '로그인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
         }
       } else {
-        setError('서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.');
+        setError(isEn ? 'Unable to connect to the server. Please try again.' : '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       setLoading(false);
@@ -387,7 +396,7 @@ export default function LoginPage() {
       <div className="login-cover-layer">
         <img
           className="login-bg-img"
-          src="/login-bg.webp"
+          src={isEn ? '/login_eng.webp' : '/login-bg.webp'}
           alt="Don't Paw-get Your Book"
           width={2560}
           height={1440}
@@ -404,6 +413,41 @@ export default function LoginPage() {
           decoding="async"
           draggable={false}
         />
+
+        {/* 언어 변환 버튼 (public/lang_switcher.png 좌표 연동) */}
+        <div
+          className="login-lang-switcher"
+          style={{
+            left: `${LANG_SWITCHER_POS.left}%`,
+            top: `${LANG_SWITCHER_POS.top}%`,
+            width: `${LANG_SWITCHER_POS.width}%`,
+            height: `${LANG_SWITCHER_POS.height}%`,
+          }}
+          role="group"
+          aria-label={isEn ? 'Language Selector' : '언어 선택'}
+        >
+          <button
+            type="button"
+            className={`login-lang-btn ${isKo ? 'login-lang-btn--active' : ''}`}
+            onClick={() => setLang('ko')}
+            aria-pressed={isKo}
+            aria-label="한국어 선택"
+            title="한국어"
+          >
+            한국어
+          </button>
+          <span className="login-lang-divider" aria-hidden="true">|</span>
+          <button
+            type="button"
+            className={`login-lang-btn ${isEn ? 'login-lang-btn--active' : ''}`}
+            onClick={() => setLang('en')}
+            aria-pressed={isEn}
+            aria-label="Select English"
+            title="English"
+          >
+            ENG
+          </button>
+        </div>
 
         {/* 입력 필드 이미지 레이어 (투명) */}
         <img
@@ -435,7 +479,7 @@ export default function LoginPage() {
             height: `${INPUT_FIELDS.id.height}%`,
           }}
           type="email"
-          placeholder="이메일"
+          placeholder={isEn ? 'Email' : '이메일'}
           value={email}
           onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
           autoComplete="email"
@@ -449,7 +493,7 @@ export default function LoginPage() {
             height: `${INPUT_FIELDS.pw.height}%`,
           }}
           type={eyeActive ? 'text' : 'password'}
-          placeholder="비밀번호"
+          placeholder={isEn ? 'Password' : '비밀번호'}
           value={userPw}
           onChange={(e) => { setUserPw(e.target.value); if (error) setError(''); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
@@ -468,6 +512,7 @@ export default function LoginPage() {
               btn={resolvedBtn}
               onClick={() => handleClick(btn.id)}
               disabled={isButtonDisabled(btn.id)}
+              lang={lang}
             />
           );
         })}
@@ -486,7 +531,7 @@ export default function LoginPage() {
       {/* 비밀번호 표시 상태 인디케이터 */}
       {eyeActive && (
         <div className="login-eye-indicator">
-          비밀번호 표시 중...
+          {isEn ? 'Showing password...' : '비밀번호 표시 중...'}
         </div>
       )}
 
@@ -496,7 +541,7 @@ export default function LoginPage() {
       {/* 개발용 인증 우회 안내 (실제 로그인 연동 시 사라짐) */}
       {AUTH_BYPASS && (
         <div className="login-dev-badge">
-          개발 모드: 아무 값으로도 로그인됩니다 🐾
+          {isEn ? 'Dev Mode: Login with any credentials 🐾' : '개발 모드: 아무 값으로도 로그인됩니다 🐾'}
         </div>
       )}
 
@@ -517,7 +562,7 @@ export default function LoginPage() {
               type="button"
               className="login-notice-close-btn"
               onClick={handleClosePcNotice}
-              aria-label="안내 팝업 닫기"
+              aria-label={isEn ? 'Close notice popup' : '안내 팝업 닫기'}
             >
               ✕
             </button>
@@ -525,7 +570,7 @@ export default function LoginPage() {
             <div className="login-notice-header">
               <span className="login-notice-welcome-tag">Welcome to DPYB!</span>
               <h3 id="login-pc-notice-title" className="login-notice-title">
-                DPYB 이용 전 확인해주세요! 📚
+                {isEn ? 'Please check before using DPYB! 📚' : 'DPYB 이용 전 확인해주세요! 📚'}
               </h3>
             </div>
 
@@ -534,10 +579,10 @@ export default function LoginPage() {
               <div className="login-notice-item">
                 <div className="login-notice-item-header">
                   <span className="login-notice-item-icon">💻</span>
-                  <strong className="login-notice-item-title">PC 환경 권장</strong>
+                  <strong className="login-notice-item-title">{isEn ? 'Recommended for PC' : 'PC 환경 권장'}</strong>
                 </div>
                 <p className="login-notice-item-desc">
-                  DPYB는 PC 환경에서 더욱 쾌적하게 이용하실 수 있어요.
+                  {isEn ? 'DPYB is optimized for the best experience on PC desktop.' : 'DPYB는 PC 환경에서 더욱 쾌적하게 이용하실 수 있어요.'}
                 </p>
               </div>
 
@@ -545,30 +590,50 @@ export default function LoginPage() {
               <div className="login-notice-item">
                 <div className="login-notice-item-header">
                   <span className="login-notice-item-icon">🧪</span>
-                  <strong className="login-notice-item-title">현재 테스트 운영 중</strong>
+                  <strong className="login-notice-item-title">{isEn ? 'Currently in Beta Testing' : '현재 테스트 운영 중'}</strong>
                 </div>
                 <p className="login-notice-item-desc">
-                  로그인 없이 DPYB 체험하기 버튼을 눌러
-                  <br />
-                  AI 사서와 자유롭게 대화해 보세요.
+                  {isEn ? (
+                    <>
+                      Click &quot;Try DPYB&quot; without logging in
+                      <br />
+                      to freely chat with AI librarians.
+                    </>
+                  ) : (
+                    <>
+                      로그인 없이 DPYB 체험하기 버튼을 눌러
+                      <br />
+                      AI 사서와 자유롭게 대화해 보세요.
+                    </>
+                  )}
                 </p>
               </div>
 
-              {/* 4. 문의 및 피드백 */}
+              {/* 3. 문의 및 피드백 */}
               <div className="login-notice-item login-notice-item--feedback">
                 <div className="login-notice-item-header">
                   <span className="login-notice-item-icon">💌</span>
-                  <strong className="login-notice-item-title">문의 및 피드백</strong>
+                  <strong className="login-notice-item-title">{isEn ? 'Inquiries & Feedback' : '문의 및 피드백'}</strong>
                 </div>
                 <div className="login-notice-feedback-text">
-                  <p>궁금한 점이나 전하고 싶은 의견이 있으신가요?</p>
-                  <p>아래 이메일로 편하게 보내주세요.</p>
-                  <p>보내주신 이야기는 더 나은 서비스를 만드는 데 큰 도움이 됩니다.</p>
+                  {isEn ? (
+                    <>
+                      <p>Have any questions or thoughts to share?</p>
+                      <p>Feel free to reach out via email below.</p>
+                      <p>Your feedback helps us create a better experience.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>궁금한 점이나 전하고 싶은 의견이 있으신가요?</p>
+                      <p>아래 이메일로 편하게 보내주세요.</p>
+                      <p>보내주신 이야기는 더 나은 서비스를 만드는 데 큰 도움이 됩니다.</p>
+                    </>
+                  )}
                 </div>
                 <a
                   href="mailto:dpyb26@gmail.com"
                   className="login-notice-email-link"
-                  title="이메일 보내기"
+                  title={isEn ? 'Send Email' : '이메일 보내기'}
                 >
                   ✉️ dpyb26@gmail.com
                 </a>
@@ -583,7 +648,7 @@ export default function LoginPage() {
                   checked={dontShowPcNoticeToday}
                   onChange={(e) => setDontShowPcNoticeToday(e.target.checked)}
                 />
-                <span>오늘 하루 보지 않기</span>
+                <span>{isEn ? "Don't show today" : '오늘 하루 보지 않기'}</span>
               </label>
 
               <button
@@ -591,7 +656,7 @@ export default function LoginPage() {
                 className="login-notice-confirm-btn"
                 onClick={handleClosePcNotice}
               >
-                확인
+                {isEn ? 'OK' : '확인'}
               </button>
             </div>
           </div>
