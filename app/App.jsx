@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Gnb from './components/Gnb';
 import ProtectedRoute from './components/ProtectedRoute';
+import LoadingSequence from './components/LoadingSequence';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider } from './store/AuthProvider';
 import { BooksProvider } from './store/BooksProvider';
@@ -21,7 +22,7 @@ const PasswordReset = lazy(() => import('./pages/PasswordReset'));
 function PageLoader() {
   return (
     <div className="page-loader">
-      페이지를 불러오는 중입니다... 🐾
+      <LoadingSequence size={90} label="페이지를 불러오는 중이에요... 🐾" padding={20} />
     </div>
   );
 }

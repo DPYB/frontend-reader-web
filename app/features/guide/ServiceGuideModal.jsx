@@ -19,7 +19,7 @@ const GUIDE_TITLES = [
   '사서와의 대화 & 추천',
 ];
 
-import { dismissGuideForToday } from './guideStorage';
+import { dismissGuideForToday, markGuideSeenInSession } from './guideStorage';
 
 export default function ServiceGuideModal({ isOpen, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -43,6 +43,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
 
   const handleCloseModal = useCallback(() => {
     setIsZoomed(false);
+    markGuideSeenInSession();
     if (dontShowToday) {
       dismissGuideForToday();
     }
