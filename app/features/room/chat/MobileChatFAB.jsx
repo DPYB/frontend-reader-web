@@ -1,3 +1,5 @@
+import { useLanguage } from '../../../store/languageStore';
+
 export default function MobileChatFAB({
   isMobile,
   open,
@@ -14,6 +16,8 @@ export default function MobileChatFAB({
   setTheme,
   navigate,
 }) {
+  const { t, isEn } = useLanguage();
+
   if (open) return null;
 
   if (isMobile) {
@@ -43,7 +47,7 @@ export default function MobileChatFAB({
             type="button"
             className={`lc-mobile-fab ${showMobileMenu ? 'active' : ''}`}
             onPointerDown={onFabPointerDown}
-            aria-label="사서 메뉴 열기"
+            aria-label={isEn ? 'Open librarian menu' : '사서 메뉴 열기'}
           >
             <div className="lc-mobile-fab-avatar">
               <img
@@ -71,8 +75,8 @@ export default function MobileChatFAB({
               >
                 <span className="lc-mobile-menu-item-icon">💬</span>
                 <div className="lc-mobile-menu-item-text">
-                  <strong>사서와 대화하기</strong>
-                  <span>도서 추천 <span className="lc-ampersand">&amp;</span> 독서 토론</span>
+                  <strong>{t('chat.chatWithLibrarian', '사서와 대화하기')}</strong>
+                  <span>{t('chat.menuChatDesc', '도서 추천 & 독서 토론')}</span>
                 </div>
               </button>
               {/* 2. 독서 타이머 */}
@@ -87,8 +91,8 @@ export default function MobileChatFAB({
               >
                 <span className="lc-mobile-menu-item-icon">⏱️</span>
                 <div className="lc-mobile-menu-item-text">
-                  <strong>독서 타이머</strong>
-                  <span>독서 시간 측정 <span className="lc-ampersand">&amp;</span> 집중 기록</span>
+                  <strong>{t('chat.menuTimerTitle', '독서 타이머')}</strong>
+                  <span>{t('chat.menuTimerDesc', '독서 시간 측정 & 집중 기록')}</span>
                 </div>
               </button>
               {/* 3. 사서 프로필 & 변경 */}
@@ -103,8 +107,8 @@ export default function MobileChatFAB({
               >
                 <span className="lc-mobile-menu-item-icon">✨</span>
                 <div className="lc-mobile-menu-item-text">
-                  <strong>사서 프로필 <span className="lc-ampersand">&amp;</span> 변경</strong>
-                  <span>다른 사서 프로필 둘러보기</span>
+                  <strong>{t('chat.menuProfileTitle', '사서 프로필 & 변경')}</strong>
+                  <span>{t('chat.menuProfileDesc', '다른 사서 프로필 둘러보기')}</span>
                 </div>
               </button>
               {/* 4. 나이트모드 / 라이트모드 스위치 */}
@@ -118,8 +122,16 @@ export default function MobileChatFAB({
               >
                 <span className="lc-mobile-menu-item-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
                 <div className="lc-mobile-menu-item-text">
-                  <strong>{theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}</strong>
-                  <span>{theme === 'dark' ? '밝고 화사한 화면' : '눈이 편안한 밤 화면'}</span>
+                  <strong>
+                    {theme === 'dark'
+                      ? t('chat.menuThemeLight', '라이트 모드로 전환')
+                      : t('chat.menuThemeDark', '다크 모드로 전환')}
+                  </strong>
+                  <span>
+                    {theme === 'dark'
+                      ? t('chat.menuThemeLightDesc', '밝고 화사한 화면')
+                      : t('chat.menuThemeDarkDesc', '눈이 편안한 밤 화면')}
+                  </span>
                 </div>
               </button>
               {/* 5. 서비스 이용 가이드 */}
@@ -134,8 +146,8 @@ export default function MobileChatFAB({
               >
                 <span className="lc-mobile-menu-item-icon">📖</span>
                 <div className="lc-mobile-menu-item-text">
-                  <strong>서비스 이용 가이드</strong>
-                  <span>서재 이용 팁 <span className="lc-ampersand">&amp;</span> 사용 안내</span>
+                  <strong>{t('chat.menuGuideTitle', '서비스 이용 가이드')}</strong>
+                  <span>{t('chat.menuGuideDesc', '서재 이용 팁 & 사용 안내')}</span>
                 </div>
               </button>
             </div>
@@ -151,7 +163,7 @@ export default function MobileChatFAB({
         type="button"
         className="lc-chat-toggle-btn"
         onClick={() => setOpen(true)}
-        aria-label="사서에게 질문하기"
+        aria-label={t('chat.askLibrarian', '사서에게 질문하기')}
       >
         <div className="lc-chat-toggle-avatar-wrap">
           <img
@@ -162,7 +174,7 @@ export default function MobileChatFAB({
             height={26}
           />
         </div>
-        <span className="lc-chat-toggle-label">사서에게 질문하기</span>
+        <span className="lc-chat-toggle-label">{t('chat.askLibrarian', '사서에게 질문하기')}</span>
       </button>
     </div>
   );

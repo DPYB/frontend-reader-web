@@ -15,6 +15,7 @@ import { useLibrarian } from '../store/librarianStore';
 import { fetchMonthlyReport } from '../api/reportApi';
 import { downloadReportAsPdf } from '../lib/pdfExport';
 import { genreLabel } from '../data/genres';
+import { useLanguage } from '../store/languageStore';
 import './MonthlyReport.css';
 
 /**
@@ -122,6 +123,7 @@ function getAvailableMonths() {
 }
 
 export default function MonthlyReport() {
+  const { t, isEn } = useLanguage();
   const { isGuest } = useAuth();
   const { librarian } = useLibrarian();
   const reportRef = useRef(null);
@@ -320,10 +322,12 @@ export default function MonthlyReport() {
             <span className="librarian-badge">
               [{librarian.displayName || librarian.name}]
             </span>
-            사서의 월간 독서 리포트
+            {isEn ? "'s Monthly Reading Report" : ' 사서의 월간 독서 리포트'}
           </h1>
           <p className="report-subtitle">
-            {year}년 {month}월 동안 축적된 나의 독서 습관과 취향을 사서의 시선으로 분석했습니다.
+            {isEn
+              ? `An analysis of reading habits and preferences accumulated during ${year}-${String(month).padStart(2, '0')}.`
+              : `${year}년 ${month}월 동안 축적된 나의 독서 습관과 취향을 사서의 시선으로 분석했습니다.`}
           </p>
         </div>
 
@@ -339,7 +343,7 @@ export default function MonthlyReport() {
           >
             {availableMonths.map((opt) => (
               <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
-                {opt.label}
+                {isEn ? `${opt.year}-${String(opt.month).padStart(2, '0')}` : opt.label}
               </option>
             ))}
           </select>
@@ -349,7 +353,7 @@ export default function MonthlyReport() {
             onClick={handlePdfDownload}
             disabled={downloading}
           >
-            {downloading ? 'PDF 생성 중...' : '📄 PDF로 다운로드'}
+            {downloading ? t('report.generatingPdf', 'PDF 생성 중...') : t('report.downloadPdf', '📄 PDF로 다운로드')}
           </button>
         </div>
       </div>
@@ -359,9 +363,11 @@ export default function MonthlyReport() {
         <div className="report-empty-banner">
           <div className="report-empty-icon">🌱</div>
           <div className="report-empty-content">
-            <h3 className="report-empty-title">{year}년 {month}월 독서 기록 대기 중</h3>
+            <h3 className="report-empty-title">
+              {isEn ? `Awaiting Reading Records for ${year}-${String(month).padStart(2, '0')}` : `${year}년 ${month}월 독서 기록 대기 중`}
+            </h3>
             <p className="report-empty-desc">
-              이번 달에는 아직 완료된 독서나 타이머 세션 기록이 없습니다. 서재에서 책을 읽거나 타이머를 시작하면 사서가 풍성한 분석을 완성해 드려요!
+              {t('report.emptyDesc', '이번 달에는 아직 완료된 독서나 타이머 세션 기록이 없습니다. 서재에서 책을 읽거나 타이머를 시작하면 사서가 풍성한 분석을 완성해 드려요!')}
             </p>
           </div>
         </div>
@@ -373,22 +379,22 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">01</span>
-            <h2 className="report-card-title">이번 달 한눈에 보기</h2>
+            <h2 className="report-card-title">{t('report.card01Title', '이번 달 한눈에 보기')}</h2>
           </div>
           <div className="overview-grid">
             <div className="overview-stat-box">
-              <div className="overview-stat-label">완독 권수</div>
-              <div className="overview-stat-val">{overview?.completedCount ?? 0} <span style={{ fontSize: 16 }}>권</span></div>
+              <div className="overview-stat-label">{t('report.statCompleted', '완독 권수')}</div>
+              <div className="overview-stat-val">{overview?.completedCount ?? 0} <span style={{ fontSize: 16 }}>{isEn ? 'books' : '권'}</span></div>
             </div>
             <div className="overview-stat-box">
-              <div className="overview-stat-label">누적 완독 페이지</div>
-              <div className="overview-stat-val">{overview?.totalPages ?? 0} <span style={{ fontSize: 16 }}>쪽</span></div>
+              <div className="overview-stat-label">{t('report.statTotalPages', '누적 완독 페이지')}</div>
+              <div className="overview-stat-val">{overview?.totalPages ?? 0} <span style={{ fontSize: 16 }}>{isEn ? 'pages' : '쪽'}</span></div>
             </div>
             <div className="overview-stat-box">
-              <div className="overview-stat-label">연속 독서</div>
-              <div className="overview-stat-val">{overview?.streakDays ?? 0} <span style={{ fontSize: 16 }}>일</span></div>
+              <div className="overview-stat-label">{t('report.statStreak', '연속 독서')}</div>
+              <div className="overview-stat-val">{overview?.streakDays ?? 0} <span style={{ fontSize: 16 }}>{isEn ? 'days' : '일'}</span></div>
               <div className={`overview-streak-badge ${!hasActivity ? 'overview-empty-badge' : ''}`}>
-                {hasActivity ? '🔥 독서 Streak 달성 중!' : '🌱 첫 독서를 기다리고 있어요'}
+                {hasActivity ? t('report.streakAchieving', '🔥 독서 Streak 달성 중!') : t('report.streakEmpty', '🌱 첫 독서를 기다리고 있어요')}
               </div>
             </div>
           </div>
@@ -398,14 +404,14 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">02</span>
-            <h2 className="report-card-title">독서 리듬 (요일별 독서 궤적 · 시간대)</h2>
+            <h2 className="report-card-title">{t('report.card02Title', '독서 리듬 (요일별 독서 궤적 · 시간대)')}</h2>
           </div>
 
           <div className="rhythm-modern-wrap">
             <div className="rhythm-linechart-card">
               <div className="rhythm-chart-header">
-                <span className="rhythm-chart-badge">주간 흐름 곡선</span>
-                <p className="rhythm-chart-desc">월요일부터 일요일까지 이어지는 나의 주간 독서 집중 궤적입니다.</p>
+                <span className="rhythm-chart-badge">{t('report.weeklyCurve', '주간 흐름 곡선')}</span>
+                <p className="rhythm-chart-desc">{t('report.weeklyCurveDesc', '월요일부터 일요일까지 이어지는 나의 주간 독서 집중 궤적입니다.')}</p>
               </div>
               <div className="rhythm-linechart-container">
                 <ResponsiveContainer width="100%" height={210}>
@@ -452,14 +458,14 @@ export default function MonthlyReport() {
 
             {/* 시간대별 분포 */}
             <div className="rhythm-subcard rhythm-time-card">
-              <div className="rhythm-subcard-title">🕒 주요 독서 시간대</div>
+              <div className="rhythm-subcard-title">{t('report.timeDistribution', '🕒 시간대별 독서 분포')}</div>
               {rhythm?.timeOfDay?.map((item) => (
                 <div key={item.time} className="rhythm-bar-item">
                   <span className="rhythm-bar-label">{item.time}</span>
                   <div className="rhythm-bar-track">
                     <div className="rhythm-bar-fill" style={{ width: `${Math.min(100, item.count * 6)}%` }} />
                   </div>
-                  <span className="rhythm-bar-count">{item.count}회</span>
+                  <span className="rhythm-bar-count">{item.count}{isEn ? ' sessions' : '회'}</span>
                 </div>
               ))}
             </div>
@@ -470,7 +476,7 @@ export default function MonthlyReport() {
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">03</span>
-            <h2 className="report-card-title">독서 취향 (장르 비율 도넛 · 토론 키워드)</h2>
+            <h2 className="report-card-title">{t('report.card03Title', '독서 취향 (장르 비율 도넛 · 토론 키워드)')}</h2>
           </div>
 
           <div className="taste-modern-grid">

@@ -1,7 +1,11 @@
+import { useLanguage } from '../../../store/languageStore';
+
 export default function ChatModeTabs({
   chatMode,
   onChangeMode,
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="lc-mode-tabs">
       <button
@@ -9,21 +13,21 @@ export default function ChatModeTabs({
         className={`lc-mode-tab ${chatMode === 'library' ? 'active' : ''}`}
         onClick={() => onChangeMode('library')}
       >
-        📚 내 서재
+        {t('chat.modeLibrary', '📚 내 서재')}
       </button>
       <button
         type="button"
         className={`lc-mode-tab ${chatMode === 'chat' ? 'active' : ''}`}
         onClick={() => onChangeMode('chat')}
       >
-        💬 대화·추천
+        {t('chat.modeChat', '💬 대화·추천')}
       </button>
       <button
         type="button"
         className={`lc-mode-tab ${chatMode === 'debate' ? 'active' : ''}`}
         onClick={() => onChangeMode('debate')}
       >
-        💡 토론
+        {t('chat.modeDebate', '💡 토론')}
       </button>
     </div>
   );

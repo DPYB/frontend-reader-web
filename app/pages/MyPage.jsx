@@ -4,6 +4,7 @@ import { useAuth } from '../store/authStore';
 import MyPageReadingList from '../features/mypage/MyPageReadingList';
 import MyPageReadingCalendar from '../features/mypage/MyPageReadingCalendar';
 import BookDetail from '../features/room/BookDetail';
+import { useLanguage } from '../store/languageStore';
 import './MyPage.css';
 
 // 회원이 프로필 사진을 올리지 않았을 때 쓰는 기본 아바타 (깔끔한 기본 실루엣)
@@ -13,6 +14,7 @@ const DEFAULT_PROFILE_IMAGE = '/profile/default_avatar.svg';
 const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 
 export default function MyPage() {
+  const { t, isEn } = useLanguage();
   const { member, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,35 +58,35 @@ export default function MyPage() {
       <div className="mypage-header">
         <div className="mypage-title-area">
           <h1 className="mypage-title">
-            마이페이지 <span className="mypage-user-badge">{nickname || '독서가'}</span>
+            {t('mypage.title', '마이페이지')} <span className="mypage-user-badge">{nickname || t('mypage.reader', '독서가')}</span>
           </h1>
           <p className="mypage-subtitle">
-            나의 독서 여정과 계정 설정을 관리하는 공간입니다.
+            {t('mypage.subtitle', '나의 독서 여정과 계정 설정을 관리하는 공간입니다.')}
           </p>
         </div>
 
         {/* ── 스몰 메뉴 (Tab Navigation: 독서 리스트 -> 독서 캘린더 -> 내 정보) ── */}
-        <nav className="mypage-tab-nav" aria-label="마이페이지 메뉴">
+        <nav className="mypage-tab-nav" aria-label={t('mypage.title', '마이페이지 메뉴')}>
           <button
             type="button"
             className={`mypage-tab-btn ${activeTab === 'books' ? 'active' : ''}`}
             onClick={() => setActiveTab('books')}
           >
-            <span>📚</span> 독서 리스트
+            <span>📚</span> {t('mypage.tabBooks', '독서 리스트')}
           </button>
           <button
             type="button"
             className={`mypage-tab-btn ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveTab('calendar')}
           >
-            <span>📅</span> 독서 캘린더
+            <span>📅</span> {t('mypage.tabCalendar', '독서 캘린더')}
           </button>
           <button
             type="button"
             className={`mypage-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
-            <span>👤</span> 내 정보
+            <span>👤</span> {t('mypage.tabProfile', '내 정보')}
           </button>
         </nav>
       </div>
@@ -94,7 +96,7 @@ export default function MyPage() {
         <div className="mypage-profile-grid">
           {/* 1. 기본 정보 카드 */}
           <div className="mypage-profile-card">
-            <h2 className="mypage-card-heading">👤 내 프로필</h2>
+            <h2 className="mypage-card-heading">{t('mypage.cardProfile', '👤 내 프로필')}</h2>
             <div className="mypage-avatar-wrap">
               <img
                 className="mypage-avatar"
@@ -108,40 +110,40 @@ export default function MyPage() {
 
             <dl className="mypage-info">
               <div className="mypage-info-row">
-                <dt>닉네임</dt>
+                <dt>{t('mypage.nickname', '닉네임')}</dt>
                 <dd>{nickname || '-'}</dd>
               </div>
               <div className="mypage-info-row">
-                <dt>생년월일</dt>
+                <dt>{t('mypage.birthDate', '생년월일')}</dt>
                 <dd>{birthDate}</dd>
               </div>
               <div className="mypage-info-row">
-                <dt>성별</dt>
-                <dd>{gender}</dd>
+                <dt>{t('mypage.gender', '성별')}</dt>
+                <dd>{isEn ? (member?.gender === 'MALE' ? 'Male' : member?.gender === 'FEMALE' ? 'Female' : 'Not specified') : gender}</dd>
               </div>
             </dl>
           </div>
 
           {/* 2. 계정 관리 카드 */}
           <div className="mypage-profile-card">
-            <h2 className="mypage-card-heading">🔐 계정 관리</h2>
+            <h2 className="mypage-card-heading">{t('mypage.cardAccount', '⚙️ 계정 정보')}</h2>
             <div className="mypage-fields-wrap">
               {/* 이메일 */}
               <div className="mypage-field mypage-field--row">
-                <span className="mypage-field-label">이메일</span>
-                <span className="mypage-field-value">{isGuest ? '게스트 체험 계정' : email}</span>
+                <span className="mypage-field-label">{t('mypage.email', '이메일')}</span>
+                <span className="mypage-field-value">{isGuest ? (isEn ? 'Guest demo account' : '게스트 체험 계정') : email}</span>
               </div>
 
               {/* 로그아웃 버튼 */}
               <div className="mypage-field mypage-field--row">
-                <span className="mypage-field-label">로그아웃</span>
+                <span className="mypage-field-label">{t('gnb.logout', '로그아웃')}</span>
                 <button
                   type="button"
                   className="mypage-logout-btn"
                   onClick={handleLogout}
                   disabled={loggingOut}
                 >
-                  {loggingOut ? '로그아웃 중...' : '로그아웃'}
+                  {loggingOut ? (isEn ? 'Logging out...' : '로그아웃 중...') : t('gnb.logout', '로그아웃')}
                 </button>
               </div>
 

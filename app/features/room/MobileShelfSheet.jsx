@@ -1,8 +1,7 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toKoreanStatus } from '../../api/bookApi';
-import { genreLabel } from '../../data/genres';
 import { coverImageSrc, onFallbackCover } from '../../lib/coverImage';
+import { useLanguage } from '../../store/languageStore';
 import './MobileShelfSheet.css';
 
 function CloseIcon() {
@@ -39,6 +38,7 @@ export default function MobileShelfSheet({
     onOpenBookDetail,
 }) {
     const navigate = useNavigate();
+    const { t, isEn, formatStatus, formatGenre } = useLanguage();
 
     // 2가지 높이 상태: default(기본 54vh) / expanded(서비스 이름 아래까지)
     const [isExpanded, setIsExpanded] = useState(false);
@@ -210,21 +210,25 @@ export default function MobileShelfSheet({
                                     className={`mobile-shelf-tab${isSelected ? ' active' : ''}`}
                                     onClick={() => onSelectShelf(idx)}
                                 >
-                                    <span className="mobile-shelf-tab-label">{idx + 1}번 선반</span>
+                                    <span className="mobile-shelf-tab-label">{isEn ? `Shelf ${idx + 1}` : `${idx + 1}번 선반`}</span>
                                     {count > 0 && <span className="mobile-shelf-tab-badge">{count}</span>}
                                 </button>
                             );
                         })}
                     </div>
 
-                    <button className="mobile-shelf-close-btn" onClick={onClose} aria-label="닫기">
+                    <button className="mobile-shelf-close-btn" onClick={onClose} aria-label={t('common.close', '닫기')}>
                         <CloseIcon />
                     </button>
                 </div>
 
                 <div className="mobile-shelf-subtitle">
-                    <strong>📚 {shelfNumber}번 선반</strong>
-                    <span className="mobile-shelf-count-text">총 {shelfBooks.length}권의 책이 꽂혀있어요</span>
+                    <strong>📚 {isEn ? `Shelf ${shelfNumber}` : `${shelfNumber}번 선반`}</strong>
+                    <span className="mobile-shelf-count-text">
+                        {isEn
+                            ? `Total of ${shelfBooks.length} book${shelfBooks.length === 1 ? '' : 's'} on shelf`
+                            : `총 ${shelfBooks.length}권의 책이 꽂혀있어요`}
+                    </span>
                 </div>
 
                 {/* 수직 상하 스크롤 도서 리스트 */}
@@ -232,8 +236,10 @@ export default function MobileShelfSheet({
                     {shelfBooks.length === 0 ? (
                         <div className="mobile-shelf-empty">
                             <div className="mobile-shelf-empty-icon">📥</div>
-                            <p className="mobile-shelf-empty-title">이 선반은 비어있어요</p>
-                            <p className="mobile-shelf-empty-desc">새로운 책을 등록하여 {shelfNumber}번 선반을 채워보세요!</p>
+                            <p className="mobile-shelf-empty-title">{isEn ? 'This shelf is empty' : '이 선반은 비어있어요'}</p>
+                            <p className="mobile-shelf-empty-desc">
+                                {isEn ? `Add new books to fill Shelf ${shelfNumber}!` : `새로운 책을 등록하여 ${shelfNumber}번 선반을 채워보세요!`}
+                            </p>
                             <button
                                 className="mobile-shelf-register-btn"
                                 onClick={() => {
@@ -241,16 +247,16 @@ export default function MobileShelfSheet({
                                     navigate('/register');
                                 }}
                             >
-                                ➕ 책 등록하러 가기
+                                ➕ {isEn ? 'Go to Add Book' : '책 등록하러 가기'}
                             </button>
                         </div>
                     ) : (
                         <div className="mobile-shelf-book-list">
                             {shelfBooks.map((book) => {
-                                const statusText = toKoreanStatus(book.status || book.readingStatus);
+                                const statusText = formatStatus(book.status || book.readingStatus);
                                 const progressPct = Math.min(100, Math.max(0, Number(book.progress) || 0));
                                 const rawGenre = book.genre || book.displayGenre || book.subject;
-                                const displayGenre = genreLabel(rawGenre) || rawGenre;
+                                const displayGenre = formatGenre(rawGenre) || rawGenre;
                                 const rawCoverUrl = book.coverUrl || book.cover_url || book.coverImage || book.cover_image;
                                 const coverSrc = coverImageSrc(rawCoverUrl);
 
@@ -274,7 +280,7 @@ export default function MobileShelfSheet({
                                         >
                                             <img
                                                 src={coverSrc}
-                                                alt={`${book.title || '도서'} 표지`}
+                                                alt={`${book.title || (isEn ? 'Book' : '도서')} 표지`}
                                                 width={48}
                                                 height={68}
                                                 decoding="async"
@@ -285,14 +291,14 @@ export default function MobileShelfSheet({
                                         {/* 도서 메타 데이터 정보 */}
                                         <div className="mobile-shelf-book-info">
                                             <div className="mobile-shelf-book-title-row">
-                                                <h4 className="mobile-shelf-book-title">{book.title || '제목 미상'}</h4>
+                                                <h4 className="mobile-shelf-book-title">{book.title || t('library.unknownTitle', '제목 미상')}</h4>
                                                 <span className={`mobile-shelf-status-badge status-${statusText}`}>
                                                     {statusText}
                                                 </span>
                                             </div>
 
                                             <p className="mobile-shelf-book-author">
-                                                {book.author ? `✍️ ${book.author}` : '저자 정보 없음'}
+                                                {book.author ? `✍️ ${book.author}` : (isEn ? 'Unknown Author' : '저자 정보 없음')}
                                             </p>
 
                                             {displayGenre && (

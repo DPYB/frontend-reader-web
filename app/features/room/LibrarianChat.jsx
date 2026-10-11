@@ -23,6 +23,7 @@ import ChatBookCards from './chat/ChatBookCards';
 import ChatInputForm from './chat/ChatInputForm';
 import MobileChatFAB from './chat/MobileChatFAB';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useLanguage } from '../../store/languageStore';
 import './LibrarianChat.css';
 
 // 백엔드(discovery) ChatRequest.message max_length와 동일하게 맞춘다 (CLIAR-184/185)
@@ -125,6 +126,7 @@ function getRecommendationLoadingMessage(librarianId) {
  * LibrarianChat — 오른쪽 하단 질문 입력 패널 및 사서 인터랙션.
  */
 export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetail, onLoadingChange, onOpenTimer, onOpenGuide }) {
+  const { t, formatStatus } = useLanguage();
   const { books } = useBooks();
   const { names: librarianNames } = useLibrarian();
   const { theme, setTheme } = useTheme();
@@ -944,7 +946,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                 className="lc-library-search-input"
                 value={libraryQuery}
                 onChange={(e) => setLibraryQuery(e.target.value)}
-                placeholder="내 서재 책 제목 또는 저자 검색..."
+                placeholder={t('chat.librarySearchPlaceholder', '내 서재 책 제목 또는 저자 검색...')}
               />
               <div className="lc-library-filter-pills">
                 <button
@@ -952,35 +954,37 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                   className={`lc-library-pill ${libraryFilter === 'ALL' ? 'active' : ''}`}
                   onClick={() => setLibraryFilter('ALL')}
                 >
-                  전체 ({books.length})
+                  {t('chat.filterAll', '전체')} ({books.length})
                 </button>
                 <button
                   type="button"
                   className={`lc-library-pill ${libraryFilter === 'READING' ? 'active' : ''}`}
                   onClick={() => setLibraryFilter('READING')}
                 >
-                  읽는 중
+                  {t('status.reading', '읽는 중')}
                 </button>
                 <button
                   type="button"
                   className={`lc-library-pill ${libraryFilter === 'COMPLETED' ? 'active' : ''}`}
                   onClick={() => setLibraryFilter('COMPLETED')}
                 >
-                  완독
+                  {t('status.completed', '완독')}
                 </button>
                 <button
                   type="button"
                   className={`lc-library-pill ${libraryFilter === 'PLANNED' ? 'active' : ''}`}
                   onClick={() => setLibraryFilter('PLANNED')}
                 >
-                  시작 전
+                  {t('status.planned', '시작 전')}
                 </button>
               </div>
 
               <div className="lc-library-list">
                 {filteredLibraryBooks.length === 0 ? (
                   <div className="lc-library-empty">
-                    {libraryQuery.trim() ? '일치하는 책이 없습니다.' : '서재에 등록된 도서가 없습니다.'}
+                    {libraryQuery.trim()
+                      ? t('chat.noMatchingBooks', '일치하는 책이 없습니다.')
+                      : t('chat.noBooksInLibrary', '서재에 등록된 도서가 없습니다.')}
                   </div>
                 ) : (
                   filteredLibraryBooks.map((b) => (
@@ -989,7 +993,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                         <span className="lc-library-item-title">{b.title}</span>
                         <div className="lc-library-item-meta">
                           {b.author && <span>{b.author}</span>}
-                          <span className="lc-library-item-badge">{b.status}</span>
+                          <span className="lc-library-item-badge">{formatStatus(b.status)}</span>
                           {b.progress != null && <span>{b.progress}%</span>}
                         </div>
                       </div>
@@ -998,7 +1002,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
                         className="lc-library-open-btn"
                         onClick={() => handleOpenDetail(b)}
                       >
-                        책 열기 ➔
+                        {t('chat.openBook', '책 열기 ➔')}
                       </button>
                     </div>
                   ))

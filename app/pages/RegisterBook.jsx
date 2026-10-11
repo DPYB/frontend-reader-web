@@ -17,6 +17,7 @@ import BookIsbnScanSection from '../features/register/BookIsbnScanSection';
 import BookRegisterForm from '../features/register/BookRegisterForm';
 import IsbnGuideModal from '../features/register/IsbnGuideModal';
 import { useResponsive } from '../hooks/useResponsive';
+import { useLanguage } from '../store/languageStore';
 import './RegisterBook.css';
 
 /**
@@ -77,6 +78,7 @@ const MAX_IMAGE_SIZE_MB = 5;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 export default function RegisterBook() {
+  const { t } = useLanguage();
   const { books, addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
@@ -640,7 +642,7 @@ export default function RegisterBook() {
         </div>
       )}
 
-      <h2 className="rb-title">책 등록</h2>
+      <h2 className="rb-title">{t('register.title', '책 등록')}</h2>
 
       <RecommendationBanner
         fromRecommendation={fromRecommendation}
@@ -656,7 +658,7 @@ export default function RegisterBook() {
           role="tab"
           aria-selected={activeTab === 'search'}
         >
-          🔍 도서 검색
+          {t('register.tabSearch', '🔍 도서 검색')}
         </button>
         <button
           type="button"
@@ -665,7 +667,7 @@ export default function RegisterBook() {
           role="tab"
           aria-selected={activeTab === 'camera'}
         >
-          📷 ISBN·표지
+          {t('register.tabCamera', '📷 ISBN·표지')}
         </button>
         <button
           type="button"
@@ -674,7 +676,7 @@ export default function RegisterBook() {
           role="tab"
           aria-selected={activeTab === 'manual'}
         >
-          ✍️ 직접 입력
+          {t('register.tabManual', '✍️ 직접 입력')}
         </button>
       </div>
 
@@ -709,7 +711,7 @@ export default function RegisterBook() {
         {activeTab === 'search' && (ocrDone || title) && (
           <div className="rb-detail-section-header">
             <h3 className="rb-detail-section-title">
-              📝 선택한 도서 상세 설정 및 등록
+              {t('register.detailSectionTitle', '📝 선택한 도서 상세 설정 및 등록')}
             </h3>
           </div>
         )}

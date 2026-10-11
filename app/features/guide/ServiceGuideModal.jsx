@@ -20,8 +20,10 @@ const GUIDE_TITLES = [
 ];
 
 import { dismissGuideForToday, markGuideSeenInSession } from './guideStorage';
+import { useLanguage } from '../../store/languageStore';
 
 export default function ServiceGuideModal({ isOpen, onClose }) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
@@ -239,7 +241,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
               checked={dontShowToday}
               onChange={(e) => setDontShowToday(e.target.checked)}
             />
-            <span className="guide-dismiss-text">오늘 하루 보지 않기</span>
+            <span className="guide-dismiss-text">{t('guide.dismissToday', '오늘 하루 보지 않기')}</span>
           </label>
 
           <div className="guide-footer-actions">
@@ -250,14 +252,14 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
                   className="guide-action-btn secondary"
                   onClick={handleCloseModal}
                 >
-                  닫기
+                  {t('common.close', '닫기')}
                 </button>
                 <button
                   type="button"
                   className="guide-action-btn primary"
                   onClick={handleNext}
                 >
-                  다음 ›
+                  {t('guide.next', '다음 ›')}
                 </button>
               </>
             ) : (
@@ -266,7 +268,7 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
                 className="guide-action-btn primary complete"
                 onClick={handleCloseModal}
               >
-                시작하기
+                {t('guide.getStarted', '시작하기')}
               </button>
             )}
           </div>
