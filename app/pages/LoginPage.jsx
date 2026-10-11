@@ -1,9 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import { AUTH_BYPASS } from '../store/authBypass';
 import { ApiError } from '../api/authApi';
 import { renderGoogleButton, triggerGoogleLogin, triggerKakaoLogin } from '../utils/socialAuth';
+import ServiceGuideModal from '../features/guide/ServiceGuideModal';
+import { shouldShowGuideModal, isGuideSeenInSession } from '../features/guide/guideStorage';
 import './LoginPage.css';
 
 /**
@@ -120,6 +122,7 @@ function LoginButton({ btn, onClick, disabled, active }) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginWithGoogle, loginWithKakao, loginAsGuest } = useAuth();
   const [eyeActive, setEyeActive] = useState(false);
   const [email, setEmail] = useState('');
@@ -128,8 +131,18 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const googleBtnRef = useRef(null);
 
+  // 서비스 이용 가이드 모달 상태 (오늘 아직 보지 않았고 이번 세션에서 보지 않았을 때 첫 노출)
+  const [showGuide, setShowGuide] = useState(() => {
+    if (location.state?.fromGuideClosed) return false;
+    return shouldShowGuideModal() && !isGuideSeenInSession();
+  });
+
   // PC 환경 최적화 안내 팝업 상태 (오늘 하루 보지 않기 여부 검사)
+  // 가이드가 먼저 뜨는 경우 가이드를 닫은 직후 순차적으로 표출
   const [showPcNotice, setShowPcNotice] = useState(() => {
+    if (shouldShowGuideModal() && !isGuideSeenInSession() && !location.state?.fromGuideClosed) {
+      return false;
+    }
     try {
       const dismissed = localStorage.getItem('dpyb_pc_notice_dismissed');
       if (dismissed) {
@@ -142,6 +155,21 @@ export default function LoginPage() {
     }
   });
   const [dontShowPcNoticeToday, setDontShowPcNoticeToday] = useState(false);
+
+  // 서비스 이용 가이드 닫기 핸들러 → 사용자가 닫으면 로그인 팝업창 순차 표출
+  const handleCloseGuide = useCallback(() => {
+    setShowGuide(false);
+    try {
+      const dismissed = localStorage.getItem('dpyb_pc_notice_dismissed');
+      if (dismissed) {
+        const exp = Number(dismissed);
+        if (Date.now() < exp) return;
+      }
+      setShowPcNotice(true);
+    } catch {
+      setShowPcNotice(true);
+    }
+  }, []);
 
   const handleClosePcNotice = useCallback(() => {
     if (dontShowPcNoticeToday) {
@@ -569,6 +597,12 @@ export default function LoginPage() {
           </div>
         </div>
       )}
+
+      {/* 서비스 이용 가이드 팝업 모달 */}
+      <ServiceGuideModal
+        isOpen={showGuide}
+        onClose={handleCloseGuide}
+      />
     </div>
   );
 }

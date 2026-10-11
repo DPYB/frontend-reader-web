@@ -1,5 +1,20 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-09: 슈빌(황새) 서재 커서 크기 배율 최적화 (게코 < 슈빌 < 기존)
+- 작업 브랜치: `feat/adjust-shoebill-cursor-size`
+- **사용자 요청**:
+  - 슈빌(황새) 커서 크기를 게코(`1.25`)보다는 크지만 기존 크기(`1.38`)보다는 작게 줄여서 밸런스 조정.
+- **작업 내용**:
+  1. `app/data/librarians.js`:
+     - 슈빌 사서(`id: 'stork'`, 황새)의 `imgScale` 값을 `1.38`에서 `1.31`로 최적화.
+     - 서재 씬(`LibrarianCursor.jsx`)에서 게코(`1.25`)보다 시각적 체격이 크면서도 화면 요소를 과도하게 가리지 않는 황금 비율(1.31) 확보.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-09: 로그인 페이지 소셜(카카오/구글) 로그인 버튼 UI 비활성화 및 DPYB 체험하기 호버 반짝임/선택 효과 적용
 - 작업 브랜치: `feat/login-social-disabled-and-guest-hover-glow`
 - **사용자 요청**:

@@ -1,4 +1,5 @@
 export const SERVICE_GUIDE_DISMISS_KEY = 'service_guide_dismissed_date';
+export const SERVICE_GUIDE_SESSION_SEEN_KEY = 'service_guide_session_seen';
 
 /**
  * 오늘 하루 보지 않기 설정 여부 확인
@@ -26,3 +27,26 @@ export function dismissGuideForToday() {
     // ignore
   }
 }
+
+/**
+ * 이번 세션(탭 세션)에서 가이드 모달을 이미 보았는지 확인
+ */
+export function isGuideSeenInSession() {
+  try {
+    return sessionStorage.getItem(SERVICE_GUIDE_SESSION_SEEN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 이번 세션(탭 세션)에서 가이드 모달 확인 완료 표시
+ */
+export function markGuideSeenInSession() {
+  try {
+    sessionStorage.setItem(SERVICE_GUIDE_SESSION_SEEN_KEY, 'true');
+  } catch {
+    // ignore
+  }
+}
+

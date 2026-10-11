@@ -11,7 +11,7 @@ import BookDetail from './BookDetail';
 import ReadingTimerModal from './ReadingTimerModal';
 import MobileShelfSheet from './MobileShelfSheet';
 import ServiceGuideModal from '../guide/ServiceGuideModal';
-import { shouldShowGuideModal } from '../guide/guideStorage';
+import { shouldShowGuideModal, isGuideSeenInSession } from '../guide/guideStorage';
 import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/librarianStore';
 import { useAuth } from '../../store/authStore';
 import { toKoreanStatus } from '../../api/bookApi';
@@ -291,7 +291,7 @@ export default function LibraryScene() {
   const isDark = theme === 'dark';
   const [selectedId, setSelectedId] = useState(null);
   const [showTimer, setShowTimer] = useState(false);
-  const [showGuide, setShowGuide] = useState(() => shouldShowGuideModal());
+  const [showGuide, setShowGuide] = useState(() => shouldShowGuideModal() && !isGuideSeenInSession());
   const [activeMobileShelfIdx, setActiveMobileShelfIdx] = useState(null);
   const [lastActiveShelfIdx, setLastActiveShelfIdx] = useState(0);
   // 챗봇 답변 대기(thinking) 상태 — 사서 커서(LibrarianCursor)가 대기 이미지로 전환하는 데 사용
