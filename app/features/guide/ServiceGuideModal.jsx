@@ -250,26 +250,39 @@ export default function ServiceGuideModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   className="guide-action-btn secondary"
-                  onClick={handleCloseModal}
+                  onClick={handlePrev}
+                  disabled={isFirst}
+                  style={{ visibility: isFirst ? 'hidden' : 'visible' }}
                 >
-                  {t('common.close', '닫기')}
+                  {t('guide.prev', '이전')}
                 </button>
                 <button
                   type="button"
                   className="guide-action-btn primary"
                   onClick={handleNext}
                 >
-                  {t('guide.next', '다음 ›')}
+                  {t('guide.next', '다음')}
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                className="guide-action-btn primary complete"
-                onClick={handleCloseModal}
-              >
-                {t('guide.getStarted', '시작하기')}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="guide-action-btn secondary"
+                  onClick={handlePrev}
+                  disabled={isFirst}
+                  style={{ visibility: isFirst ? 'hidden' : 'visible' }}
+                >
+                  {t('guide.prev', '이전')}
+                </button>
+                <button
+                  type="button"
+                  className="guide-action-btn primary complete"
+                  onClick={handleCloseModal}
+                >
+                  {t('guide.getStarted', '시작하기')}
+                </button>
+              </>
             )}
           </div>
         </div>

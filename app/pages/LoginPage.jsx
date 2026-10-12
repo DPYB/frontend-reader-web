@@ -52,7 +52,7 @@ const BUTTONS = [
     id: 'dpyb',
     src: '/button/dpyb_btn.webp',
     tooltipKo: 'DPYB 체험하기 (로그인 없이 둘러보기)',
-    tooltipEn: 'Try DPYB (Explore without login)',
+    tooltipEn: 'Try Out DPYB (Explore without login)',
     left: 44.0, top: 80.42, width: 13.98, height: 3.75,
   },
   {
@@ -595,7 +595,7 @@ export default function LoginPage() {
                 <p className="login-notice-item-desc">
                   {isEn ? (
                     <>
-                      Click &quot;Try DPYB&quot; without logging in
+                      Click &quot;Try Out DPYB&quot; without logging in
                       <br />
                       to freely chat with AI librarians.
                     </>

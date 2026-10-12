@@ -1,5 +1,21 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-10: 로그인 페이지 회원가입 버튼 UI 비활성화
+- 작업 브랜치: `feat/disable-signup-button-ui`
+- **사용자 요청**:
+  - 로그인 페이지에서 회원가입 버튼을 UI적으로 비활성화 처리.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 배열 내 `signup` 버튼 툴팁을 `회원가입 (준비 중)`으로 변경.
+     - `isButtonDisabled`: `signup`을 비활성 조건에 추가하여 `disabled` 상태 및 `cursor: not-allowed` 스타일 적용.
+     - `handleClick`: `case 'signup'` 진입 시 `isButtonDisabled('signup')` 가드를 적용하여 클릭 이벤트 차단.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-10: 로그인 페이지 이용 안내 팝업 모달 문구 정돈 (테스트 운영 중 설명 교체 및 DPYB 체험하기 항목 제거)
 - 작업 브랜치: `feat/update-login-notice-content`
 - **사용자 요청**:
