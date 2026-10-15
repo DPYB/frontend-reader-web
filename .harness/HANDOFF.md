@@ -1,5 +1,29 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-15: 도서 상세 3D 모델 육면체 선 제거, 좌측 기준 높이 고정 및 공유 버튼 비활성화
+- 작업 브랜치: `feat/book-detail-height-fix-and-ui-refinements`
+- **사용자 요청**:
+  1. 도서 상세 3D 모델에 커서를 올렸을 때 나타나는 육면체 뼈대 테두리 선(Edges glow) 미노출 처리.
+  2. 도서 상세 팝업의 세로 길이를 왼쪽(책정보) 높이에 맞춰 고정하고, 오른쪽 수집 문장 영역이 길어질 경우 우측 내부에서 스크롤되도록 개선.
+  3. 수집 문장 슬라이드 카드의 `[공유]` 버튼 UI 비활성화.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/Book3D.jsx` & `app/features/room/Book3DViewer.jsx`:
+     - `Book3D`에 `showEdges = true`, `interactive = true` prop을 추가하여 호버 시 테두리 선 렌더링 및 당겨짐 애니메이션을 조건부로 분기.
+     - `Book3DViewer`에서 `showEdges={false}`, `interactive={false}`를 전달하여 모달 내 3D 책 뷰어에서는 마우스 커서를 올려도 육면체 뼈대 선이 나타나지 않고 깔끔한 360도 OrbitControls 회전 조작에만 집중하도록 개선.
+  2. `app/features/room/BookDetail.jsx`:
+     - 모달 패널(`panelStyle`)의 데스크톱 세로 높이를 `height: 'fit-content'` 및 `maxHeight: 'calc(100dvh - 48px)'`로 설정.
+     - 2단 그리드의 좌측 열(3D 책 뷰어 + 메타 카드)에 `height: 'fit-content'`를 적용하여 모달 전체 세로 길이가 좌측 도서 정보의 자연스러운 높이에 딱 맞춰 고정되도록 처리.
+     - 우측 탭 영역에 `height: '100%'`, `overflow: 'hidden'`, 탭 콘텐츠 영역에 `overflow: 'hidden'`을 부여하여, 우측 내용이 많아져도 모달 전체가 늘어나지 않고 우측 카드 내부(`ScrapGallery`의 `overflowY: 'auto'`)에서만 부드럽게 스크롤되도록 보장.
+  3. `app/features/room/ScrapGallery.jsx` & `app/i18n/translations.js`:
+     - 수집 문장 슬라이드 카드 하단의 `[공유]` 버튼을 `disabled`, `opacity: 0.45`, `cursor: 'not-allowed'`로 UI 비활성화 처리하고 툴팁(`공유 기능 준비 중` / `Share feature coming soon`) 연동.
+     - 비활성화에 따라 미사용된 `handleShare` 및 `copyNotice` 코드를 정리하여 ESLint 경고 방지.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 도서 상세 모달 스케치 기반 전면 재정리 및 인터랙티브 3D 도서 연동
 - 작업 브랜치: `feat/reorganize-book-detail-with-3d-book`
 - **사용자 요청**:
@@ -109,38 +133,6 @@
   3. `app/components/Gnb.jsx`:
      - 모바일 햄버거 드로어 네비게이션 내 1~4번 메인 메뉴(`My Library`, `Add Book`, `Reading Report`, `My Page`) 및 서브메뉴가 `useLanguage()` 및 다국어 사전을 통해 영어 모드 시 영문으로 완벽히 출력되는 상태 재검증 및 유지.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-11: 내 서재 및 전역 페이지 다국어(영어) 번역 지원
-- 작업 브랜치: `feat/app-english-translation`
-- **사용자 요청**:
-  - 사용자가 로그인 페이지에서 영어를 선택(`lang === 'en'`)하여 내 서재 페이지(`/library`)에 들어왔을 때 GNB 메뉴를 포함한 모든 페이지의 텍스트들을 영어로 전환.
-- **작업 내용**:
-  1. `app/i18n/translations.js`:
-     - 한국어(`ko`) 및 영어(`en`) 사전 정의 (`common`, `status`, `genre`, `gnb`, `library`, `chat`, `debate`, `bookDetail`, `register`, `report`, `mypage`, `profiles`, `guide`).
-     - 독서 상태(`formatReadingStatus`) 및 장르(`formatGenre`) 헬퍼 함수 구현.
-  2. `app/store/LanguageProvider.jsx` & `app/store/languageStore.js`:
-     - `t(keyOrKo, enFallback)` 함수 지원 (dot-notation, inline fallback, object 모두 지원).
-     - `useLanguage()` re-export 및 `formatStatus`, `formatGenre`, `isEn`, `isKo` 전역 제공.
-  3. `app/components/Gnb.jsx`:
-     - 데스크톱 메뉴(`내 서재`, `책 등록`, `독서 리포트`, `마이페이지`, `로그아웃`).
-     - 프로필 바텀시트 메뉴(`사서 프로필`, `라이트/다크 모드`, `로그아웃`).
-     - 모바일 햄버거 드로어 전체 메뉴 및 서브메뉴(도서검색, ISBN촬영, 직접입력, 독서리스트, 캘린더, 내정보) 다국어화.
-  4. `app/pages/MyLibrary.jsx` & `app/features/room/LibraryScene.jsx` & `app/features/room/MobileShelfSheet.jsx`:
-     - 3D 서재 로딩 안내(`Preparing your library... 🐾`), 선반 탭(`Shelf {N}`), 빈 선반 안내, 책 호버 말풍선, 타이머 플로팅 버튼, 상태 배지 영문화.
-  5. 사서 대화 및 토론 컴포넌트:
-     - `ChatModeTabs`, `ChatHeader`, `ChatInputForm`, `ChatMessageList`, `DebateSetupSection`, `MobileChatFAB`, `LibrarianChat` 전체 UI 텍스트(탭, 플레이스홀더, 필터, 버튼, 토론 안내) 다국어화.
-  6. `app/features/room/BookDetail.jsx`:
-     - 도서 상세 메타 레이블, 페이지 입력 안내, 액션 버튼(수정, 삭제, 저장, 독서타이머, 문장수집, 탭), 삭제 확인 팝업 다국어화.
-  7. `app/pages/RegisterBook.jsx`:
-     - 도서 등록 탭(검색, 바코드/표지, 직접입력) 및 상세 등록 폼 헤더 영문화.
-  8. `app/pages/MonthlyReport.jsx`, `app/pages/MyPage.jsx`, `app/pages/LibrarianProfiles.jsx`, `app/features/guide/ServiceGuideModal.jsx`:
-     - 월간 리포트 카드 타이틀/지표, 마이페이지 탭 및 프로필/계정 카드, 사서 프로필 카드/버튼, 서비스 가이드 푸터 버튼 다국어화.
-  9. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

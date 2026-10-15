@@ -57,6 +57,8 @@ export default function Book3D({
   selectedDepthScale = 2.6,
   selectedScale = 2.6,
   glowColor = '#ff9a3c',
+  showEdges = true,
+  interactive = true,
   onSelect,
   onHover,
 }) {
@@ -227,50 +229,64 @@ export default function Book3D({
       ref={groupRef}
       position={position}
       rotation={[rx, ry, rz]}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-        onHover?.(true);
-      }}
-      onPointerOut={() => {
-        setHovered(false);
-        onHover?.(false);
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect?.();
-      }}
+      onPointerOver={
+        interactive
+          ? (e) => {
+              e.stopPropagation();
+              setHovered(true);
+              onHover?.(true);
+            }
+          : undefined
+      }
+      onPointerOut={
+        interactive
+          ? () => {
+              setHovered(false);
+              onHover?.(false);
+            }
+          : undefined
+      }
+      onClick={
+        interactive
+          ? (e) => {
+              e.stopPropagation();
+              onSelect?.();
+            }
+          : undefined
+      }
     >
       <mesh castShadow receiveShadow material={materials}>
         <boxGeometry args={size} />
         {/*
          * 테두리 glow (CLIAR-243): 버튼 active 표시처럼 hover/선택된 책의 윤곽만 밝힌다.
-         * 핵심선(core) + 살짝 더 두꺼운 halo 두 겹으로 은은한 발광 느낌을 낸다.
-         * ref는 Edges가 만드는 Line2 메시를 가리키므로, opacity는 .material.opacity로 댐핑한다.
-         * 초기 opacity 0이라 평소엔 보이지 않는다.
+         * showEdges가 true일 때만 렌더링.
          */}
-        <Edges
-          ref={edgeCoreRef}
-          scale={1.001}
-          color={glowColor}
-          lineWidth={2.5}
-          transparent
-          opacity={0}
-          depthTest={false}
-          toneMapped={false}
-          raycast={() => null}
-        />
-        <Edges
-          ref={edgeHaloRef}
-          scale={1.03}
-          color={glowColor}
-          lineWidth={6}
-          transparent
-          opacity={0}
-          depthTest={false}
-          toneMapped={false}
-          raycast={() => null}
-        />
+        {showEdges && (
+          <>
+            <Edges
+              ref={edgeCoreRef}
+              scale={1.001}
+              color={glowColor}
+              lineWidth={2.5}
+              transparent
+              opacity={0}
+              depthTest={false}
+              toneMapped={false}
+              raycast={() => null}
+            />
+            <Edges
+              ref={edgeHaloRef}
+              scale={1.03}
+              color={glowColor}
+              lineWidth={6}
+              transparent
+              opacity={0}
+              depthTest={false}
+              toneMapped={false}
+              raycast={() => null}
+            />
+          </>
+        )}
       </mesh>
 
       {/*
