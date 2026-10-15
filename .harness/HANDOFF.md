@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-15: 도서 상세 장르 및 색상 수정 기능 추가, 마이페이지 소메뉴 중복 이모지 제거
+- 작업 브랜치: `feat/book-edit-genre-color-and-mypage-tab-emojis`
+- **사용자 요청**:
+  1. 도서 선택 후 왼쪽 상세 영역의 [수정] 버튼을 눌렀을 때 장르 및 책 색상(책등/표지)을 수정할 수 있도록 기능 지원.
+  2. 마이페이지 상단 소메뉴(탭)에 이모지가 2개씩 중복 노출되는 현상(`📚 📚 독서 리스트` 등) 수정.
+- **작업 내용**:
+  1. `app/i18n/translations.js`:
+     - `mypage.tabBooks`, `mypage.tabCalendar`, `mypage.tabProfile` 번역값에서 중복 이모지를 제거하고 텍스트만 유지(`독서 리스트`, `독서 캘린더`, `내 정보` / `Reading List`, `Reading Calendar`, `My Profile`).
+     - `bookDetail.chooseColor` 다국어 키 추가(`책등 및 표지 색상` / `Book Spine & Cover Color`).
+  2. `app/features/room/BookDetail.jsx`:
+     - `editing` 모드 진입 시 장르 영역을 전체 KDC 대분류 10종(`GENRE_DEFS`)을 선택할 수 있는 드롭다운(`<select>`)으로 전환.
+     - `editing` 모드 시 활성 사서의 테마 컬러 팔레트 6종(`getColorPresets(librarianId)`) 원형 색상 스위처를 노출하여 사용자가 원하는 책 색상을 원클릭으로 선택할 수 있도록 구현.
+     - 색상 스위처 클릭 시 상단 `Book3DViewer` 컴포넌트의 `spineColor`와 `coverColor`에 즉시 반영되어 실시간 3D 프리뷰 제공.
+     - [완료] 클릭 시 `saveBookMeta` 및 `setVisual`을 통해 백엔드 및 로컬 시각 데이터와 동기화하고, [취소] 클릭 시 원래 장르와 색상으로 안전하게 롤백.
+  3. `app/store/BooksProvider.jsx`:
+     - `saveBookMeta` 실행 시 전달받은 `spineColor`, `coverColor`, `colorIdx`를 `setVisual` 및 전역 `books` 상태에 즉시 동기화하도록 보강.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 마이페이지 독서 캘린더 날짜별 책장 선반화 및 미니 책등 꽂기 UI 구현
 - 작업 브랜치: `feat/mypage-calendar-bookshelf-view`
 - **사용자 요청**:
@@ -112,30 +135,6 @@
   3. `app/features/room/LibraryScene.jsx`:
      - `Book3D` 호출부에 `title={b.title}`, `author={b.author}`, `coverUrl={b.coverUrl || b.cover_url || b.coverImage}` 속성 전달.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-15: 다국어 번역 키 노출 및 언어 반전 결함 해결, 타이머·챗 버튼 영문화
-- 작업 브랜치: `feat/fix-language-switching-and-labels`
-- **사용자 요청**:
-  1. 로그인 페이지에서 한국어/영어 선택 시, 로그인 후 페이지들의 텍스트가 반대로 작동하는 버그 해결 (한국어 선택 시 영어/키 이름 노출, 영어 선택 시 한국어 노출 현상).
-  2. 영어로 바뀐 메뉴에 `gnb.myLibrary`처럼 `gnb` 등 내부 dot-notation 키가 화면에 노출되지 않도록 수정.
-  3. 플로팅 타이머 및 사서 챗 버튼 텍스트 변경:
-     - 독서 타이머 -> `Book Timer`
-     - 사서에게 질문하기 -> `Start Chat`
-- **작업 내용**:
-  1. `app/store/LanguageProvider.jsx`:
-     - `t(keyOrKo, fallback)` 함수 버그 수정: 이전 구현에서 `enFallback !== undefined`를 무조건 인라인 번역으로 판단하여 한국어 모드에서 key 문자열(`gnb.myLibrary` 등)을 반환하고 영어 모드에서 fallback 한국어를 반환하던 로직을 전면 수정.
-     - dot-notation key를 현재 활성 언어(`lang`) 번역 사전(`translations[lang]`)에서 우선 조회하도록 보정하여 한국어 선택 시 한국어 라벨, 영어 선택 시 영어 라벨이 정확하게 매핑되도록 처리.
-     - 키가 누락되었을 경우에도 안전하게 fallback 및 반대 언어 사전으로 안전하게 폴백되도록 보장.
-  2. `app/i18n/translations.js`:
-     - 영문 번역 사전 내 플로팅 타이머(`library.readingTimer`, `chat.menuTimerTitle`) 라벨을 `Reading Timer`에서 `Book Timer`로 수정.
-     - 영문 번역 사전 내 사서 챗 플로팅 버튼(`chat.askLibrarian`) 라벨을 `Ask Librarian`에서 `Start Chat`으로 수정.
-     - 한국어/영어 번역 사전 202개 전 키 1:1 패리티 검증 완료.
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과
   - `npm run lint` 통과 (0 errors, 0 warnings)
