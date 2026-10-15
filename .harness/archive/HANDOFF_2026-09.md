@@ -1,5 +1,28 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-12: 서비스 이용 가이드 영문 버튼 개선, 로그인 팝업 Try Out DPYB 문구 보정 및 모바일 햄버거 메뉴 영문화 검증
+- 작업 브랜치: `feat/guide-login-and-menu-en-refinements`
+- **사용자 요청**:
+  1. 서비스 사용가이드에 영문버전 버튼 용어 수정: 다음 슬라이드 넘길 때 그냥 `next`라고만 적고, 그 왼쪽에 있는 close 버튼은 이전 슬라이드 보는 버튼(`prev`/`Previous`)으로 변경.
+  2. 서비스 사용가이드 다음에 뜨는 팝업창에 Try DPYB라고 적혀 있는 문구를 `Try Out DPYB`로 변경.
+  3. 햄버거 메뉴에 있는 내서재, 책등록, 독서 리포트, 마이페이지 영문 지원 적용.
+- **작업 내용**:
+  1. `app/features/guide/ServiceGuideModal.jsx` & `app/i18n/translations.js`:
+     - 하단 푸터 액션 영역에서 기존 모달 닫기(`close`) 버튼을 이전 슬라이드로 이동하는 `Previous`(`이전`) 버튼으로 전면 전환 (`onClick={handlePrev}`, `disabled={isFirst}`, 첫 슬라이드에서는 숨김 처리).
+     - 다음 버튼 텍스트를 `Next ›`에서 화살표 없는 간결한 `Next`(`다음`)로 개편.
+     - 마지막 슬라이드에서도 이전 슬라이드를 다시 확인할 수 있도록 `Previous` 버튼을 함께 배치.
+  2. `app/pages/LoginPage.jsx`:
+     - 로그인 이용 안내 모달의 2번째 항목(테스트 운영 중) 설명 문구 영문 텍스트 내 `Try DPYB`를 `Try Out DPYB`로 변경.
+     - 메인 캔버스 DPYB 체험 버튼 툴팁(`tooltipEn`)도 `Try Out DPYB (Explore without login)`로 정합성 일원화.
+  3. `app/components/Gnb.jsx`:
+     - 모바일 햄버거 드로어 네비게이션 내 1~4번 메인 메뉴(`My Library`, `Add Book`, `Reading Report`, `My Page`) 및 서브메뉴가 `useLanguage()` 및 다국어 사전을 통해 영어 모드 시 영문으로 완벽히 출력되는 상태 재검증 및 유지.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-11: 내 서재 및 전역 페이지 다국어(영어) 번역 지원
 - 작업 브랜치: `feat/app-english-translation`
 - **사용자 요청**:

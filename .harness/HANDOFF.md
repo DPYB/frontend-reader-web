@@ -1,5 +1,31 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-15: 마이페이지 독서 캘린더 날짜별 책장 선반화 및 미니 책등 꽂기 UI 구현
+- 작업 브랜치: `feat/mypage-calendar-bookshelf-view`
+- **사용자 요청**:
+  - 마이페이지 독서 캘린더에 각 날짜별 칸도 선반처럼 그날 읽은 책이 꽂아져 있는 것처럼 제작 요청.
+- **작업 내용**:
+  1. `app/features/mypage/MyPageReadingCalendar.jsx`:
+     - `getMiniSpineProps(book, index)` 헬퍼 구현:
+       - 도서의 `spineColor`, `heightFactor`, `thickness`를 우선 반영하고, 미지정 시 도서 id/제목 해시 기반으로 유려한 양장본 색상 및 68%~94% 범위의 자연스러운 책 높이/두께 편차 생성.
+     - `calendarDays` 계산부에서 날짜별 활동(`dayActivities`)을 순회하여 당일 읽은 고유 도서 목록(`books: dayBooks`) 추출 및 중복 제거.
+     - 달력 날짜 셀(`<button className="calendar-day-cell calendar-shelf-cell">`) 내부 구조 개편:
+       - 상단(`.calendar-cell-top`): 날짜 번호 및 출석 발자국 스탬프(`🐾`).
+       - 하단 선반 스테이지(`.calendar-shelf-stage`):
+         - 선반 위 꽂힌 미니 책등 컨테이너(`.calendar-shelf-books`): 당일 읽은 책들을 세로 양장본 책등 형태로 선반 위에 나란히 렌더링 (최대 3권 + 초과 시 `+N` 배지).
+         - 각 미니 책등(`.calendar-mini-book`): 3D 원통형 하이라이트(`mini-book-spine-shine`), 상하단 금박/은박 음각 밴드(`mini-book-spine-line`), 도서명 및 저자 툴팁, 호버 시 위로 살짝 뽑히는 리프팅 인터랙션 지원.
+         - 선반 나무 받침대(`.calendar-shelf-plank`): 바닥에 따뜻하고 사실적인 목재 플랭크 텍스처 및 베벨 하이라이트/그림자 렌더링.
+  2. `app/pages/MyPage.css`:
+     - 캘린더 날짜 셀을 원목 서가 칸(compartment) 느낌의 깊이감 있는 배경 그라데이션 및 내부 그림자로 스타일링.
+     - 다크 모드(`[data-theme='dark']`)에 맞춘 중후한 마호가니/월넛 목재 선반 텍스처와 미니 책등 그림자 최적화.
+     - 모바일 및 태블릿 반응형 브레이크포인트(`max-width: 640px`)에서 선반 및 미니 책등의 크기를 적절히 축소(`height: 66px`, 책등 폭 8px)하여 모든 디바이스에서 균형 잡힌 레이아웃 유지.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 도서 상세 3D 모델 육면체 선 제거, 좌측 기준 높이 고정 및 공유 버튼 비활성화
 - 작업 브랜치: `feat/book-detail-height-fix-and-ui-refinements`
 - **사용자 요청**:
@@ -112,29 +138,6 @@
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-12: 서비스 이용 가이드 영문 버튼 개선, 로그인 팝업 Try Out DPYB 문구 보정 및 모바일 햄버거 메뉴 영문화 검증
-- 작업 브랜치: `feat/guide-login-and-menu-en-refinements`
-- **사용자 요청**:
-  1. 서비스 사용가이드에 영문버전 버튼 용어 수정: 다음 슬라이드 넘길 때 그냥 `next`라고만 적고, 그 왼쪽에 있는 close 버튼은 이전 슬라이드 보는 버튼(`prev`/`Previous`)으로 변경.
-  2. 서비스 사용가이드 다음에 뜨는 팝업창에 Try DPYB라고 적혀 있는 문구를 `Try Out DPYB`로 변경.
-  3. 햄버거 메뉴에 있는 내서재, 책등록, 독서 리포트, 마이페이지 영문 지원 적용.
-- **작업 내용**:
-  1. `app/features/guide/ServiceGuideModal.jsx` & `app/i18n/translations.js`:
-     - 하단 푸터 액션 영역에서 기존 모달 닫기(`close`) 버튼을 이전 슬라이드로 이동하는 `Previous`(`이전`) 버튼으로 전면 전환 (`onClick={handlePrev}`, `disabled={isFirst}`, 첫 슬라이드에서는 숨김 처리).
-     - 다음 버튼 텍스트를 `Next ›`에서 화살표 없는 간결한 `Next`(`다음`)로 개편.
-     - 마지막 슬라이드에서도 이전 슬라이드를 다시 확인할 수 있도록 `Previous` 버튼을 함께 배치.
-  2. `app/pages/LoginPage.jsx`:
-     - 로그인 이용 안내 모달의 2번째 항목(테스트 운영 중) 설명 문구 영문 텍스트 내 `Try DPYB`를 `Try Out DPYB`로 변경.
-     - 메인 캔버스 DPYB 체험 버튼 툴팁(`tooltipEn`)도 `Try Out DPYB (Explore without login)`로 정합성 일원화.
-  3. `app/components/Gnb.jsx`:
-     - 모바일 햄버거 드로어 네비게이션 내 1~4번 메인 메뉴(`My Library`, `Add Book`, `Reading Report`, `My Page`) 및 서브메뉴가 `useLanguage()` 및 다국어 사전을 통해 영어 모드 시 영문으로 완벽히 출력되는 상태 재검증 및 유지.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)

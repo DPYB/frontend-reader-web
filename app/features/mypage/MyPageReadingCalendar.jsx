@@ -27,6 +27,53 @@ function formatTimeOnly(dateInput) {
   return d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 }
 
+/**
+ * 달력 날짜별 선반에 꽂힐 미니 책등(spine) 시각 속성 생성
+ * - 도서 모델에 spineColor/heightFactor/thickness가 있으면 우선 반영
+ * - 없으면 bookId/제목 해시 기반으로 유려한 양장본 색상 및 자연스러운 책 높이/두께 편차 생성
+ */
+function getMiniSpineProps(book, index) {
+  const idStr = String(book.bookId ?? book.id ?? book.title ?? index);
+  let hash = 0;
+  for (let i = 0; i < idStr.length; i += 1) {
+    hash = (hash * 31 + idStr.charCodeAt(i)) | 0;
+  }
+  const absHash = Math.abs(hash);
+
+  const defaultColors = [
+    '#c96b32', // amber
+    '#8b4513', // saddle brown
+    '#a0522d', // sienna
+    '#6a4fb0', // purple
+    '#4a3480', // dark indigo
+    '#2d8f78', // teal
+    '#1f6b5a', // dark teal
+    '#b83566', // rose
+    '#d4763e', // peach
+    '#5c4a9a', // lavender
+    '#237f6b', // emerald
+    '#7d5bc8', // lilac
+  ];
+
+  const spineColor = book.spineColor || defaultColors[absHash % defaultColors.length];
+
+  // 높이: 68% ~ 94% 사이 자연스러운 높이 편차
+  const heightFactor = book.heightFactor != null
+    ? 0.68 + (Number(book.heightFactor) * 0.26)
+    : 0.70 + ((absHash % 24) / 100);
+
+  // 두께(폭): 9px ~ 13px
+  const widthPx = book.thickness
+    ? Math.round(Number(book.thickness) * 45)
+    : 9 + (absHash % 5);
+
+  return {
+    spineColor,
+    heightPct: Math.round(heightFactor * 100),
+    widthPx: Math.max(9, Math.min(13, widthPx)),
+  };
+}
+
 export default function MyPageReadingCalendar({ onSelectBook }) {
   const { books } = useBooks();
 
@@ -172,11 +219,27 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
       const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
       const dayActivities = activitiesByDate[dateKey] || [];
 
+      // 해당 날짜에 읽은 도서 목록 추출 (중복 제거)
+      const dayBooks = [];
+      const seenBookIds = new Set();
+      dayActivities.forEach((act) => {
+        if (act.book) {
+          const bId = act.book.bookId ?? act.book.id;
+          const key = bId != null ? String(bId) : act.book.title;
+          if (key && !seenBookIds.has(key)) {
+            seenBookIds.add(key);
+            const fullBook = (bId != null ? booksMap.get(Number(bId)) : null) || act.book;
+            dayBooks.push(fullBook);
+          }
+        }
+      });
+
       days.push({
         type: 'day',
         dayNumber: d,
         dateKey,
         activities: dayActivities,
+        books: dayBooks,
         hasActivity: dayActivities.length > 0,
         isToday: dateKey === toDateKey(today),
         isSelected: dateKey === selectedDate,
@@ -184,7 +247,7 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
     }
 
     return days;
-  }, [currentYear, currentMonth, activitiesByDate, selectedDate, today]);
+  }, [currentYear, currentMonth, activitiesByDate, selectedDate, today, booksMap]);
 
   // 이번 달 통계 요약 (출석 일수, 총 독서 시간, 문장 수 등)
   const monthStats = useMemo(() => {
@@ -328,29 +391,72 @@ export default function MyPageReadingCalendar({ onSelectBook }) {
                   return <div key={item.key} className="calendar-day-cell empty" />;
                 }
 
-                const { dayNumber, dateKey, hasActivity, isToday, isSelected, activities } = item;
+                const { dayNumber, dateKey, hasActivity, isToday, isSelected, activities, books = [] } = item;
+                const displayBooks = books.slice(0, 3);
+                const extraCount = books.length - displayBooks.length;
 
                 return (
                   <button
                     key={dateKey}
                     type="button"
-                    className={`calendar-day-cell ${hasActivity ? 'has-activity' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                    className={`calendar-day-cell calendar-shelf-cell ${hasActivity ? 'has-activity' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
                     onClick={() => setSelectedDate(dateKey)}
-                    aria-label={`${dateKey} 독서 활동 ${activities.length}건`}
+                    aria-label={`${dateKey} 독서 활동 ${activities.length}건, 도서 ${books.length}권`}
                   >
-                    <span className="day-number">{dayNumber}</span>
+                    {/* 상단: 날짜 번호 및 출석 뱃지 */}
+                    <div className="calendar-cell-top">
+                      <span className="day-number">{dayNumber}</span>
+                      {hasActivity && (
+                        <div className="attendance-badge-wrap">
+                          <span className="attendance-stamp" title={`독서 활동 ${activities.length}건`}>
+                            🐾
+                          </span>
+                          {activities.length > 1 && (
+                            <span className="attendance-count">+{activities.length}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
-                    {/* 출석 체크인 배지 및 활동 카운트 */}
-                    {hasActivity && (
-                      <div className="attendance-badge-wrap">
-                        <span className="attendance-stamp" title={`독서 활동 ${activities.length}건`}>
-                          🐾
-                        </span>
-                        {activities.length > 1 && (
-                          <span className="attendance-count">+{activities.length}</span>
+                    {/* 선반 영역: 그날 읽은 책들이 꽂혀 있는 책장 칸 */}
+                    <div className="calendar-shelf-stage">
+                      <div className="calendar-shelf-books">
+                        {displayBooks.map((book, bIdx) => {
+                          const spine = getMiniSpineProps(book, bIdx);
+                          const bookTitle = book.title || '도서';
+                          const bookAuthor = book.author ? ` (${book.author})` : '';
+
+                          return (
+                            <div
+                              key={book.bookId || book.id || `${dateKey}-b-${bIdx}`}
+                              className="calendar-mini-book"
+                              style={{
+                                backgroundColor: spine.spineColor,
+                                height: `${spine.heightPct}%`,
+                                width: `${spine.widthPx}px`,
+                              }}
+                              title={`${bookTitle}${bookAuthor}`}
+                            >
+                              <span className="mini-book-spine-shine" />
+                              <span className="mini-book-spine-line top" />
+                              <span className="mini-book-spine-line bottom" />
+                            </div>
+                          );
+                        })}
+
+                        {extraCount > 0 && (
+                          <div
+                            className="calendar-shelf-more-badge"
+                            title={`그 외 ${extraCount}권 더 읽음`}
+                          >
+                            +{extraCount}
+                          </div>
                         )}
                       </div>
-                    )}
+
+                      {/* 선반 나무 받침대 (바닥 플랭크) */}
+                      <div className="calendar-shelf-plank" />
+                    </div>
                   </button>
                 );
               })}
