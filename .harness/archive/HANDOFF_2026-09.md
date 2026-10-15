@@ -1,5 +1,32 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-11: 로그인 페이지 언어 변환 기능(한국어/영어) 및 언어 스위처 추가
+- 작업 브랜치: `feat/login-language-switcher`
+- **사용자 요청**:
+  - 언어 변환 기능 추가 (한국어, 영어).
+  - 한국어: default (기존 UI).
+  - 영어: `public/login_eng` (WebP 변환 반영).
+  - 언어 변환 버튼은 로그인 페이지에 배치하며 위치는 `public/lang_switcher` 좌표 참고.
+- **작업 내용**:
+  1. `public/login_eng.webp`:
+     - 원본 영문 로그인 배경 PNG(5.8MB)를 2560x1440 RGB 고품질 WebP(Q90, 1.2MB, 약 79% 경량화)로 최적화 변환 및 원본 소스 정리.
+  2. 좌표 추출 및 정밀 배치 (`LANG_SWITCHER_POS`):
+     - `public/lang_switcher.png` 기준 바운딩 박스 `(1214, 232, 1405, 292)`를 2560x1440 비율 기반 퍼센트 좌표(`left: 47.42%`, `top: 16.11%`, `width: 7.46%`, `height: 4.17%`)로 변환.
+     - 2560x1440 캔버스 스케일링 레이어(`.login-cover-layer`) 내부에 언어 전환 스위처 배치하여 해상도별 왜곡 없는 완벽 정렬 보장.
+  3. `app/store/languageStore.js` & `app/store/LanguageProvider.jsx`:
+     - 글로벌 언어 상태 관리(`LanguageContext`, `useLanguage`), `localStorage` 영속화(`dpyb.language`), 기본값 한국어(`ko`) 제공.
+     - 최상단 `app/App.jsx`에 `<LanguageProvider>` 감싸기 적용.
+  4. `app/pages/LoginPage.jsx` & `app/pages/LoginPage.css`:
+     - 언어 스위처 UI(`한국어 | ENG`) 구현 및 활성 언어 강조/스위칭 인터랙션 적용.
+     - 언어 선택에 따른 배경 이미지 동적 교체: 한국어(`login-bg.webp`) vs 영어(`login_eng.webp`).
+     - 툴팁 다국어화(`tooltipKo`/`tooltipEn`), 입력창 플레이스홀더(`이메일`/`Email`, `비밀번호`/`Password`), 에러 메시지 및 공지 팝업 모달 영문화 지원.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-11: 도메인 초기 진입 로딩 대체 서비스 사용 가이드 우선 노출 및 로그인 팝업 연계
 - 작업 브랜치: `feat/initial-service-guide-notice-flow`
 - **사용자 요청**:

@@ -8,7 +8,7 @@ import SentenceCollectModal from './SentenceCollectModal'
 import ScrapGallery from './ScrapGallery'
 import ReadingTimerModal from './ReadingTimerModal'
 import ReadingSessionHistory from './ReadingSessionHistory'
-import { coverImageSrc, onFallbackCover } from '../../lib/coverImage'
+import Book3DViewer from './Book3DViewer'
 import { useResponsive } from '../../hooks/useResponsive'
 import { useLanguage } from '../../store/languageStore'
 
@@ -389,276 +389,364 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
             minWidth: 0,
           }}
         >
-          {/* ── 왼쪽: 책 상세 ── */}
+          {/* ── 왼쪽: 3D 책 및 도서 메타 카드 ── */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               minWidth: 0,
+              gap: 12,
               overflowY: isMobile ? 'visible' : 'auto',
             }}
           >
-            {/* 도서 기본 정보 헤더: 제목 + 저자 (명확하고 직관적인 UI 배치) */}
-            <div style={{ marginBottom: 10, textAlign: 'center' }}>
-              <h3
-                style={{
-                  margin: '0 0 4px',
-                  fontSize: isMobile ? 18 : 21,
-                  fontWeight: 700,
-                  color: 'var(--text-h)',
-                  wordBreak: 'keep-all',
-                  lineHeight: 1.35,
-                }}
-              >
-                {book.title}
-              </h3>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: isMobile ? 13 : 15,
-                  color: 'var(--text)',
-                  opacity: 0.9,
-                  fontWeight: 500,
-                }}
-              >
-                ✍️ {book.author || '저자 미입력'}
-              </p>
-            </div>
+            {/* 1. 상단: 3D 도서 뷰어 (스케치 3D 도서) */}
+            <Book3DViewer
+              title={detail?.title || book.title}
+              author={detail?.author || book.author}
+              coverUrl={coverUrl}
+              spineColor={detail?.spineColor || book.spineColor}
+              coverColor={detail?.coverColor || book.coverColor}
+            />
 
-            {/* 책 표지 — 기존 대비 10% 축소 (width: 54%~63%) */}
-            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
-              <img
-                src={coverImageSrc(coverUrl)}
-                alt={`${book.title} 표지`}
-                style={{
-                  width: isMobile ? '54%' : '63%',
-                  maxHeight: isMobile ? 180 : 250,
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                  background: '#fff',
-                  borderRadius: 8,
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-                }}
-                onError={onFallbackCover}
-              />
-            </div>
-
-            {/*
-             * 표지 아래 메타 정보 칩 (장르·진행 상태·페이지) — CLIAR-241.
-             */}
+            {/* 2. 하단: 메타 정보 카드 (스케치 하단 박스) */}
             <div
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px 8px',
-                marginBottom: 8,
-                fontSize: 15,
+                flexDirection: 'column',
+                background: 'var(--code-bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: isMobile ? '12px 14px' : '14px 16px',
+                boxSizing: 'border-box',
+                gap: 10,
               }}
             >
-              {/* 장르 */}
-              <span
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  border: '1px solid var(--accent-border)',
-                  background: 'var(--accent-bg)',
-                  color: 'var(--text-h)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                #{formatGenre(genre)}
-              </span>
-
-              {/* 진행 상태 */}
-              {editing ? (
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  aria-label={t('bookDetail.readingStatus', '진행 상태')}
+              {/* 도서 제목 + 저자 (중앙 정렬) */}
+              <div style={{ textAlign: 'center' }}>
+                <h3
                   style={{
-                    padding: '2px 6px',
-                    borderRadius: 8,
-                    fontSize: 14,
-                    border: '1px solid var(--border)',
-                    background: 'var(--code-bg)',
+                    margin: '0 0 4px',
+                    fontSize: isMobile ? 18 : 20,
+                    fontWeight: 700,
                     color: 'var(--text-h)',
+                    wordBreak: 'keep-all',
+                    lineHeight: 1.35,
                   }}
                 >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {formatStatus(s)}
-                    </option>
-                  ))}
-                </select>
-              ) : (
+                  {book.title}
+                </h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: isMobile ? 13 : 14.5,
+                    color: 'var(--text)',
+                    opacity: 0.9,
+                    fontWeight: 500,
+                  }}
+                >
+                  ✍️ {book.author || t('bookDetail.unknownAuthor', '저자 미입력')}
+                </p>
+              </div>
+
+              {/* 메타 칩 한 줄: [장르] [Status] [현재/총쪽] */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px 8px',
+                  fontSize: 14,
+                }}
+              >
+                {/* 장르 */}
                 <span
                   style={{
                     padding: '2px 8px',
                     borderRadius: 999,
-                    border: '1px solid var(--border)',
+                    border: '1px solid var(--accent-border)',
+                    background: 'var(--accent-bg)',
                     color: 'var(--text-h)',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                  }}
+                >
+                  #{formatGenre(genre)}
+                </span>
+
+                {/* 진행 상태 */}
+                {editing ? (
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    aria-label={t('bookDetail.readingStatus', '진행 상태')}
+                    style={{
+                      padding: '2px 6px',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--text-h)',
+                    }}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {formatStatus(s)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-h)',
+                      fontSize: 12.5,
+                    }}
+                  >
+                    {formatStatus(status)}
+                  </span>
+                )}
+
+                {/* 페이지 📖 */}
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    color: 'var(--text)',
                     fontSize: 13,
                   }}
                 >
-                  {formatStatus(status)}
+                  📖
+                  <input
+                    type="number"
+                    min={0}
+                    max={Number(totalPage) || undefined}
+                    value={currentPage}
+                    onChange={(e) => setCurrentPage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleSaveProgress()
+                      }
+                    }}
+                    disabled={savingProgress}
+                    aria-label={t('bookDetail.currentPage', '현재 읽은 페이지')}
+                    style={{
+                      width: 44,
+                      boxSizing: 'border-box',
+                      padding: '2px 4px',
+                      borderRadius: 6,
+                      fontSize: 13,
+                      textAlign: 'right',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--text-h)',
+                    }}
+                  />
+                  <span>/ {Number(totalPage) > 0 ? totalPage : '-'} {t('bookDetail.pageUnit', '쪽')}</span>
                 </span>
-              )}
+              </div>
 
-              {/* 페이지 📖 */}
               <span
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  color: 'var(--text)',
-                  fontSize: 14,
+                  fontSize: 12,
+                  color: 'var(--text-muted, #888)',
+                  textAlign: 'center',
+                  display: 'block',
                 }}
               >
-                📖
-                <input
-                  type="number"
-                  min={0}
-                  max={Number(totalPage) || undefined}
-                  value={currentPage}
-                  onChange={(e) => setCurrentPage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleSaveProgress()
-                    }
-                  }}
-                  disabled={savingProgress}
-                  aria-label={t('bookDetail.currentPage', '현재 읽은 페이지')}
-                  style={{
-                    width: 46,
-                    boxSizing: 'border-box',
-                    padding: '2px 4px',
-                    borderRadius: 6,
-                    fontSize: 14,
-                    textAlign: 'right',
-                    border: '1px solid var(--border)',
-                    background: 'var(--code-bg)',
-                    color: 'var(--text-h)',
-                  }}
-                />
-                <span>/ {Number(totalPage) > 0 ? totalPage : '-'} {t('bookDetail.pageUnit', '쪽')}</span>
+                {savingProgress
+                  ? t('bookDetail.saving', '저장 중...')
+                  : t('bookDetail.pressEnterToSave', '현재 페이지 입력 후 엔터 시 저장')}
               </span>
+
+              {actionError && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: '#e05a4e',
+                    textAlign: 'center',
+                  }}
+                >
+                  {actionError}
+                </p>
+              )}
+
+              {/* 하단 3개 액션 버튼: [독서 타이머] [문장수집] [수정] (스케치 그대로 반영) */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                <button
+                  onClick={() => setShowTimer(true)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: 8,
+                    border: '1px solid var(--accent)',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <span>⏱️</span> {t('bookDetail.readingTimer', '독서 타이머')}
+                </button>
+                <button
+                  onClick={() => setShowSentenceModal(true)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: 8,
+                    border: '1px solid var(--accent-border)',
+                    background: 'var(--accent-bg)',
+                    color: 'var(--text-h)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span>📸</span> {t('bookDetail.collectQuotes', '문장수집')}
+                </button>
+
+                {/* [수정] 버튼 — 수정 모드일 때는 [완료] / [취소] */}
+                {editing ? (
+                  <div style={{ display: 'flex', gap: 4, flex: 1.2 }}>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      style={{
+                        flex: 1,
+                        padding: '8px 0',
+                        borderRadius: 8,
+                        border: '1px solid var(--accent)',
+                        background: 'var(--accent)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {saving ? t('bookDetail.saving', '저장...') : t('common.done', '완료')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditing(false)
+                        setActionError(null)
+                        galleryRef.current?.discardEdits()
+                      }}
+                      disabled={saving}
+                      style={{
+                        padding: '8px 8px',
+                        borderRadius: 8,
+                        border: '1px solid var(--border)',
+                        background: 'transparent',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 12.5,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {t('common.cancel', '취소')}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={isProtectedBook ? undefined : () => setEditing(true)}
+                    disabled={isProtectedBook}
+                    title={isProtectedBook ? t('bookDetail.defaultBookNoEdit', '기본 도서는 수정할 수 없습니다') : t('bookDetail.editTip', '도서 정보 및 기록 수정')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 0',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: isProtectedBook ? 'var(--text-muted, #888)' : 'var(--text-h)',
+                      fontWeight: 600,
+                      cursor: isProtectedBook ? 'not-allowed' : 'pointer',
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      opacity: isProtectedBook ? 0.45 : 1,
+                    }}
+                  >
+                    <span>✏️</span> {t('common.edit', '수정')}
+                  </button>
+                )}
+              </div>
+
+              {/* 수정 모드 중 삭제 옵션 */}
+              {editing && !isGuest && !isProtectedBook && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#e74c3c',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    🗑️ {t('bookDetail.deleteThisBook', '이 도서 삭제하기')}
+                  </button>
+                </div>
+              )}
             </div>
-
-          <span
-            style={{
-              fontSize: 15,
-              color: 'var(--text)',
-              display: 'block',
-              marginBottom: 14,
-            }}
-          >
-            {savingProgress
-              ? t('bookDetail.saving', '저장 중...')
-              : t('bookDetail.pressEnterToSave', '현재 페이지를 입력하고 엔터를 누르면 저장돼요')}
-          </span>
-
-          {/* 저장은 우측 상단 "완료" 버튼에서 처리한다 (CLIAR-241) */}
-
-          {actionError && (
-            <p
-              style={{
-                margin: '0 0 12px',
-                fontSize: 16,
-                color: '#e05a4e',
-                textAlign: 'center',
-              }}
-            >
-              {actionError}
-            </p>
-          )}
-
-          {/* 독서 타이머 & 문장 수집 */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setShowTimer(true)}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                borderRadius: 8,
-                border: '1px solid var(--accent)',
-                background: 'var(--accent)',
-                color: '#fff',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-              }}
-            >
-              <span>⏱️</span> {t('bookDetail.readingTimer', '독서 타이머')}
-            </button>
-            <button
-              onClick={() => setShowSentenceModal(true)}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                borderRadius: 8,
-                border: '1px solid var(--accent-border)',
-                background: 'var(--accent-bg)',
-                color: 'var(--text-h)',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {t('bookDetail.collectQuotes', '문장 수집')}
-            </button>
           </div>
-        </div>
 
-        {/* ── 가운데 구분선 ── */}
-        <div
-          style={{
-            background: 'var(--border)',
-            width: isMobile ? '100%' : 1,
-            height: isMobile ? 1 : 'auto',
-            alignSelf: 'stretch',
-            margin: isMobile ? '6px 0' : 0,
-          }}
-        />
+          {/* ── 가운데 구분선 ── */}
+          <div
+            style={{
+              background: 'var(--border)',
+              width: isMobile ? '100%' : 1,
+              height: isMobile ? 1 : 'auto',
+              alignSelf: 'stretch',
+              margin: isMobile ? '6px 0' : 0,
+            }}
+          />
 
-        {/*
-         * ── 오른쪽: 탭 전환 영역 (수집한 문장 갤러리 vs 독서 타이머 세션 기록) ──
-         */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: isMobile ? 'visible' : 'hidden',
-          }}
-        >
           {/*
-           * 우측 상단 탭 헤더 + 수정/삭제(완료/취소) 버튼.
-           * 탭 버튼은 왼쪽, 수정/삭제 버튼은 같은 줄 오른쪽에 배치한다
-           * (사용자 요청, 2026-09 — 기존 절대위치에서 이 줄로 이동).
+           * ── 오른쪽: 탭 전환 영역 (수집한 문장 갤러리 vs 독서 타이머 세션 기록) ──
            */}
           <div
             style={{
+              flex: 1,
+              minWidth: 0,
               display: 'flex',
-              flexWrap: isMobile ? 'wrap' : 'nowrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              paddingBottom: 10,
-              borderBottom: '1px solid var(--border)',
-              marginBottom: 12,
-              flexShrink: 0,
+              flexDirection: 'column',
+              overflow: isMobile ? 'visible' : 'hidden',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* 우측 상단 탭 헤더: [수집한 문장]  [독서 타이머 기록] */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                paddingBottom: 10,
+                borderBottom: '1px solid var(--border)',
+                marginBottom: 12,
+                flexShrink: 0,
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setRightTab('scraps')}
@@ -700,93 +788,6 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                 <span>⏱️</span> {t('bookDetail.timerHistoryTab', '독서 타이머 기록')}
               </button>
             </div>
-
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {editing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      border: '1px solid var(--accent)',
-                      background: 'var(--accent)',
-                      color: '#fff',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      opacity: saving ? 0.6 : 1,
-                    }}
-                  >
-                    {saving ? t('bookDetail.saving', '저장 중...') : t('common.done', '완료')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditing(false)
-                      setActionError(null)
-                      // 저장하지 않은 문장·메모 편집값은 버린다
-                      galleryRef.current?.discardEdits()
-                    }}
-                    disabled={saving}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      border: '1px solid var(--border)',
-                      background: 'transparent',
-                      color: 'var(--text)',
-                      fontSize: 15,
-                      fontWeight: 600,
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {t('common.cancel', '취소')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={isProtectedBook ? undefined : () => setEditing(true)}
-                    disabled={isProtectedBook}
-                    title={isProtectedBook ? t('bookDetail.defaultBookNoEdit', '기본 도서는 수정할 수 없습니다') : t('bookDetail.editTip', '도서 정보 및 기록 수정')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      border: isProtectedBook ? '1px solid var(--border)' : '1px solid var(--accent)',
-                      background: 'transparent',
-                      color: isProtectedBook ? 'var(--text-muted, #888)' : 'var(--accent)',
-                      fontSize: 15,
-                      fontWeight: 600,
-                      cursor: isProtectedBook ? 'not-allowed' : 'pointer',
-                      opacity: isProtectedBook ? 0.45 : 1,
-                    }}
-                  >
-                    {t('common.edit', '수정')}
-                  </button>
-                  {!isGuest && (
-                    <button
-                      onClick={isProtectedBook ? undefined : () => setConfirmDelete(true)}
-                      disabled={isProtectedBook}
-                      title={isProtectedBook ? t('bookDetail.defaultBookNoDelete', '기본 도서는 삭제할 수 없습니다') : t('bookDetail.deleteTip', '도서 삭제')}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        border: isProtectedBook ? '1px solid var(--border)' : '1px solid #e74c3c',
-                        background: 'transparent',
-                        color: isProtectedBook ? 'var(--text-muted, #888)' : '#e74c3c',
-                        fontSize: 15,
-                        fontWeight: 600,
-                        cursor: isProtectedBook ? 'not-allowed' : 'pointer',
-                        opacity: isProtectedBook ? 0.45 : 1,
-                      }}
-                    >
-                      {t('common.delete', '삭제')}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
 
           {/* 탭 콘텐츠 본문 */}
           <div style={{ flex: 1, minHeight: isMobile ? 320 : 0, overflow: isMobile ? 'visible' : 'hidden', display: 'flex' }}>
