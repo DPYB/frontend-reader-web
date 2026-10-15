@@ -792,35 +792,55 @@
 
 .calendar-day-cell {
   position: relative;
-  height: 74px;
-  padding: 6px 8px;
+  height: 82px;
+  padding: 0;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: linear-gradient(180deg, rgba(30, 22, 16, 0.02) 0%, rgba(30, 22, 16, 0.06) 100%);
   color: var(--text-h);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .calendar-day-cell {
+  background: linear-gradient(180deg, rgba(28, 22, 18, 0.5) 0%, rgba(18, 14, 11, 0.75) 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
 .calendar-day-cell.empty {
-  background: transparent;
-  border-color: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
   cursor: default;
+  box-shadow: none !important;
+}
+
+/* 셀 상단: 날짜 번호 및 출석 스탬프 */
+.calendar-cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 7px 0 7px;
+  box-sizing: border-box;
+  z-index: 2;
 }
 
 .calendar-day-cell .day-number {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-h);
+  line-height: 1;
 }
 
 .calendar-day-cell.today {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 8px rgba(255, 154, 60, 0.2);
 }
 
 .calendar-day-cell.today .day-number {
@@ -829,38 +849,169 @@
 }
 
 .calendar-day-cell.selected {
-  background: rgba(255, 154, 60, 0.12);
+  background: linear-gradient(180deg, rgba(255, 154, 60, 0.1) 0%, rgba(255, 154, 60, 0.18) 100%);
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 154, 60, 0.35);
 }
 
 .calendar-day-cell:hover:not(.empty) {
   border-color: var(--accent-border);
-  background: rgba(255, 154, 60, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .calendar-day-cell:hover:not(.empty) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .calendar-day-cell.has-activity {
-  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(255, 154, 60, 0.28);
 }
 
 .attendance-badge-wrap {
   display: flex;
   align-items: center;
-  gap: 3px;
-  align-self: flex-end;
+  gap: 2px;
 }
 
 .attendance-stamp {
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
 }
 
 .attendance-count {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 700;
-  padding: 1px 4px;
+  padding: 1px 3px;
   border-radius: 999px;
   background: var(--accent);
   color: #fff;
+  line-height: 1.1;
+}
+
+/* 선반 스테이지 (책들이 서 있는 공간 + 바닥 나무 선반) */
+.calendar-shelf-stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  width: 100%;
+  height: 54px;
+  position: relative;
+}
+
+/* 선반 위 꽂힌 책 목록 */
+.calendar-shelf-books {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 46px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* 개별 미니 책등 */
+.calendar-mini-book {
+  position: relative;
+  border-radius: 2px 2px 0 0;
+  box-shadow: -1px 0 2px rgba(0, 0, 0, 0.2), 1px 1px 3px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* 3D 원통형 책등 하이라이트 (빛 반사) */
+.mini-book-spine-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(255, 255, 255, 0.3) 22%,
+    rgba(255, 255, 255, 0.05) 55%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  pointer-events: none;
+}
+
+/* 양장본 상하단 음각 라인 */
+.mini-book-spine-line {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.mini-book-spine-line.top {
+  top: 3px;
+}
+
+.mini-book-spine-line.bottom {
+  bottom: 3px;
+}
+
+/* 호버 시 살짝 위로 뽑히는 효과 */
+.calendar-day-cell:hover .calendar-mini-book {
+  transform: translateY(-2px);
+}
+
+.calendar-mini-book:hover {
+  transform: translateY(-4px) scale(1.08) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.4);
+  z-index: 4;
+}
+
+/* 더 많은 책 표시 배지 (+N) */
+.calendar-shelf-more-badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent, #ff9a3c);
+  padding: 1px 3px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+/* 선반 나무 받침대 (플랭크) */
+.calendar-shelf-plank {
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(180deg, #9b6845 0%, #7d4d2b 45%, #593319 100%);
+  border-top: 1px solid rgba(255, 225, 190, 0.35);
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.15) inset, 0 1px 2px rgba(0, 0, 0, 0.25);
+  position: relative;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .calendar-shelf-plank {
+  background: linear-gradient(180deg, #7c4c2d 0%, #5d3419 45%, #3d200e 100%);
+  border-top: 1px solid rgba(255, 210, 160, 0.2);
+}
+
+.calendar-shelf-plank::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.1));
 }
 
 /* 캘린더 우측 활동 상세 영역 (좌측 캘린더 높이에 정확히 맞추고 넘치면 내부 스크롤) */
@@ -1184,16 +1335,38 @@
   }
 
   .calendar-day-cell {
-    height: 58px;
-    padding: 4px;
+    height: 66px;
+    padding: 0;
+  }
+
+  .calendar-cell-top {
+    padding: 3px 4px 0 4px;
   }
 
   .calendar-day-cell .day-number {
-    font-size: 12px;
+    font-size: 11.5px;
   }
 
   .attendance-stamp {
-    font-size: 13px;
+    font-size: 11px;
+  }
+
+  .calendar-shelf-stage {
+    height: 42px;
+  }
+
+  .calendar-shelf-books {
+    height: 36px;
+    gap: 2px;
+    padding: 0 2px;
+  }
+
+  .calendar-mini-book {
+    width: 8px !important;
+  }
+
+  .calendar-shelf-plank {
+    height: 6px;
   }
 
   .calendar-summary-bar {
