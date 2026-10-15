@@ -3,34 +3,29 @@ import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
 import { SCRAP_PAGE_SIZE } from '../../api/bookApi';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useLanguage } from '../../store/languageStore';
 import './ScrapGallery.css';
 
 /**
- * ScrapGallery — 수집한 문장을 보여주는 세로 스크롤 갤러리.
+ * ScrapGallery — 스케치 디자인을 기반으로 한 수집 문장 슬라이드 뷰어.
  *
- * 카드 한 장 = 문장 사진 + 문장/메모 텍스트 + 페이지 번호.
- * 문장 카드를 탭/클릭하면 해당 카드가 선택되어 [수정], [삭제] 버튼이 나타납니다.
- *
- * @param {number|string} bookId - 대상 도서 ID
- * @param {boolean} [editing] - 전체 수정 모드 여부
- * @param {object} [ref] - { saveEdits(): Promise<void>, discardEdits(): void } 를 노출
+ * 레이아웃:
+ *  - 좌우 네비게이션: [<] [>] 버튼
+ *  - 상단: 문장 사진 (스캔 원본)
+ *  - 중간: 저장된 날짜 + [수정] [삭제]
+ *  - 하단 1: 인식 결과 (문장)
+ *  - 하단 2: 사용자 메모
+ *  - 바닥: page number (예: p.128) + [공유] 버튼
  */
 
-// 다음 페이지를 미리 당겨올 하단 여백(px).
-const PREFETCH_MARGIN = 200;
-
-// backend-book Scrap 도메인 제약 (sentence 1~2000, memo 0~2000)
 const SENTENCE_MAX = 2000;
 const MEMO_MAX = 2000;
-
 const INITIAL_FEED = { items: [], nextPage: 0, totalPages: null, totalElements: null };
 
 export default function ScrapGallery({ bookId, editing = false, ref }) {
+  const { t } = useLanguage();
   const { fetchScrapsPage, hydrateScrapMemos, editScrap, removeScrap } = useBooks();
-  const scrollRef = useRef(null);
-  // 동시/중복 요청 방지 (스크롤 이벤트는 연속으로 들어온다)
   const loadingRef = useRef(false);
-  // 언마운트 후 늦게 도착한 응답으로 상태를 건드리지 않도록 하는 플래그
   const aliveRef = useRef(true);
 
   // 페이징 상태
@@ -38,19 +33,20 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 개별 카드 선택 및 인라인 수정 상태
-  const [selectedScrapId, setSelectedScrapId] = useState(null);
-  const [editingScrapId, setEditingScrapId] = useState(null);
-  const [savingScrapId, setSavingScrapId] = useState(null);
-  const { isUnifiedMobileUX: isMobile } = useResponsive();
+  // 현재 보고 있는 문장 인덱스 (0-indexed)
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // 수정 중인 값 { [scrapId]: { text, memo, page } }
+  // 개별 문장 수정 상태 및 draft
+  const [editingCardId, setEditingCardId] = useState(null);
+  const [savingCardId, setSavingCardId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [deletingId, setDeletingId] = useState(null);
   const [editError, setEditError] = useState('');
-  // 삭제 확인 팝업 대상 카드
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [zoomImage, setZoomImage] = useState(null);
+  const [copyNotice, setCopyNotice] = useState(false);
 
+  const { isUnifiedMobileUX: isMobile } = useResponsive();
   const { items, nextPage, totalPages, totalElements } = feed;
   const hasMore = totalPages === null || nextPage < totalPages;
 
@@ -61,9 +57,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
     };
   }, []);
 
-  /**
-   * 페이지를 불러와 뒤에 이어 붙인다. reset=true면 목록을 새로 채운다.
-   */
+  /** 페이지 불러오기 */
   const loadPage = useCallback(
     async (pageToLoad, { reset = false } = {}) => {
       if (loadingRef.current) return;
@@ -81,7 +75,6 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
           totalElements: res.totalElements,
         }));
 
-        // 이 페이지의 memo만 뒤이어 채운다 (목록 응답엔 memo가 없음)
         if (res.items.length > 0) {
           hydrateScrapMemos(res.items)
             .then((memoMap) => {
@@ -93,73 +86,77 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                 ),
               }));
             })
-            .catch(() => {
-              // memo 조회 실패는 무시
-            });
+            .catch(() => {});
         }
       } catch {
         if (aliveRef.current) {
-          setError('문장을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+          setError(t('scrapGallery.loadError', '문장을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
         }
       } finally {
         loadingRef.current = false;
         if (aliveRef.current) setLoading(false);
       }
     },
-    [bookId, fetchScrapsPage, hydrateScrapMemos]
+    [bookId, fetchScrapsPage, hydrateScrapMemos, t]
   );
 
   useEffect(() => {
     loadPage(0, { reset: true });
+    setCurrentIndex(0);
   }, [loadPage]);
 
-  /**
-   * 스크롤 끝에 가까워지면 다음 페이지를 당겨온다. (모바일: 세로, 데스크톱: 가로)
-   */
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || loadingRef.current || !hasMore) return;
-    if (isMobile) {
-      const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-      if (remaining < PREFETCH_MARGIN) {
-        loadPage(nextPage);
-      }
-    } else {
-      const remaining = el.scrollWidth - el.scrollLeft - el.clientWidth;
-      if (remaining < PREFETCH_MARGIN) {
-        loadPage(nextPage);
-      }
-    }
-  }, [hasMore, isMobile, loadPage, nextPage]);
-
-  const handleWheel = useCallback(
-    (e) => {
-      if (!isMobile && scrollRef.current) {
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-          scrollRef.current.scrollLeft += e.deltaY;
-        }
-      }
-    },
-    [isMobile]
-  );
-
+  // currentIndex 보정
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || loading || !hasMore || items.length === 0) return;
-    if (isMobile) {
-      if (el.scrollHeight <= el.clientHeight + 40) {
-        loadPage(nextPage);
-      }
-    } else {
-      if (el.scrollWidth <= el.clientWidth + 40) {
-        loadPage(nextPage);
-      }
+    if (items.length > 0 && currentIndex >= items.length) {
+      setCurrentIndex(Math.max(0, items.length - 1));
     }
-  }, [items.length, loading, hasMore, nextPage, loadPage, isMobile]);
+  }, [items.length, currentIndex]);
 
-  /** 현재 카드에 표시할 값 (수정 중이면 draft 우선) */
+  const currentItem = items[currentIndex] || null;
+
+  /** 이전 문장으로 이동 */
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setEditError('');
+    }
+  }, [currentIndex]);
+
+  /** 다음 문장으로 이동 */
+  const handleNext = useCallback(() => {
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setEditError('');
+    } else if (hasMore && !loading) {
+      loadPage(nextPage).then(() => {
+        setCurrentIndex((prev) => prev + 1);
+      });
+    }
+  }, [currentIndex, items.length, hasMore, loading, loadPage, nextPage]);
+
+  // 키보드 좌우 화살표로 문장 넘기기 지원
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 텍스트 편집 중에는 단축키 비활성화
+      const tag = e.target.tagName?.toLowerCase();
+      if (tag === 'textarea' || tag === 'input') return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrev, handleNext]);
+
+  /** 현재 카드에 표시할 값 */
   const valueOf = useCallback(
     (it, field) => {
+      if (!it) return '';
       const draft = drafts[it.id];
       if (draft && draft[field] !== undefined) return draft[field];
       if (field === 'memo') return it.memo ?? '';
@@ -174,27 +171,23 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
     setEditError('');
   }, []);
 
-  /** 개별 문장 수정 모드 시작 */
-  const handleStartEditCard = useCallback(
-    (it) => {
-      setEditingScrapId(it.id);
-      setSelectedScrapId(it.id);
-      setDrafts((prev) => ({
-        ...prev,
-        [it.id]: {
-          text: it.text ?? '',
-          memo: it.memo ?? '',
-          page: it.page != null ? String(it.page) : '',
-        },
-      }));
-      setEditError('');
-    },
-    []
-  );
+  /** 개별 문장 수정 시작 */
+  const handleStartEdit = useCallback((it) => {
+    setEditingCardId(it.id);
+    setDrafts((prev) => ({
+      ...prev,
+      [it.id]: {
+        text: it.text ?? '',
+        memo: it.memo ?? '',
+        page: it.page != null ? String(it.page) : '',
+      },
+    }));
+    setEditError('');
+  }, []);
 
   /** 개별 문장 수정 취소 */
-  const handleCancelSingleEdit = useCallback((id) => {
-    setEditingScrapId(null);
+  const handleCancelEdit = useCallback((id) => {
+    setEditingCardId(null);
     setDrafts((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -204,7 +197,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   }, []);
 
   /** 개별 문장 수정 저장 */
-  const handleSaveSingleEdit = useCallback(
+  const handleSaveEdit = useCallback(
     async (it) => {
       const draft = drafts[it.id];
       const textToSave = String(draft?.text !== undefined ? draft.text : it.text).trim();
@@ -212,11 +205,11 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
       const pageToSave = draft?.page !== undefined && draft.page !== '' ? Number(draft.page) : it.page;
 
       if (!textToSave) {
-        setEditError('문장은 비워 둘 수 없어요.');
+        setEditError(t('scrapGallery.sentenceRequired', '문장은 비워 둘 수 없어요.'));
         return;
       }
 
-      setSavingScrapId(it.id);
+      setSavingCardId(it.id);
       setEditError('');
       try {
         await editScrap(it.id, {
@@ -235,22 +228,24 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
               : item
           ),
         }));
-        setEditingScrapId(null);
+        setEditingCardId(null);
         setDrafts((prev) => {
           const next = { ...prev };
           delete next[it.id];
           return next;
         });
       } catch {
-        if (aliveRef.current) setEditError('문장을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.');
+        if (aliveRef.current) {
+          setEditError(t('scrapGallery.editError', '문장을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.'));
+        }
       } finally {
-        if (aliveRef.current) setSavingScrapId(null);
+        if (aliveRef.current) setSavingCardId(null);
       }
     },
-    [drafts, editScrap]
+    [drafts, editScrap, t]
   );
 
-  /** 사진 또는 액션바의 삭제 클릭 — 확인 팝업을 띄운다 */
+  /** 삭제 확인 요청 */
   const requestDelete = useCallback((it) => {
     setEditError('');
     setPendingDelete(it);
@@ -258,7 +253,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
 
   const cancelDelete = useCallback(() => setPendingDelete(null), []);
 
-  /** 카드(수집한 문장) 삭제 확인 시 실행 */
+  /** 문장 삭제 실행 */
   const confirmDelete = useCallback(async () => {
     if (!pendingDelete || deletingId) return;
     const id = pendingDelete.id;
@@ -277,17 +272,43 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
         delete next[id];
         return next;
       });
-      if (selectedScrapId === id) setSelectedScrapId(null);
-      if (editingScrapId === id) setEditingScrapId(null);
+      if (editingCardId === id) setEditingCardId(null);
       setPendingDelete(null);
     } catch {
-      if (aliveRef.current) setEditError('문장을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      if (aliveRef.current) {
+        setEditError(t('scrapGallery.deleteError', '문장을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'));
+      }
     } finally {
       if (aliveRef.current) setDeletingId(null);
     }
-  }, [pendingDelete, deletingId, removeScrap, selectedScrapId, editingScrapId]);
+  }, [pendingDelete, deletingId, removeScrap, editingCardId, t]);
 
-  /** 부모(BookDetail)의 상단 완료 버튼 호출용 */
+  /** 문장 공유 (클립보드 복사) */
+  const handleShare = useCallback(
+    async (it) => {
+      if (!it) return;
+      const textToCopy = `“${it.text}”${it.page ? ` (p.${it.page})` : ''}\n— DPYB 내 서재에서 수집한 문장`;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.value = textToCopy;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        setCopyNotice(true);
+        setTimeout(() => setCopyNotice(false), 2400);
+      } catch {
+        // 복사 실패 무시
+      }
+    },
+    []
+  );
+
+  /** 부모 BookDetail의 "완료" 저장 연동 */
   const saveEdits = useCallback(async () => {
     const dirty = items.filter((it) => {
       const d = drafts[it.id];
@@ -301,8 +322,9 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
 
     const invalid = dirty.find((it) => !String(valueOf(it, 'text')).trim());
     if (invalid) {
-      setEditError('문장은 비워 둘 수 없어요.');
-      const err = new Error('문장은 비워 둘 수 없어요.');
+      const msg = t('scrapGallery.sentenceRequired', '문장은 비워 둘 수 없어요.');
+      setEditError(msg);
+      const err = new Error(msg);
       err.handled = true;
       throw err;
     }
@@ -332,26 +354,72 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
       ),
     }));
     setDrafts({});
-    setEditingScrapId(null);
-  }, [items, drafts, valueOf, editScrap]);
+    setEditingCardId(null);
+  }, [items, drafts, valueOf, editScrap, t]);
 
-  /** 저장하지 않은 편집값을 버린다 (부모의 "취소" 버튼에서 호출) */
+  /** 부모 BookDetail의 "취소" 연동 */
   const discardEdits = useCallback(() => {
     setDrafts({});
     setEditError('');
-    setEditingScrapId(null);
+    setEditingCardId(null);
     setPendingDelete(null);
   }, []);
 
   useImperativeHandle(ref, () => ({ saveEdits, discardEdits }), [saveEdits, discardEdits]);
 
-  const editFieldStyle = {
+  // 날짜 포맷팅 (YYYY.MM.DD)
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return dateStr;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}.${m}.${day}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const isCurrentEditing = editingCardId === currentItem?.id || (editing && editingCardId === null);
+  const isCurrentSaving = savingCardId === currentItem?.id;
+
+  const arrowBtnStyle = (disabled) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: isMobile ? 32 : 38,
+    height: isMobile ? 32 : 38,
+    borderRadius: '50%',
+    border: '1px solid var(--border)',
+    background: disabled ? 'transparent' : 'var(--code-bg)',
+    color: disabled ? 'var(--text-muted, #777)' : 'var(--text-h)',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.35 : 1,
+    transition: 'all 0.15s ease',
+    flexShrink: 0,
+    fontSize: isMobile ? 16 : 19,
+    fontWeight: 700,
+    boxShadow: disabled ? 'none' : '0 2px 8px rgba(0,0,0,0.15)',
+  });
+
+  const sectionBoxStyle = {
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 10,
+    padding: '10px 14px',
+    boxSizing: 'border-box',
+    width: '100%',
+  };
+
+  const textareaStyle = {
     width: '100%',
     boxSizing: 'border-box',
-    padding: '7px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
-    background: 'var(--bg)',
+    padding: '8px 10px',
+    borderRadius: 8,
+    border: '1px solid var(--accent)',
+    background: 'var(--code-bg)',
     color: 'var(--text-h)',
     fontSize: 15,
     fontFamily: 'inherit',
@@ -360,317 +428,533 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, paddingBottom: 2 }}>
-        <span style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text-h)' }}>
-          수집한 문장 {totalElements != null ? `(${totalElements})` : ''}
-        </span>
-        <span style={{ fontSize: 13.5, color: 'var(--text)' }}>
-          {editing
-            ? '문장·메모를 수정한 후 “완료”를 누르세요'
-            : items.length > 0
-              ? '문장을 선택하여 수정 및 삭제할 수 있어요'
-              : ''}
-        </span>
-      </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        minWidth: 0,
+        position: 'relative',
+      }}
+    >
+      {/* 에러 및 안내 메시지 */}
+      {editError && (
+        <p style={{ margin: '0 0 8px', fontSize: 14, color: '#e05a4e', fontWeight: 600, textAlign: 'center' }}>
+          {editError}
+        </p>
+      )}
+      {error && (
+        <p style={{ margin: '0 0 8px', fontSize: 14, color: '#e05a4e', textAlign: 'center' }}>
+          {error}
+        </p>
+      )}
 
-      {editError && <p style={{ margin: 0, fontSize: 14.5, color: '#e05a4e', fontWeight: 600 }}>{editError}</p>}
-      {error && <p style={{ margin: 0, fontSize: 14.5, color: '#e05a4e' }}>{error}</p>}
+      {/* 로딩 표시 */}
+      {loading && items.length === 0 && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+          {t('common.loading', '불러오는 중...')}
+        </div>
+      )}
 
-      {/* 문장 갤러리 피드 (데스크톱: 좌우 가로 스크롤, 모바일: 상하 세로 스크롤) */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        onWheel={handleWheel}
-        className="scrap-gallery-strip"
-        style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? 12 : 14,
-          overflowY: isMobile ? 'auto' : 'hidden',
-          overflowX: isMobile ? 'hidden' : 'auto',
-          paddingBottom: isMobile ? 48 : 10,
-          paddingRight: isMobile ? 4 : 10,
-          alignItems: isMobile ? 'stretch' : 'stretch',
-          flex: 1,
-          minHeight: 0,
-        }}
-      >
-        {items.map((it) => {
-          const isSelected = selectedScrapId === it.id || editing;
-          const isItemEditing = editingScrapId === it.id || (editing && editingScrapId === null);
-          const isSavingItem = savingScrapId === it.id;
-
-          return (
-            <article
-              key={it.id}
-              onClick={() => {
-                if (!isItemEditing) {
-                  setSelectedScrapId((prev) => (prev === it.id ? null : it.id));
-                }
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-                padding: '14px 14px',
-                borderRadius: 12,
-                border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                background: isSelected ? 'rgba(255, 154, 60, 0.04)' : 'var(--code-bg)',
-                boxShadow: isSelected ? '0 2px 10px rgba(0,0,0,0.1)' : 'none',
-                cursor: isItemEditing ? 'default' : 'pointer',
-                transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
-                width: isMobile ? '100%' : 280,
-                minWidth: isMobile ? 'auto' : 260,
-                maxWidth: isMobile ? '100%' : 300,
-                flexShrink: isMobile ? 1 : 0,
-                boxSizing: 'border-box',
-                overflowY: isMobile ? 'visible' : 'auto',
-              }}
-            >
-              {isItemEditing ? (
-                /* ── 개별 인라인 수정 폼 ── */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>문장</span>
-                    <textarea
-                      value={valueOf(it, 'text')}
-                      onChange={(e) => patchDraft(it.id, 'text', e.target.value)}
-                      rows={3}
-                      maxLength={SENTENCE_MAX}
-                      placeholder="수집할 문장을 입력하세요"
-                      style={editFieldStyle}
-                    />
-                  </label>
-
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>메모 / 생각</span>
-                    <textarea
-                      value={valueOf(it, 'memo')}
-                      onChange={(e) => patchDraft(it.id, 'memo', e.target.value)}
-                      rows={2}
-                      maxLength={MEMO_MAX}
-                      placeholder="나만의 생각이나 메모를 남겨보세요"
-                      style={editFieldStyle}
-                    />
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>페이지:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={valueOf(it, 'page')}
-                      onChange={(e) => patchDraft(it.id, 'page', e.target.value)}
-                      placeholder="예: 128"
-                      style={{ ...editFieldStyle, width: 100 }}
-                    />
-                  </label>
-
-                  {!editing && (
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleSaveSingleEdit(it)}
-                        disabled={isSavingItem}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: 6,
-                          border: 'none',
-                          background: 'var(--accent)',
-                          color: '#fff',
-                          fontWeight: 700,
-                          fontSize: 14,
-                          cursor: isSavingItem ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {isSavingItem ? '저장 중...' : '저장'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCancelSingleEdit(it.id)}
-                        disabled={isSavingItem}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          border: '1px solid var(--border)',
-                          background: 'transparent',
-                          color: 'var(--text)',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        취소
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* ── 읽기 전용 뷰 ── */
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: isMobile ? 'row' : 'column',
-                    gap: isMobile ? 12 : 10,
-                    alignItems: isMobile ? 'flex-start' : 'stretch',
-                  }}
-                >
-                  {/* 문장 사진 (스캔 원본) */}
-                  {it.scrapImageUrl && (
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: isMobile ? 80 : '100%',
-                        height: isMobile ? 80 : 130,
-                        flexShrink: 0,
-                        borderRadius: 8,
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={it.scrapImageUrl}
-                        alt="수집 문장 이미지"
-                        loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                    </div>
-                  )}
-
-                  {/* 텍스트 & 메모 & 페이지 */}
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 15.5,
-                        lineHeight: 1.55,
-                        color: 'var(--text-h)',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      “{it.text}”
-                    </p>
-                    {it.memo && (
-                      <p
-                        style={{
-                          margin: '2px 0 0',
-                          fontSize: 14,
-                          color: 'var(--text)',
-                          lineHeight: 1.45,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        💭 {it.memo}
-                      </p>
-                    )}
-                    {it.page != null && (
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: 'var(--accent)',
-                            background: 'rgba(255, 154, 60, 0.1)',
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                          }}
-                        >
-                          p. {it.page}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── 문장 선택 시 나타나는 수정 & 삭제 버튼 ── */}
-              {isSelected && !isItemEditing && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    justifyContent: 'flex-end',
-                    paddingTop: 8,
-                    borderTop: '1px solid var(--border)',
-                    marginTop: 'auto',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleStartEditCard(it)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '5px 12px',
-                      borderRadius: 6,
-                      border: '1px solid var(--accent)',
-                      background: 'transparent',
-                      color: 'var(--accent)',
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    <span>✏️</span> 수정
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => requestDelete(it)}
-                    disabled={deletingId === it.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '5px 12px',
-                      borderRadius: 6,
-                      border: '1px solid #e74c3c',
-                      background: 'transparent',
-                      color: '#e74c3c',
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      cursor: deletingId === it.id ? 'wait' : 'pointer',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    <span>🗑️</span> 삭제
-                  </button>
-                </div>
-              )}
-            </article>
-          );
-        })}
-
-        {/* 다음 페이지 로딩 표시 */}
-        {loading && (
-          <div
-            style={{
-              padding: isMobile ? '16px 0' : '0 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14.5,
-              color: 'var(--text)',
-              flexShrink: 0,
-            }}
-          >
-            문장을 불러오는 중...
-          </div>
-        )}
-      </div>
-
+      {/* 문장 0개 빈 화면 */}
       {!loading && items.length === 0 && !error && (
-        <div style={{ padding: '24px 0', textAlign: 'center' }}>
-          <p style={{ margin: 0, fontSize: 15.5, color: 'var(--text)' }}>
-            아직 수집한 문장이 없어요 📖<br />
-            <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>“문장 수집” 버튼을 눌러 첫 문장을 기록해 보세요.</span>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            padding: 30,
+            border: '1px dashed var(--border)',
+            borderRadius: 14,
+            background: 'var(--code-bg)',
+          }}
+        >
+          <span style={{ fontSize: 36, marginBottom: 12 }}>📖</span>
+          <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, color: 'var(--text-h)' }}>
+            {t('scrapGallery.emptyTitle', '아직 수집한 문장이 없어요')}
+          </p>
+          <p style={{ margin: 0, fontSize: 14.5, color: 'var(--text)' }}>
+            {t('scrapGallery.emptyDesc', '좌측 하단의 [문장 수집] 버튼을 눌러 첫 문장을 등록해 보세요.')}
           </p>
         </div>
       )}
+
+      {/* 문장 슬라이드 뷰어 (스케치 디자인 충실 구현) */}
+      {items.length > 0 && currentItem && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? 8 : 12,
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          {/* ── 좌측 이동 [<] 버튼 ── */}
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={currentIndex === 0}
+            aria-label={t('scrapGallery.prev', '이전 문장')}
+            title={t('scrapGallery.prev', '이전 문장')}
+            style={arrowBtnStyle(currentIndex === 0)}
+          >
+            ‹
+          </button>
+
+          {/* ── 중앙 카드 영역 ── */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--code-bg)',
+              border: '1.5px solid var(--border)',
+              borderRadius: 14,
+              padding: isMobile ? '12px 14px' : '14px 18px',
+              boxSizing: 'border-box',
+              overflowY: 'auto',
+              gap: 10,
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            {/* 1. 상단: 문장 사진 (스캔 원본) */}
+            <div
+              style={{
+                width: '100%',
+                height: isMobile ? 140 : 180,
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                position: 'relative',
+                flexShrink: 0,
+              }}
+            >
+              {currentItem.scrapImageUrl ? (
+                <>
+                  <img
+                    src={currentItem.scrapImageUrl}
+                    alt={t('scrapGallery.scannedPhoto', '문장 사진')}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      display: 'block',
+                      cursor: 'zoom-in',
+                    }}
+                    onClick={() => setZoomImage(currentItem.scrapImageUrl)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 8,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      fontSize: 11,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    🔍 {t('scrapGallery.clickToZoom', '클릭 시 확대')}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: 'var(--text-muted, #888)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📷</span> {t('scrapGallery.noPhoto', '등록된 문장 사진 없음')}
+                </div>
+              )}
+            </div>
+
+            {/* 2. 중간: 저장된 날짜 + [수정] [삭제] */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                flexShrink: 0,
+              }}
+            >
+              {/* 저장된 날짜 뱃지 */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                }}
+              >
+                <span>📅</span> {formatDate(currentItem.createdAt) || t('scrapGallery.today', '오늘')}
+              </div>
+
+              {/* 페이지 순번 인디케이터 (예: 1 / 5) */}
+              <span style={{ fontSize: 13, color: 'var(--text-muted, #888)', fontWeight: 600 }}>
+                {currentIndex + 1} / {totalElements || items.length}
+              </span>
+
+              {/* [수정] [삭제] 버튼 그룹 */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                {isCurrentEditing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveEdit(currentItem)}
+                      disabled={isCurrentSaving}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: 'var(--accent)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: 13.5,
+                        cursor: isCurrentSaving ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {isCurrentSaving ? t('common.saving', '저장 중...') : t('common.save', '저장')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelEdit(currentItem.id)}
+                      disabled={isCurrentSaving}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid var(--border)',
+                        background: 'transparent',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 13.5,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('common.cancel', '취소')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(currentItem)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid var(--accent)',
+                        background: 'transparent',
+                        color: 'var(--accent)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <span>✏️</span> {t('common.edit', '수정')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestDelete(currentItem)}
+                      disabled={deletingId === currentItem.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #e74c3c',
+                        background: 'transparent',
+                        color: '#e74c3c',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: deletingId === currentItem.id ? 'wait' : 'pointer',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <span>🗑️</span> {t('common.delete', '삭제')}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 3. 하단 1: 인식 결과 */}
+            <div style={sectionBoxStyle}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: 'var(--text-muted, #888)',
+                  marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span>🔍</span> {t('scrapGallery.recognitionResult', '인식 결과')}
+              </div>
+              {isCurrentEditing ? (
+                <textarea
+                  value={valueOf(currentItem, 'text')}
+                  onChange={(e) => patchDraft(currentItem.id, 'text', e.target.value)}
+                  rows={3}
+                  maxLength={SENTENCE_MAX}
+                  placeholder={t('scrapGallery.sentencePlaceholder', '인식된 문장을 입력하세요')}
+                  style={textareaStyle}
+                />
+              ) : (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 15.5,
+                    lineHeight: 1.6,
+                    color: 'var(--text-h)',
+                    wordBreak: 'break-word',
+                    fontWeight: 500,
+                  }}
+                >
+                  “{currentItem.text}”
+                </p>
+              )}
+            </div>
+
+            {/* 4. 하단 2: 사용자 메모 */}
+            <div style={sectionBoxStyle}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: 'var(--text-muted, #888)',
+                  marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span>💭</span> {t('scrapGallery.userMemo', '사용자 메모')}
+              </div>
+              {isCurrentEditing ? (
+                <textarea
+                  value={valueOf(currentItem, 'memo')}
+                  onChange={(e) => patchDraft(currentItem.id, 'memo', e.target.value)}
+                  rows={2}
+                  maxLength={MEMO_MAX}
+                  placeholder={t('scrapGallery.memoPlaceholder', '나만의 생각이나 메모를 남겨보세요')}
+                  style={textareaStyle}
+                />
+              ) : (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14.5,
+                    lineHeight: 1.5,
+                    color: currentItem.memo ? 'var(--text)' : 'var(--text-muted, #888)',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {currentItem.memo || t('scrapGallery.noMemo', '남겨진 메모가 없습니다.')}
+                </p>
+              )}
+            </div>
+
+            {/* 5. 바닥: page number (좌측) + [공유] (우측) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 'auto',
+                paddingTop: 4,
+                flexShrink: 0,
+              }}
+            >
+              {/* Page Number 칩 */}
+              {isCurrentEditing ? (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text)' }}>
+                  <span>{t('scrapGallery.page', '페이지')}:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={valueOf(currentItem, 'page')}
+                    onChange={(e) => patchDraft(currentItem.id, 'page', e.target.value)}
+                    placeholder="예: 128"
+                    style={{
+                      width: 80,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--text-h)',
+                      fontSize: 13,
+                    }}
+                  />
+                </label>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(255, 154, 60, 0.12)',
+                    border: '1px solid rgba(255, 154, 60, 0.3)',
+                    color: 'var(--accent)',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                  }}
+                >
+                  📖 {currentItem.page != null ? `p. ${currentItem.page}` : t('scrapGallery.pageUnknown', 'p. 미입력')}
+                </span>
+              )}
+
+              {/* [공유] 버튼 */}
+              <button
+                type="button"
+                onClick={() => handleShare(currentItem)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '5px 14px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  color: 'var(--text-h)',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                }}
+              >
+                <span>🔗</span> {t('scrapGallery.share', '공유')}
+              </button>
+            </div>
+          </div>
+
+          {/* ── 우측 이동 [>] 버튼 ── */}
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={currentIndex >= items.length - 1 && !hasMore}
+            aria-label={t('scrapGallery.next', '다음 문장')}
+            title={t('scrapGallery.next', '다음 문장')}
+            style={arrowBtnStyle(currentIndex >= items.length - 1 && !hasMore)}
+          >
+            ›
+          </button>
+        </div>
+      )}
+
+      {/* 공유 복사 완료 토스트 알림 */}
+      {copyNotice && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '8px 18px',
+            borderRadius: 999,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(4px)',
+            color: '#fff',
+            fontSize: 13.5,
+            fontWeight: 600,
+            zIndex: 100,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          📋 {t('scrapGallery.copiedNotice', '문장이 클립보드에 복사되었습니다!')}
+        </div>
+      )}
+
+      {/* 문장 사진 확대 모달 (Lightbox) */}
+      {zoomImage &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1200,
+              padding: 20,
+              boxSizing: 'border-box',
+            }}
+            onClick={() => setZoomImage(null)}
+          >
+            <div
+              style={{
+                position: 'relative',
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={zoomImage}
+                alt="확대 사진"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '85vh',
+                  objectFit: 'contain',
+                  borderRadius: 10,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setZoomImage(null)}
+                style={{
+                  position: 'absolute',
+                  top: -12,
+                  right: -12,
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: '#e74c3c',
+                  color: '#fff',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* 문장 삭제 확인 팝업 */}
       {pendingDelete &&
@@ -690,7 +974,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
           >
             <div
               role="alertdialog"
-              aria-label="문장 삭제 확인"
+              aria-label={t('scrapGallery.deleteModalTitle', '문장 삭제 확인')}
               onClick={(e) => e.stopPropagation()}
               style={{
                 width: 'min(300px, 88vw)',
@@ -704,10 +988,10 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
               }}
             >
               <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700 }}>
-                이 문장을 삭제하시겠어요?
+                {t('scrapGallery.deletePrompt', '이 문장을 삭제하시겠어요?')}
               </p>
               <p style={{ margin: '0 0 18px', fontSize: 15, color: 'var(--text)', lineHeight: 1.5 }}>
-                사진과 메모가 함께 지워지며 복구할 수 없습니다.
+                {t('scrapGallery.deleteWarning', '사진과 메모가 함께 지워지며 복구할 수 없습니다.')}
               </p>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                 <button
@@ -726,7 +1010,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                     opacity: deletingId === pendingDelete.id ? 0.7 : 1,
                   }}
                 >
-                  {deletingId === pendingDelete.id ? '삭제 중...' : '삭제'}
+                  {deletingId === pendingDelete.id ? t('common.deleting', '삭제 중...') : t('common.delete', '삭제')}
                 </button>
                 <button
                   type="button"
@@ -743,7 +1027,7 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                     cursor: 'pointer',
                   }}
                 >
-                  취소
+                  {t('common.cancel', '취소')}
                 </button>
               </div>
             </div>

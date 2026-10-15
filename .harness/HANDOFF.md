@@ -1,5 +1,43 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-15: 도서 상세 모달 스케치 기반 전면 재정리 및 인터랙티브 3D 도서 연동
+- 작업 브랜치: `feat/reorganize-book-detail-with-3d-book`
+- **사용자 요청**:
+  - 도서 선택(클릭) 시 열리는 상세 화면을 사용자가 제공한 스케치 레이아웃으로 전면 재정리.
+  - 기존 2D 평면 이미지 대신, 앞표지/책등/종이 질감이 입혀진 3D 책 모델(`Book3D`)을 상세 모달 좌측 상단에 렌더링.
+  - 스케치 규격 반영:
+    - 좌측 상단: 3D 도서 (3D 회전 지원).
+    - 좌측 하단 메타 카드: 제목, 저자, [장르] [Status] [현재/총쪽], [독서 타이머] [문장수집] [수정].
+    - 우측 상단: [수집한 문장] [독서 타이머 기록] 탭.
+    - 우측 문장 탭: [<] [>] 슬라이드 네비게이션, 상단 [문장 사진], 중간 [저장된 날짜] + [수정]/[삭제], 하단 [인식 결과] 박스, [사용자 메모] 박스, 바닥 [page number] + [공유] 버튼.
+- **작업 내용**:
+  1. `app/features/room/Book3DViewer.jsx` 신설:
+     - `@react-three/fiber` 및 `@react-three/drei` 기반의 인터랙티브 3D 도서 뷰어 컴포넌트 구현.
+     - 도서의 앞표지(+X)와 책등(+Z), 책배의 두께가 입체적으로 조화롭게 보이는 쿼터뷰 카메라 각도 및 은은한 방사형 그라데이션 배경, 조명(Ambient + Directional) 설정.
+     - `OrbitControls`로 사용자가 마우스/터치로 360도 자유롭게 책을 돌려볼 수 있도록 지원 및 안내 칩 렌더링.
+  2. `app/features/room/BookDetail.jsx`:
+     - 좌측 평면 2D `<img>`를 제거하고 `<Book3DViewer>` 컴포넌트 배치.
+     - 좌측 하단에 스케치 규격 메타 카드 구축:
+       - 제목 및 저자 중앙 정렬, 메타 칩 한 줄(`[#장르]`, `[#상태]`, `[📖 현재/총쪽]`).
+       - 하단에 3개 주요 액션 버튼 나란히 배치: `[독서 타이머]`, `[문장수집]`, `[수정]`.
+       - 수정 모드 진입 시 `[완료]`, `[취소]` 및 비-게스트일 때 `[삭제]` 기능 자연스럽게 전환.
+     - 우측 상단 탭 헤더에서 불필요한 수정/삭제 버튼을 정리하고 순수 탭 전환 버튼만 배치.
+  3. `app/features/room/ScrapGallery.jsx`:
+     - 스케치에 표시된 1문장 카드 중심 슬라이드(캐러셀) 뷰어로 전면 개편:
+       - 좌우 [<] [>] 슬라이드 이동 버튼 및 키보드 좌우 방향키 단축키 지원.
+       - 상단에 큼직한 문장 사진(스캔 이미지) 배치 및 클릭 시 전체화면 Lightbox 확대 모달 지원.
+       - 중간에 저장된 날짜 뱃지, 순번 인디케이터(`1 / 5`), `[수정]`, `[삭제]` 버튼 배치.
+       - 하단에 `[인식 결과]` 박스(OCR 문장 텍스트)와 `[사용자 메모]` 박스(생각/메모 텍스트) 독립 영역 분리.
+       - 바닥에 `[p.쪽수]` 뱃지와 `[공유]` 버튼(원클릭 클립보드 복사 및 토스트 알림) 탑재.
+  4. `app/i18n/translations.js`:
+     - 신규 추가된 UI 요소(`rotate3dHint`, `unknownAuthor`, `deleteThisBook`, `scrapGallery.*`) 한국어 및 영어 1:1 완벽 번역 등록.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 3D 도서 책등 타이틀 및 앞표지 이미지 텍스처 렌더링 (질감 오버레이 보존)
 - 작업 브랜치: `feat/3d-book-cover-and-spine-textures`
 - **사용자 요청**:
@@ -103,33 +141,6 @@
   8. `app/pages/MonthlyReport.jsx`, `app/pages/MyPage.jsx`, `app/pages/LibrarianProfiles.jsx`, `app/features/guide/ServiceGuideModal.jsx`:
      - 월간 리포트 카드 타이틀/지표, 마이페이지 탭 및 프로필/계정 카드, 사서 프로필 카드/버튼, 서비스 가이드 푸터 버튼 다국어화.
   9. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-11: 로그인 페이지 언어 변환 기능(한국어/영어) 및 언어 스위처 추가
-- 작업 브랜치: `feat/login-language-switcher`
-- **사용자 요청**:
-  - 언어 변환 기능 추가 (한국어, 영어).
-  - 한국어: default (기존 UI).
-  - 영어: `public/login_eng` (WebP 변환 반영).
-  - 언어 변환 버튼은 로그인 페이지에 배치하며 위치는 `public/lang_switcher` 좌표 참고.
-- **작업 내용**:
-  1. `public/login_eng.webp`:
-     - 원본 영문 로그인 배경 PNG(5.8MB)를 2560x1440 RGB 고품질 WebP(Q90, 1.2MB, 약 79% 경량화)로 최적화 변환 및 원본 소스 정리.
-  2. 좌표 추출 및 정밀 배치 (`LANG_SWITCHER_POS`):
-     - `public/lang_switcher.png` 기준 바운딩 박스 `(1214, 232, 1405, 292)`를 2560x1440 비율 기반 퍼센트 좌표(`left: 47.42%`, `top: 16.11%`, `width: 7.46%`, `height: 4.17%`)로 변환.
-     - 2560x1440 캔버스 스케일링 레이어(`.login-cover-layer`) 내부에 언어 전환 스위처 배치하여 해상도별 왜곡 없는 완벽 정렬 보장.
-  3. `app/store/languageStore.js` & `app/store/LanguageProvider.jsx`:
-     - 글로벌 언어 상태 관리(`LanguageContext`, `useLanguage`), `localStorage` 영속화(`dpyb.language`), 기본값 한국어(`ko`) 제공.
-     - 최상단 `app/App.jsx`에 `<LanguageProvider>` 감싸기 적용.
-  4. `app/pages/LoginPage.jsx` & `app/pages/LoginPage.css`:
-     - 언어 스위처 UI(`한국어 | ENG`) 구현 및 활성 언어 강조/스위칭 인터랙션 적용.
-     - 언어 선택에 따른 배경 이미지 동적 교체: 한국어(`login-bg.webp`) vs 영어(`login_eng.webp`).
-     - 툴팁 다국어화(`tooltipKo`/`tooltipEn`), 입력창 플레이스홀더(`이메일`/`Email`, `비밀번호`/`Password`), 에러 메시지 및 공지 팝업 모달 영문화 지원.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
