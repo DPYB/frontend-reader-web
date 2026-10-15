@@ -51,21 +51,36 @@ export function LanguageProvider({ children }) {
   }, []);
 
   const t = useCallback(
-    (keyOrKo, enFallback) => {
+    (keyOrKo, fallback) => {
       // 1. { ko: '...', en: '...' } 객체 형태 지원
       if (typeof keyOrKo === 'object' && keyOrKo !== null) {
         return isEn ? (keyOrKo.en || keyOrKo.ko) : (keyOrKo.ko || keyOrKo.en);
       }
 
-      // 2. 인라인 인자 t(koText, enText) 형태 지원
-      if (enFallback !== undefined) {
-        return isEn ? enFallback : keyOrKo;
-      }
+      if (typeof keyOrKo !== 'string') return '';
 
-      // 3. dot notation key (예: 'gnb.myLibrary')
+      // 2. dot notation key (예: 'gnb.myLibrary', 'library.readingTimer')
       const targetDict = translations[lang] || translations.ko;
       const val = getByDotNotation(targetDict, keyOrKo);
       if (val !== undefined) return val;
+
+      // 번역 사전 현재 언어에 못 찾은 경우
+      if (keyOrKo.includes('.')) {
+        // 반대편 언어 사전에서 fallback 탐색
+        const fallbackDict = isEn ? translations.ko : translations.en;
+        const dictFallback = getByDotNotation(fallbackDict, keyOrKo);
+        if (dictFallback !== undefined) return dictFallback;
+
+        // 인자로 전달된 fallback (대부분 한국어 기본 라벨) 반환
+        if (fallback !== undefined) return fallback;
+
+        return keyOrKo;
+      }
+
+      // 3. dot notation이 아닌 인라인 인자 t(koText, enText) 형태 지원
+      if (fallback !== undefined) {
+        return isEn ? fallback : keyOrKo;
+      }
 
       return keyOrKo;
     },

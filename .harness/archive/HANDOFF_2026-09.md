@@ -1,5 +1,20 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-10: 블루(고양이) 서재 배경 이미지(readingroom_cat.webp) 교체 및 최적화
+- 작업 브랜치: `feat/update-readingroom-cat-webp`
+- **사용자 요청**:
+  - `readingroom_cat` 블루 UI 이미지 파일 교체 반영 (WebP 변환 포함).
+- **작업 내용**:
+  1. `public/room/readingroom_cat.webp`:
+     - 신규 제공된 원본 `readingroom_cat.png`(2560x1440, 6.1MB)를 3D 서재 표준 규격인 1920x1080 16:9 비율(Lanczos 리샘플링, RGB 고품질 WebP Q90)로 최적화 변환(557KB, 약 91% 용량 감축).
+     - 원본 소스 PNG 정리 및 3D 서재 씬(`shelfLayout.js`의 `BG_SRC_CAT`)에서 최신 UI 배경이 즉시 노출되도록 반영.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-10: 로그인 페이지 회원가입 버튼 UI 비활성화
 - 작업 브랜치: `feat/disable-signup-button-ui`
 - **사용자 요청**:

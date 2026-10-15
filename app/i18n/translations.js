@@ -302,7 +302,7 @@ export const translations = {
     },
     library: {
       preparing: 'Preparing your library... 🐾',
-      readingTimer: 'Reading Timer',
+      readingTimer: 'Book Timer',
       unknownTitle: 'Unknown Title',
       unknownAuthor: 'Unknown Author',
       shelfTitle: 'Shelf',
@@ -314,7 +314,7 @@ export const translations = {
     },
     chat: {
       title: 'Chat with Librarian',
-      askLibrarian: 'Ask Librarian',
+      askLibrarian: 'Start Chat',
       chatWithLibrarian: 'Chat with Librarian',
       newChat: '✨ New Chat',
       newChatTitle: 'Clear conversation and start a new session',
@@ -336,7 +336,7 @@ export const translations = {
       inputPlaceholderThinking: 'Thinking of a response...',
       inputPlaceholderDebateThinking: 'Thinking of a discussion response...',
       menuChatDesc: 'Book Recommendations & Discussion',
-      menuTimerTitle: 'Reading Timer',
+      menuTimerTitle: 'Book Timer',
       menuTimerDesc: 'Timer Tracking & Focus Records',
       menuProfileTitle: 'Librarian Profile & Switch',
       menuProfileDesc: 'Explore other librarians',
