@@ -1,5 +1,29 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-15: 다국어 번역 키 노출 및 언어 반전 결함 해결, 타이머·챗 버튼 영문화
+- 작업 브랜치: `feat/fix-language-switching-and-labels`
+- **사용자 요청**:
+  1. 로그인 페이지에서 한국어/영어 선택 시, 로그인 후 페이지들의 텍스트가 반대로 작동하는 버그 해결 (한국어 선택 시 영어/키 이름 노출, 영어 선택 시 한국어 노출 현상).
+  2. 영어로 바뀐 메뉴에 `gnb.myLibrary`처럼 `gnb` 등 내부 dot-notation 키가 화면에 노출되지 않도록 수정.
+  3. 플로팅 타이머 및 사서 챗 버튼 텍스트 변경:
+     - 독서 타이머 -> `Book Timer`
+     - 사서에게 질문하기 -> `Start Chat`
+- **작업 내용**:
+  1. `app/store/LanguageProvider.jsx`:
+     - `t(keyOrKo, fallback)` 함수 버그 수정: 이전 구현에서 `enFallback !== undefined`를 무조건 인라인 번역으로 판단하여 한국어 모드에서 key 문자열(`gnb.myLibrary` 등)을 반환하고 영어 모드에서 fallback 한국어를 반환하던 로직을 전면 수정.
+     - dot-notation key를 현재 활성 언어(`lang`) 번역 사전(`translations[lang]`)에서 우선 조회하도록 보정하여 한국어 선택 시 한국어 라벨, 영어 선택 시 영어 라벨이 정확하게 매핑되도록 처리.
+     - 키가 누락되었을 경우에도 안전하게 fallback 및 반대 언어 사전으로 안전하게 폴백되도록 보장.
+  2. `app/i18n/translations.js`:
+     - 영문 번역 사전 내 플로팅 타이머(`library.readingTimer`, `chat.menuTimerTitle`) 라벨을 `Reading Timer`에서 `Book Timer`로 수정.
+     - 영문 번역 사전 내 사서 챗 플로팅 버튼(`chat.askLibrarian`) 라벨을 `Ask Librarian`에서 `Start Chat`으로 수정.
+     - 한국어/영어 번역 사전 202개 전 키 1:1 패리티 검증 완료.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-12: 서비스 이용 가이드 영문 버튼 개선, 로그인 팝업 Try Out DPYB 문구 보정 및 모바일 햄버거 메뉴 영문화 검증
 - 작업 브랜치: `feat/guide-login-and-menu-en-refinements`
 - **사용자 요청**:
@@ -107,17 +131,3 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-10: 블루(고양이) 서재 배경 이미지(readingroom_cat.webp) 교체 및 최적화
-- 작업 브랜치: `feat/update-readingroom-cat-webp`
-- **사용자 요청**:
-  - `readingroom_cat` 블루 UI 이미지 파일 교체 반영 (WebP 변환 포함).
-- **작업 내용**:
-  1. `public/room/readingroom_cat.webp`:
-     - 신규 제공된 원본 `readingroom_cat.png`(2560x1440, 6.1MB)를 3D 서재 표준 규격인 1920x1080 16:9 비율(Lanczos 리샘플링, RGB 고품질 WebP Q90)로 최적화 변환(557KB, 약 91% 용량 감축).
-     - 원본 소스 PNG 정리 및 3D 서재 씬(`shelfLayout.js`의 `BG_SRC_CAT`)에서 최신 UI 배경이 즉시 노출되도록 반영.
-  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
