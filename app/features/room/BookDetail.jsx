@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useBooks } from '../../store/booksStore'
 import { useAuth } from '../../store/authStore'
+import { useLibrarian } from '../../store/librarianStore'
 import { getLibraryBook, toReadingStatus } from '../../api/bookApi'
-import { GENRE_NONE } from '../../data/genres'
+import { GENRE_DEFS, GENRE_NONE } from '../../data/genres'
+import { getColorPresets } from '../register/ocrUtils'
+import { getVisual, setVisual } from '../../store/bookVisuals'
 import SentenceCollectModal from './SentenceCollectModal'
 import ScrapGallery from './ScrapGallery'
 import ReadingTimerModal from './ReadingTimerModal'
@@ -24,19 +27,35 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
 export default function BookDetail({ book, onClose, onBackToShelf }) {
   const { t, formatStatus, formatGenre } = useLanguage()
   const { isGuest, member } = useAuth()
-  const { removeBook, saveReadingProgress, saveBookMeta } = useBooks()
+  const { activeId: librarianId } = useLibrarian()
+  const presets = useMemo(() => getColorPresets(librarianId), [librarianId])
+  const { removeBook, saveReadingProgress, saveBookMeta, reload } = useBooks()
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPage, setTotalPage] = useState(0)
   const [status, setStatus] = useState(book.status || '시작전')
-  /*
-   * 장르 (CLIAR-241): 목록 요약에도 genre가 있어 상세 조회 전에도 바로 표시된다.
-   * 장르와 총 페이지 수는 책 등록 시 자동 인식되는 값이라 여기서는 읽기 전용이다
-   * (수정 모드에서도 바꾸지 않는다).
-   */
   const [genre, setGenre] = useState(book.genre || GENRE_NONE)
   // 책 표지 — 목록 요약값으로 먼저 보여 주고, 상세 조회 후 최신값으로 교체한다.
   const [coverUrl, setCoverUrl] = useState(book.coverUrl || null)
   const [editing, setEditing] = useState(false)
+
+  // 도서 시각 정보 (책등/표지 색상 및 선택 인덱스)
+  const initialVisual = useMemo(
+    () => getVisual(book.bookId, librarianId),
+    [book.bookId, librarianId]
+  )
+  const [selectedColorIdx, setSelectedColorIdx] = useState(() => {
+    if (book.colorIdx != null && presets[book.colorIdx]) return book.colorIdx
+    if (initialVisual?.colorIdx != null && presets[initialVisual.colorIdx]) return initialVisual.colorIdx
+    const foundIdx = presets.findIndex((p) => p.spine === (book.spineColor || initialVisual?.spineColor))
+    return foundIdx >= 0 ? foundIdx : 0
+  })
+  const [spineColor, setSpineColor] = useState(
+    book.spineColor || initialVisual?.spineColor || presets[0]?.spine
+  )
+  const [coverColor, setCoverColor] = useState(
+    book.coverColor || initialVisual?.coverColor || presets[0]?.cover
+  )
+
   // 현재 페이지 저장 결과 안내 팝업 ("확인"으로 닫음)
   const [notice, setNotice] = useState(null)
   const [savingProgress, setSavingProgress] = useState(false)
@@ -84,6 +103,19 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
             }[d.readingStatus]
             if (kr) setStatus(kr)
           }
+
+          // 도서 시각 정보(spineColor, coverColor, colorIdx) 동기화
+          const visual = getVisual(book.bookId, librarianId)
+          if (visual) {
+            const chosenIdx = visual.colorIdx != null && presets[visual.colorIdx]
+              ? visual.colorIdx
+              : presets.findIndex((p) => p.spine === visual.spineColor)
+            if (chosenIdx >= 0) {
+              setSelectedColorIdx(chosenIdx)
+              setSpineColor(visual.spineColor || presets[chosenIdx].spine)
+              setCoverColor(visual.coverColor || presets[chosenIdx].cover)
+            }
+          }
         } catch {
           // 상세 조회 실패 시 요약 기반 값 유지
         }
@@ -91,33 +123,55 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
     return () => {
       cancelled = true
     }
-  }, [book.bookId])
+  }, [book.bookId, librarianId, presets])
+
+  // 색상 팔레트 클릭 핸들러
+  const handleSelectColor = (idx) => {
+    setSelectedColorIdx(idx)
+    const chosen = presets[idx]
+    if (chosen) {
+      setSpineColor(chosen.spine)
+      setCoverColor(chosen.cover)
+    }
+  }
 
   /**
-   * "완료" 저장 — 진행 상태와 우측 문장 편집을 저장한다.
-   *
-   * 장르·총 페이지 수는 등록 시 자동 인식되는 읽기 전용 값이라 상세 조회값을 그대로
-   * 재전송한다(backend-book PATCH는 전체 페이로드를 요구하고 null을 허용하지 않음).
-   * 현재 페이지는 입력란에서 엔터로 따로 저장하므로 여기서 다루지 않는다.
+   * "완료" 저장 — 진행 상태, 장르, 책 색상 및 우측 문장 편집을 저장한다.
    */
   const handleSave = async () => {
     if (saving || isProtectedBook) return
     setSaving(true)
     setActionError(null)
     try {
+      const chosenPreset = presets[selectedColorIdx]
+      const nextSpineColor = chosenPreset?.spine || spineColor
+      const nextCoverColor = chosenPreset?.cover || coverColor
+
       await saveBookMeta(book.bookId, {
         title: detail?.title ?? book.title,
         author: detail?.author ?? book.author,
         isbn: detail?.isbn ?? null,
-        genre: detail?.genre ?? genre ?? GENRE_NONE,
+        genre: genre || GENRE_NONE,
         publisher: detail?.publisher ?? null,
         publishedDate: detail?.publishedDate ?? null,
         coverUrl: detail?.coverUrl ?? null,
         readingStatus: toReadingStatus(status),
         totalPages: detail?.totalPages ?? null,
+        spineColor: nextSpineColor,
+        coverColor: nextCoverColor,
+        colorIdx: selectedColorIdx,
       })
+
+      // 로컬 visual 정보 확실하게 저장
+      setVisual(book.bookId, {
+        colorIdx: selectedColorIdx,
+        spineColor: nextSpineColor,
+        coverColor: nextCoverColor,
+      })
+
       // 우측 갤러리에서 고친 문장·메모도 함께 저장 (CLIAR-241)
       await galleryRef.current?.saveEdits()
+      await reload?.()
       setEditing(false)
     } catch (err) {
       // 문장 검증 실패는 갤러리가 자체 메시지를 띄우므로(err.handled) 중복 안내를 피한다.
@@ -408,8 +462,8 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               title={detail?.title || book.title}
               author={detail?.author || book.author}
               coverUrl={coverUrl}
-              spineColor={detail?.spineColor || book.spineColor}
-              coverColor={detail?.coverColor || book.coverColor}
+              spineColor={spineColor}
+              coverColor={coverColor}
             />
 
             {/* 2. 하단: 메타 정보 카드 (스케치 하단 박스) */}
@@ -463,20 +517,45 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   fontSize: 14,
                 }}
               >
-                {/* 장르 */}
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 999,
-                    border: '1px solid var(--accent-border)',
-                    background: 'var(--accent-bg)',
-                    color: 'var(--text-h)',
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                  }}
-                >
-                  #{formatGenre(genre)}
-                </span>
+                {/* 장르 선택 / 표시 */}
+                {editing ? (
+                  <select
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                    aria-label={t('register.fieldGenre', '장르')}
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      border: '1px solid var(--accent)',
+                      background: 'var(--accent-bg)',
+                      color: 'var(--text-h)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    {GENRE_DEFS.map((g) => (
+                      <option key={g.code} value={g.code}>
+                        #{g.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      border: '1px solid var(--accent-border)',
+                      background: 'var(--accent-bg)',
+                      color: 'var(--text-h)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    #{formatGenre(genre)}
+                  </span>
+                )}
 
                 {/* 진행 상태 */}
                 {editing ? (
@@ -553,6 +632,69 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                   <span>/ {Number(totalPage) > 0 ? totalPage : '-'} {t('bookDetail.pageUnit', '쪽')}</span>
                 </span>
               </div>
+
+              {/* 수정 모드 시: 책등 및 표지 색상 선택 팔레트 */}
+              {editing && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 10px',
+                    background: 'var(--bg)',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    marginTop: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-h)',
+                    }}
+                  >
+                    🎨 {t('bookDetail.chooseColor', '책등 및 표지 색상')}
+                  </span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {presets.map((p, i) => {
+                      const isSelected = selectedColorIdx === i
+                      return (
+                        <button
+                          type="button"
+                          key={i}
+                          onClick={() => handleSelectColor(i)}
+                          title={`색상 ${i + 1}`}
+                          aria-label={`색상 ${i + 1}`}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            border: isSelected ? '2px solid var(--accent)' : '1px solid rgba(0,0,0,0.18)',
+                            boxShadow: isSelected
+                              ? '0 0 0 2px var(--accent-border, rgba(255,154,60,0.4)), 0 2px 4px rgba(0,0,0,0.2)'
+                              : '0 1px 3px rgba(0,0,0,0.15)',
+                            transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                            background: `linear-gradient(135deg, ${p.spine} 0 45%, ${p.cover} 45% 100%)`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            padding: 0,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <span
                 style={{
@@ -649,6 +791,15 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
                         setEditing(false)
                         setActionError(null)
                         galleryRef.current?.discardEdits()
+                        setGenre(detail?.genre || book.genre || GENRE_NONE)
+                        setStatus(book.status || '시작전')
+                        const origVisual = getVisual(book.bookId, librarianId)
+                        if (origVisual) {
+                          setSpineColor(origVisual.spineColor || book.spineColor)
+                          setCoverColor(origVisual.coverColor || book.coverColor)
+                          const fIdx = origVisual.colorIdx != null ? origVisual.colorIdx : presets.findIndex((p) => p.spine === origVisual.spineColor)
+                          if (fIdx >= 0) setSelectedColorIdx(fIdx)
+                        }
                       }}
                       disabled={saving}
                       style={{

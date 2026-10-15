@@ -142,6 +142,13 @@ export function BooksProvider({ children }) {
    */
   const saveBookMeta = useCallback(async (bookId, meta) => {
     await bookApi.updateLibraryBookMeta(bookId, meta);
+    if (meta.spineColor || meta.coverColor || meta.colorIdx !== undefined) {
+      setVisual(bookId, {
+        colorIdx: meta.colorIdx,
+        spineColor: meta.spineColor,
+        coverColor: meta.coverColor,
+      });
+    }
     setBooks((prev) =>
       prev.map((b) =>
         b.bookId === bookId
@@ -153,6 +160,9 @@ export function BooksProvider({ children }) {
             subject: meta.subject ?? b.subject,
             displayGenre: meta.displayGenre ?? b.displayGenre,
             status: meta.readingStatus ? bookApi.toKoreanStatus(meta.readingStatus) : b.status,
+            spineColor: meta.spineColor ?? b.spineColor,
+            coverColor: meta.coverColor ?? b.coverColor,
+            colorIdx: meta.colorIdx ?? b.colorIdx,
           }
           : b
       )
