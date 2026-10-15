@@ -1,38 +1,28 @@
-import { useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Edges } from '@react-three/drei';
 import * as THREE from 'three';
+import {
+  createSpineTexture,
+  createFrontCoverTexture,
+  getSharedTextureImage,
+  onSharedTextureReady,
+} from './bookTextureHelper';
 
 /**
  * Book3D — boxGeometry 기반 단일 3D 책
  *
  * 좌표계: 책등(spine)이 +Z(정면)을 향하도록 배치.
- *  - +Z 면: 책등(spine)  → 선반에서 보이는 면
- *  - +X / -X 면: 앞표지 / 뒤표지 (넓은 면)
+ *  - +Z 면: 책등(spine)  → 선반에서 보이는 면 (책 제목 렌더링)
+ *  - +X 면: 앞표지 (도서 표지 이미지 + 은은한 종이 질감 텍스처)
+ *  - -X 면: 뒤표지 (기본 표지 색상 + 질감)
  *  - +Y / -Y / -Z 면: 책배(페이지 단면)
  *
  * BoxGeometry material 인덱스 순서: [+X, -X, +Y, -Y, +Z, -Z]
  *
- * 상호작용 (CLIAR-243: 인식 고도화 — hover 밀림을 줄이고 테두리 glow로 대체):
- *  - hover: 아주 살짝만 앞으로(+Z) 당겨지고(0.05, 예전 0.25), 테두리에 accent色 glow가 페이드인.
- *    예전엔 hover 시 책이 크게 밀려나 옆 책을 가리고, 그 밀림이 옆 책의 히트박스까지
- *    침범해 "이 책은 잘 잡히고 저 책은 안 잡히는" 인식 불균형을 만들었다.
+ * 상호작용:
+ *  - hover: 아주 살짝만 앞으로(+Z) 당겨지고(0.05), 테두리에 accent色 glow가 페이드인.
  *  - selected: 책이 앞으로 빠져나와 위로 올라오고, Y축 -90° 회전하여 앞표지(+X)를 카메라로 향함
- *
- * @param {[number,number,number]} position - 책 중심 위치(선반에 꽂힌 기본 위치)
- * @param {[number,number,number]} size - [thickness(책등폭), height(높이), depth(앞뒤 깊이)]
- * @param {string} spineColor - 책등 색상 (map 없을 때 fallback)
- * @param {string} coverColor - 표지 색상
- * @param {THREE.Texture} [spineMap] - 책등 텍스처
- * @param {THREE.Texture} [coverMap] - 표지 텍스처
- * @param {string} [pageColor] - 페이지 단면 색상
- * @param {boolean} [selected] - 선택 상태
- * @param {number} [rotationY] - 기본 Y축 회전(선반 방향 정렬용, 라디안)
- * @param {number} [pullDir] - 선택 시 빠져나오는 로컬 방향 부호(+1 또는 -1)
- * @param {number} [selectedDepthScale] - 선택 시 depth(로컬 Z) 추가 확대 배율
- * @param {number} [selectedScale] - 선택 시 전체 크기 확대 배율
- * @param {string} [glowColor] - hover/selected 시 테두리 glow 색상 (사서/테마 accent 색)
- * @param {function} [onSelect] - 클릭 콜백
  */
 // 3D 책 표면 질감 텍스처 (포토샵 Multiply 블렌드처럼 기본 색상과 합성)
 const TEXTURE_PATH = '/book_texture.webp';
@@ -50,6 +40,9 @@ function getBookTexture() {
 }
 
 export default function Book3D({
+  title = '',
+  author = '',
+  coverUrl = null,
   position = [0, 0, 0],
   size = [0.22, 1.2, 0.85],
   spineColor = '#8a5a44',
@@ -67,6 +60,9 @@ export default function Book3D({
   onSelect,
   onHover,
 }) {
+  const { invalidate } = useThree();
+  const [textureVer, setTextureVer] = useState(0);
+
   // 기본 자세: rotation([x,y,z]) 우선, 없으면 rotationY만
   const [rx, ry, rz] = rotation || [0, rotationY, 0];
   const groupRef = useRef(null);
@@ -75,16 +71,55 @@ export default function Book3D({
   const edgeHaloRef = useRef(null);
   const [hovered, setHovered] = useState(false);
 
-  // 싱글톤 책 표면 질감 텍스처
+  // 싱글톤 책 표면 질감 텍스처 (bumpMap용)
   const texture = useMemo(() => getBookTexture(), []);
 
-  const materials = useMemo(() => {
-    const activeSpineMap = spineMap || texture;
-    const activeCoverMap = coverMap || texture;
+  // 공용 질감 이미지가 브라우저에 로드 완료되면 캔버스 텍스처 재합성 트리거
+  useEffect(() => {
+    return onSharedTextureReady(() => {
+      setTextureVer((v) => v + 1);
+      invalidate();
+    });
+  }, [invalidate]);
 
-    // 책등 머티리얼: 기본 spineColor에 텍스처를 multiply 합성
+  // 책등(Spine) 캔버스 텍스처: 도서 이름 표시 + 책등 장식선 + 질감 텍스처
+  const dynamicSpineMap = useMemo(() => {
+    if (spineMap) return spineMap;
+    void textureVer;
+    return createSpineTexture(title, spineColor, getSharedTextureImage());
+  }, [spineMap, title, spineColor, textureVer]);
+
+  // 앞표지(Front Cover) 캔버스 텍스처: 책 표지 이미지 + 투명도 낮춘 질감 텍스처 오버레이
+  const dynamicCoverMap = useMemo(() => {
+    if (coverMap) return coverMap;
+    void textureVer;
+    return createFrontCoverTexture({
+      coverUrl,
+      coverColor,
+      title,
+      author,
+      sharedImg: getSharedTextureImage(),
+      onUpdate: () => {
+        invalidate();
+      },
+    });
+  }, [coverMap, coverUrl, coverColor, title, author, textureVer, invalidate]);
+
+  // 텍스처 언마운트 시 메모리 해제
+  useEffect(() => {
+    return () => {
+      if (dynamicSpineMap && !spineMap) dynamicSpineMap.dispose();
+      if (dynamicCoverMap && !coverMap) dynamicCoverMap.dispose();
+    };
+  }, [dynamicSpineMap, dynamicCoverMap, spineMap, coverMap]);
+
+  const materials = useMemo(() => {
+    const activeSpineMap = dynamicSpineMap || texture;
+    const activeCoverMap = dynamicCoverMap || texture;
+
+    // 책등(+Z): dynamicSpineMap(도서 이름 + 책등 색상 + 은은한 질감)
     const spine = new THREE.MeshStandardMaterial({
-      color: spineColor,
+      color: spineMap ? spineColor : '#ffffff',
       map: activeSpineMap,
       roughness: 0.65,
       metalness: 0.05,
@@ -92,11 +127,21 @@ export default function Book3D({
       bumpScale: 0.01,
     });
 
-    // 앞/뒤 표지 머티리얼: 기본 coverColor에 텍스처를 multiply 합성
-    const cover = new THREE.MeshStandardMaterial({
-      color: coverColor,
+    // 앞표지(+X): dynamicCoverMap(도서 표지 이미지 + opacity 낮춘 질감 오버레이)
+    const frontCover = new THREE.MeshStandardMaterial({
+      color: coverMap ? coverColor : '#ffffff',
       map: activeCoverMap,
-      roughness: 0.6,
+      roughness: 0.55,
+      metalness: 0.05,
+      bumpMap: texture || null,
+      bumpScale: 0.012,
+    });
+
+    // 뒤표지(-X): 기본 coverColor + 질감 텍스처
+    const backCover = new THREE.MeshStandardMaterial({
+      color: coverColor,
+      map: texture,
+      roughness: 0.65,
       metalness: 0.05,
       bumpMap: texture || null,
       bumpScale: 0.01,
@@ -111,8 +156,8 @@ export default function Book3D({
 
     // [+X, -X, +Y, -Y, +Z, -Z]
     // +X: 앞표지, -X: 뒤표지, +Y/-Y: 페이지 위/아래, +Z: 책등, -Z: 페이지 뒤
-    return [cover, cover, pages, pages, spine, pages];
-  }, [spineColor, coverColor, spineMap, coverMap, pageColor, texture]);
+    return [frontCover, backCover, pages, pages, spine, pages];
+  }, [spineColor, coverColor, dynamicSpineMap, dynamicCoverMap, spineMap, coverMap, pageColor, texture]);
 
   // 책등(+Z 로컬)이 회전 적용 후 향하는 월드 방향 = 빠져나오는 방향
   const forward = useMemo(() => {

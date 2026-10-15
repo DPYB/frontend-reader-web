@@ -660,6 +660,9 @@ export default function LibraryScene() {
           {placements.map((b) => (
             <Book3D
               key={b.id}
+              title={b.title}
+              author={b.author}
+              coverUrl={b.coverUrl || b.cover_url || b.coverImage}
               position={b.position}
               size={b.size}
               rotation={b.rotation}

@@ -1,5 +1,30 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-11: 도메인 초기 진입 로딩 대체 서비스 사용 가이드 우선 노출 및 로그인 팝업 연계
+- 작업 브랜치: `feat/initial-service-guide-notice-flow`
+- **사용자 요청**:
+  - 도메인 접속 시 "불러오는 중이에요" 로딩 문구 대신 대기 시간이 지루하지 않도록 서비스 사용 가이드를 우선 띄우고, 사용자가 가이드를 닫으면 로그인 페이지 팝업창(PC 환경 권장/테스트 운영 중 안내)을 순차적으로 띄우도록 개선.
+- **작업 내용**:
+  1. `app/features/guide/guideStorage.js`:
+     - 세션 스토리지 기반 `isGuideSeenInSession`, `markGuideSeenInSession` 유틸 추가로 동일 브라우징 세션 내 중복 모달 노출 방지.
+  2. `app/features/guide/ServiceGuideModal.jsx`:
+     - 가이드 모달 닫기(`handleCloseModal`) 시 `markGuideSeenInSession()` 자동 호출.
+  3. `app/components/ProtectedRoute.jsx`:
+     - `status === 'loading'` 단계에서 단순 텍스트("불러오는 중이에요...") 대신 미열람 상태인 경우 서비스 사용 가이드(`ServiceGuideModal`) 우선 표출.
+     - 가이드 열람 중 백엔드 인증 확인이 비로그인으로 판별되어도 강제 리다이렉트 없이 가이드 열람을 지속 보장하고, 사용자가 닫았을 때 로그인 페이지로 안전하게 이동(`fromGuideClosed`).
+     - 이미 열람한 경우 6프레임 냥이 순차 로딩 애니메이션(`LoadingSequence`) 표출로 대기 UX 개선.
+  4. `app/pages/LoginPage.jsx`:
+     - `ServiceGuideModal` 연동 및 `showGuide` 우선 표출 흐름 구축.
+     - 사용자가 가이드를 닫았을 때(`handleCloseGuide`) 로그인 페이지 공지 팝업(`showPcNotice`)을 순차적으로 연계 활성화.
+  5. `app/features/room/LibraryScene.jsx` & `app/App.jsx` & `app/pages/MyLibrary.jsx`:
+     - 서재 진입 시 중복 가이드 팝업 방지(`!isGuideSeenInSession()`) 및 Suspense 폴백 텍스트를 `LoadingSequence` 애니메이션으로 통일.
+  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-10: 블루(고양이) 서재 배경 이미지(readingroom_cat.webp) 교체 및 최적화
 - 작업 브랜치: `feat/update-readingroom-cat-webp`
 - **사용자 요청**:
