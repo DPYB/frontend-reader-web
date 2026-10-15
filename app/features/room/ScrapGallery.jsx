@@ -44,7 +44,6 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
   const [editError, setEditError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
   const [zoomImage, setZoomImage] = useState(null);
-  const [copyNotice, setCopyNotice] = useState(false);
 
   const { isUnifiedMobileUX: isMobile } = useResponsive();
   const { items, nextPage, totalPages, totalElements } = feed;
@@ -282,31 +281,6 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
       if (aliveRef.current) setDeletingId(null);
     }
   }, [pendingDelete, deletingId, removeScrap, editingCardId, t]);
-
-  /** 문장 공유 (클립보드 복사) */
-  const handleShare = useCallback(
-    async (it) => {
-      if (!it) return;
-      const textToCopy = `“${it.text}”${it.page ? ` (p.${it.page})` : ''}\n— DPYB 내 서재에서 수집한 문장`;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.value = textToCopy;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-        }
-        setCopyNotice(true);
-        setTimeout(() => setCopyNotice(false), 2400);
-      } catch {
-        // 복사 실패 무시
-      }
-    },
-    []
-  );
 
   /** 부모 BookDetail의 "완료" 저장 연동 */
   const saveEdits = useCallback(async () => {
@@ -827,10 +801,11 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                 </span>
               )}
 
-              {/* [공유] 버튼 */}
+              {/* [공유] 버튼 (UI 비활성화) */}
               <button
                 type="button"
-                onClick={() => handleShare(currentItem)}
+                disabled
+                title={t('scrapGallery.shareDisabledTip', '공유 기능 준비 중')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -838,13 +813,13 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
                   padding: '5px 14px',
                   borderRadius: 8,
                   border: '1px solid var(--border)',
-                  background: 'var(--bg)',
-                  color: 'var(--text-h)',
+                  background: 'var(--code-bg)',
+                  color: 'var(--text-muted, #888)',
                   fontSize: 13.5,
                   fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                  cursor: 'not-allowed',
+                  opacity: 0.45,
+                  boxShadow: 'none',
                 }}
               >
                 <span>🔗</span> {t('scrapGallery.share', '공유')}
@@ -863,30 +838,6 @@ export default function ScrapGallery({ bookId, editing = false, ref }) {
           >
             ›
           </button>
-        </div>
-      )}
-
-      {/* 공유 복사 완료 토스트 알림 */}
-      {copyNotice && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '8px 18px',
-            borderRadius: 999,
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(4px)',
-            color: '#fff',
-            fontSize: 13.5,
-            fontWeight: 600,
-            zIndex: 100,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-            animation: 'fadeIn 0.2s ease',
-          }}
-        >
-          📋 {t('scrapGallery.copiedNotice', '문장이 클립보드에 복사되었습니다!')}
         </div>
       )}
 

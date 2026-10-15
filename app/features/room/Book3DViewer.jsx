@@ -50,6 +50,8 @@ export default function Book3DViewer({
             spineColor={spineColor}
             coverColor={coverColor}
             selected={false}
+            showEdges={false}
+            interactive={false}
           />
         </group>
 

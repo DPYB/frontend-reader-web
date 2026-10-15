@@ -226,7 +226,10 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
   const panelStyle = {
     ...basePanelStyle,
     width: isMobile ? '94vw' : 'min(1000px, 94%)',
-    maxHeight: isMobile ? 'calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))' : '88%',
+    maxHeight: isMobile
+      ? 'calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))'
+      : 'calc(100dvh - 48px)',
+    height: isMobile ? undefined : 'fit-content',
     display: 'flex',
     flexDirection: 'column',
     overflowY: isMobile ? 'auto' : 'hidden',
@@ -380,12 +383,12 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 300px) 1px minmax(0, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(250px, 300px) 1px minmax(0, 1fr)',
             gap: isMobile ? 16 : 20,
             alignItems: 'stretch',
             marginTop: isMobile ? 12 : 24,
-            minHeight: isMobile ? 'auto' : 320,
-            flex: 1,
+            minHeight: 0,
+            flex: isMobile ? 1 : 'none',
             minWidth: 0,
           }}
         >
@@ -396,6 +399,7 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               flexDirection: 'column',
               minWidth: 0,
               gap: 12,
+              height: 'fit-content',
               overflowY: isMobile ? 'visible' : 'auto',
             }}
           >
@@ -733,6 +737,8 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               display: 'flex',
               flexDirection: 'column',
               overflow: isMobile ? 'visible' : 'hidden',
+              height: isMobile ? undefined : '100%',
+              minHeight: 0,
             }}
           >
             {/* 우측 상단 탭 헤더: [수집한 문장]  [독서 타이머 기록] */}
@@ -789,24 +795,24 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               </button>
             </div>
 
-          {/* 탭 콘텐츠 본문 */}
-          <div style={{ flex: 1, minHeight: isMobile ? 320 : 0, overflow: isMobile ? 'visible' : 'hidden', display: 'flex' }}>
-            {rightTab === 'scraps' ? (
-              <ScrapGallery
-                key={`${book.bookId}-${scrapVersion}`}
-                ref={galleryRef}
-                bookId={book.bookId}
-                editing={editing}
-              />
-            ) : (
-              <ReadingSessionHistory
-                bookId={book.bookId}
-                version={sessionVersion}
-                onOpenTimer={() => setShowTimer(true)}
-              />
-            )}
+            {/* 탭 콘텐츠 본문 (좌측 패널 높이에 맞추어 내부 스크롤 보장) */}
+            <div style={{ flex: 1, minHeight: isMobile ? 320 : 0, overflow: 'hidden', display: 'flex' }}>
+              {rightTab === 'scraps' ? (
+                <ScrapGallery
+                  key={`${book.bookId}-${scrapVersion}`}
+                  ref={galleryRef}
+                  bookId={book.bookId}
+                  editing={editing}
+                />
+              ) : (
+                <ReadingSessionHistory
+                  bookId={book.bookId}
+                  version={sessionVersion}
+                  onOpenTimer={() => setShowTimer(true)}
+                />
+              )}
+            </div>
           </div>
-        </div>
       </div>
 
       {showSentenceModal && (
