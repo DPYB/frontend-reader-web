@@ -1,5 +1,35 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-17: GNB BETA 뱃지 독립 분리 및 첫방문/재방문 설문조사 모달 구현
+- 작업 브랜치: `feat/beta-survey-modal-and-badge-separation`
+- **사용자 요청**:
+  1. GNB 상단 브랜드 캡슐에 묶여 있던 `BETA` 뱃지를 독립된 버튼으로 분리.
+  2. `BETA` 클릭 시 설문조사 모달 오픈:
+     - 소개 및 감사 문구와 함께 [첫방문], [재방문] 2가지 선택 버튼 제공.
+     - [첫방문] 클릭 시 첫방문자용 8개 설문 항목 진행.
+     - [재방문] 클릭 시 재방문자용 12개 설문 항목 진행 (스크린샷 파일 첨부 및 미리보기/삭제 기능 포함).
+     - 제출 완료 화면 및 안전한 로컬 저장(`localStorage`) 지원.
+- **작업 내용**:
+  1. `app/features/survey/BetaSurveyModal.jsx` & `BetaSurveyModal.css` 신설:
+     - Glassmorphism & DPYB 테마(라이트/다크 모드 지원) 기반의 고급스러운 설문조사 모달 컴포넌트 구현.
+     - Step 1: 환영 및 참여 부탁 메시지와 함께 [첫방문 설문](약 2분 소요)과 [재방문 설문](약 3분 소요) 카드형 버튼 제공.
+     - Step 2 (첫방문): 유사 서비스 경험, 독서 기록 관리 방법, 가입/시작 불편점, 서비스 이해도, 화면 디자인/구성 1~5점 표, 사용 기능 다중선택, 헷갈렸던 점, 연령대 8개 문항 구현.
+     - Step 2 (재방문): 사용 기기 및 브라우저, 오늘 사용 기능, 불편했던 점(+스크린샷 첨부), 오류/비정상 동작(+스크린샷 첨부), AI 사서 도움 여부, 가장 유용한 기능, 재방문 이유, 속도 만족도, 불필요한 기능, 있었으면 하는 기능, 오늘의 만족도(1~5점), 자유 개선 의견 12개 문항 구현.
+     - 이미지 첨부 시 캔버스 압축(최대 1000px, JPEG 0.75) 헬퍼를 적용하여 가볍고 안전하게 base64 데이터로 변환/저장 및 미리보기 제공.
+     - Step 3: 제출 완료 및 따뜻한 감사 안내 화면 제공, `localStorage('dpyb_beta_surveys')`에 결과 저장.
+  2. `app/components/Gnb.jsx` & `Gnb.css`:
+     - `.gnb-desktop-brand` 내 `NavLink`에서 `BETA`를 완전히 분리하여 우측에 독립된 글라스 버튼(`<button className="gnb-beta-badge">`)으로 배치.
+     - 모바일 GNB 상단 우측의 `.gnb-beta-badge--mobile`도 클릭 시 동일하게 설문조사 모달이 열리도록 연동.
+     - 호버 시 은은한 리프팅 및 액센트 글로우 인터랙션 스타일링.
+  3. `app/i18n/translations.js`:
+     - `gnb.betaSurvey`, `gnb.betaSurveyTooltip` 다국어 키 한국어 및 영어 추가.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 도서 상세 장르 및 색상 수정 기능 추가, 마이페이지 소메뉴 중복 이모지 제거
 - 작업 브랜치: `feat/book-edit-genre-color-and-mypage-tab-emojis`
 - **사용자 요청**:
@@ -110,34 +140,3 @@
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-15: 3D 도서 책등 타이틀 및 앞표지 이미지 텍스처 렌더링 (질감 오버레이 보존)
-- 작업 브랜치: `feat/3d-book-cover-and-spine-textures`
-- **사용자 요청**:
-  - 3D 도서 메쉬에 표지 및 텍스트 텍스처 반영:
-    - 책등(Spine): 도서 이름 (책 제목) 표시.
-    - 앞표지(Front Cover): 책 표지 이미지 (`coverUrl`) 렌더링.
-    - [중요 디테일] 이미지를 입히더라도 그 위로 입혔던 텍스처의 opacity를 낮춰서 종이/패브릭 질감이 자연스럽게 유지되도록 적용.
-- **작업 내용**:
-  1. `app/features/bookshelf3d/bookTextureHelper.js` 신설:
-     - 책등(Spine) 동적 캔버스 텍스처 생성(`createSpineTexture`):
-       - 128x1024 고해상도 세로 캔버스에 책등 기본색상(`spineColor`)과 상하 클래식 북바인딩 엠보싱 라인 렌더링.
-       - 한글 도서의 경우 세로쓰기 가독성 정렬, 영문 도서의 경우 90도 회전 한 줄 레이아웃 자동 분기.
-       - 배경 위로 `/book_texture.webp` 질감 텍스처를 opacity 0.35로 자연스럽게 합성.
-     - 앞표지(Front Cover) 동적 캔버스 텍스처 생성(`createFrontCoverTexture`):
-       - 512x768 (1:1.5 표준 도서 비율) 캔버스에 `coverUrl` 표지 이미지 비동기 로딩 및 렌더링.
-       - 이미지 로드 후 그 위로 `/book_texture.webp` 질감 이미지를 `globalAlpha = 0.28`, `globalCompositeOperation = 'multiply'`로 덧씌워 종이/패브릭 질감 유지.
-       - 이미지 미등록 또는 로드 실패 시 타이포그래피 기반 기본 표지 레이아웃 폴백.
-  2. `app/features/bookshelf3d/Book3D.jsx`:
-     - `title`, `author`, `coverUrl` prop 수신 및 `createSpineTexture`, `createFrontCoverTexture` 연동.
-     - BoxGeometry 머티리얼 매핑 최적화: 앞표지(`+X`)에는 `dynamicCoverMap` 및 `bumpMap`, 책등(`+Z`)에는 `dynamicSpineMap` 및 `bumpMap`, 뒤표지(`-X`)에는 기존 `coverColor` 질감 유지.
-     - 비동기 표지 로드 완료 시 `invalidate()` 트리거 및 언마운트 시 `.dispose()` 메모리 해제 처리.
-  3. `app/features/room/LibraryScene.jsx`:
-     - `Book3D` 호출부에 `title={b.title}`, `author={b.author}`, `coverUrl={b.coverUrl || b.cover_url || b.coverImage}` 속성 전달.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-

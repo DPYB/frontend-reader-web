@@ -4,6 +4,7 @@ import { useTheme } from '../store/themeStore';
 import { useLibrarian } from '../store/librarianStore';
 import { useAuth } from '../store/authStore';
 import { useLanguage } from '../store/languageStore';
+import BetaSurveyModal from '../features/survey/BetaSurveyModal';
 import './Gnb.css';
 
 function SunIcon() {
@@ -110,6 +111,7 @@ export default function Gnb() {
     const profileWrapRef = useRef(null);
     const [showMobileNavMenu, setShowMobileNavMenu] = useState(false);
     const [expandedSubmenu, setExpandedSubmenu] = useState(null); // 'register' | 'mypage' | null
+    const [showSurveyModal, setShowSurveyModal] = useState(false);
     const navWrapRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
@@ -211,7 +213,7 @@ export default function Gnb() {
                     </button>
                 </div>
 
-                {/* 2. 데스크톱 좌측: 로고 + 서비스 이름 (적절한 크기로 축소) */}
+                {/* 2. 데스크톱 좌측: 로고 + 서비스 이름 (독립 분리된 BETA 뱃지 버튼) */}
                 <div className="gnb-desktop-brand">
                     <NavLink
                         to="/library"
@@ -236,10 +238,16 @@ export default function Gnb() {
                             height={38}
                             decoding="async"
                         />
-                        <span className="gnb-beta-badge gnb-beta-badge--desktop">
-                            BETA
-                        </span>
                     </NavLink>
+                    <button
+                        type="button"
+                        className="gnb-beta-badge gnb-beta-badge--desktop"
+                        onClick={() => setShowSurveyModal(true)}
+                        aria-label={t('gnb.betaSurvey', 'BETA 설문조사')}
+                        title={t('gnb.betaSurveyTooltip', 'BETA 서비스 설문조사에 참여해주세요!')}
+                    >
+                        BETA
+                    </button>
                 </div>
 
                 {/* 3. 모바일 상단 중앙: 원형 glass 효과 배경 로고 */}
@@ -271,10 +279,16 @@ export default function Gnb() {
                 </nav>
 
                 <div className="gnb-right">
-                    {/* 모바일 상단: BETA 뱃지 */}
-                    <span className="gnb-beta-badge gnb-beta-badge--mobile">
+                    {/* 모바일 상단: BETA 뱃지 버튼 */}
+                    <button
+                        type="button"
+                        className="gnb-beta-badge gnb-beta-badge--mobile"
+                        onClick={() => setShowSurveyModal(true)}
+                        aria-label={t('gnb.betaSurvey', 'BETA 설문조사')}
+                        title={t('gnb.betaSurveyTooltip', 'BETA 서비스 설문조사에 참여해주세요!')}
+                    >
                         BETA
-                    </span>
+                    </button>
 
                     {/* 데스크톱 로그아웃 버튼 */}
                     <button className="gnb-logout-btn" onClick={handleLogout} disabled={loggingOut}>
@@ -549,6 +563,12 @@ export default function Gnb() {
                     </div>
                 </div>
             )}
+
+            {/* BETA 설문조사 모달 */}
+            <BetaSurveyModal
+                isOpen={showSurveyModal}
+                onClose={() => setShowSurveyModal(false)}
+            />
         </>
     );
 }

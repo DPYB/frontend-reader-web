@@ -1,5 +1,35 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-15: 3D 도서 책등 타이틀 및 앞표지 이미지 텍스처 렌더링 (질감 오버레이 보존)
+- 작업 브랜치: `feat/3d-book-cover-and-spine-textures`
+- **사용자 요청**:
+  - 3D 도서 메쉬에 표지 및 텍스트 텍스처 반영:
+    - 책등(Spine): 도서 이름 (책 제목) 표시.
+    - 앞표지(Front Cover): 책 표지 이미지 (`coverUrl`) 렌더링.
+    - [중요 디테일] 이미지를 입히더라도 그 위로 입혔던 텍스처의 opacity를 낮춰서 종이/패브릭 질감이 자연스럽게 유지되도록 적용.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/bookTextureHelper.js` 신설:
+     - 책등(Spine) 동적 캔버스 텍스처 생성(`createSpineTexture`):
+       - 128x1024 고해상도 세로 캔버스에 책등 기본색상(`spineColor`)과 상하 클래식 북바인딩 엠보싱 라인 렌더링.
+       - 한글 도서의 경우 세로쓰기 가독성 정렬, 영문 도서의 경우 90도 회전 한 줄 레이아웃 자동 분기.
+       - 배경 위로 `/book_texture.webp` 질감 텍스처를 opacity 0.35로 자연스럽게 합성.
+     - 앞표지(Front Cover) 동적 캔버스 텍스처 생성(`createFrontCoverTexture`):
+       - 512x768 (1:1.5 표준 도서 비율) 캔버스에 `coverUrl` 표지 이미지 비동기 로딩 및 렌더링.
+       - 이미지 로드 후 그 위로 `/book_texture.webp` 질감 이미지를 `globalAlpha = 0.28`, `globalCompositeOperation = 'multiply'`로 덧씌워 종이/패브릭 질감 유지.
+       - 이미지 미등록 또는 로드 실패 시 타이포그래피 기반 기본 표지 레이아웃 폴백.
+  2. `app/features/bookshelf3d/Book3D.jsx`:
+     - `title`, `author`, `coverUrl` prop 수신 및 `createSpineTexture`, `createFrontCoverTexture` 연동.
+     - BoxGeometry 머티리얼 매핑 최적화: 앞표지(`+X`)에는 `dynamicCoverMap` 및 `bumpMap`, 책등(`+Z`)에는 `dynamicSpineMap` 및 `bumpMap`, 뒤표지(`-X`)에는 기존 `coverColor` 질감 유지.
+     - 비동기 표지 로드 완료 시 `invalidate()` 트리거 및 언마운트 시 `.dispose()` 메모리 해제 처리.
+  3. `app/features/room/LibraryScene.jsx`:
+     - `Book3D` 호출부에 `title={b.title}`, `author={b.author}`, `coverUrl={b.coverUrl || b.cover_url || b.coverImage}` 속성 전달.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 다국어 번역 키 노출 및 언어 반전 결함 해결, 타이머·챗 버튼 영문화
 - 작업 브랜치: `feat/fix-language-switching-and-labels`
 - **사용자 요청**:

@@ -61,6 +61,8 @@ export const translations = {
       menuOpen: '메뉴 열기',
       menuClose: '메뉴 닫기',
       profileDetail: '사서 프로필 상세',
+      betaSurvey: 'BETA 설문조사',
+      betaSurveyTooltip: 'BETA 피드백 설문조사 참여하기',
     },
     library: {
       preparing: '서재를 준비하고 있어요... 🐾',
@@ -334,6 +336,8 @@ export const translations = {
       menuOpen: 'Open Menu',
       menuClose: 'Close Menu',
       profileDetail: 'Librarian Profile Details',
+      betaSurvey: 'BETA Survey',
+      betaSurveyTooltip: 'Take the BETA feedback survey',
     },
     library: {
       preparing: 'Preparing your library... 🐾',
