@@ -1,5 +1,20 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-17: 로그인 페이지 배경 이미지 Cloudflare R2 CDN 연결
+- 작업 브랜치: `feat/r2-cdn-login-background-assets`
+- **사용자 요청**:
+  - Cloudflare R2 `dpyb-public/background_UI/login/`에 업로드한 로그인 페이지 배경 이미지 2종(`login-bg.webp`, `login_eng.webp`)을 프론트엔드에 연결하고 로컬 파일 정리.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `cdnUrl` 헬퍼를 활용하여 `LOGIN_BG_KO`(`background_UI/login/login-bg.webp`) 및 `LOGIN_BG_EN`(`background_UI/login/login_eng.webp`) 절대 URL 연동.
+     - `src={isEn ? LOGIN_BG_EN : LOGIN_BG_KO}`로 한국어/영어 배경을 R2 CDN에서 로드하도록 전환.
+  2. `public/`:
+     - 기존 로컬 파일 2종(`login-bg.webp`, `login_eng.webp`) 전체 삭제 (~2.27MB 저장소/번들 경량화).
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - CDN 2개 파일 HEAD 요청 200 / `image/webp` 확인
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+
 ## 2026-10-17: 서재 배경 이미지 Cloudflare R2 CDN 연결
 - 작업 브랜치: `feat/r2-cdn-background-assets`
 - **사용자 요청**:
@@ -89,30 +104,6 @@
      - 다크 모드(`[data-theme='dark']`)에 맞춘 중후한 마호가니/월넛 목재 선반 텍스처와 미니 책등 그림자 최적화.
      - 모바일 및 태블릿 반응형 브레이크포인트(`max-width: 640px`)에서 선반 및 미니 책등의 크기를 적절히 축소(`height: 66px`, 책등 폭 8px)하여 모든 디바이스에서 균형 잡힌 레이아웃 유지.
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-15: 도서 상세 3D 모델 육면체 선 제거, 좌측 기준 높이 고정 및 공유 버튼 비활성화
-- 작업 브랜치: `feat/book-detail-height-fix-and-ui-refinements`
-- **사용자 요청**:
-  1. 도서 상세 3D 모델에 커서를 올렸을 때 나타나는 육면체 뼈대 테두리 선(Edges glow) 미노출 처리.
-  2. 도서 상세 팝업의 세로 길이를 왼쪽(책정보) 높이에 맞춰 고정하고, 오른쪽 수집 문장 영역이 길어질 경우 우측 내부에서 스크롤되도록 개선.
-  3. 수집 문장 슬라이드 카드의 `[공유]` 버튼 UI 비활성화.
-- **작업 내용**:
-  1. `app/features/bookshelf3d/Book3D.jsx` & `app/features/room/Book3DViewer.jsx`:
-     - `Book3D`에 `showEdges = true`, `interactive = true` prop을 추가하여 호버 시 테두리 선 렌더링 및 당겨짐 애니메이션을 조건부로 분기.
-     - `Book3DViewer`에서 `showEdges={false}`, `interactive={false}`를 전달하여 모달 내 3D 책 뷰어에서는 마우스 커서를 올려도 육면체 뼈대 선이 나타나지 않고 깔끔한 360도 OrbitControls 회전 조작에만 집중하도록 개선.
-  2. `app/features/room/BookDetail.jsx`:
-     - 모달 패널(`panelStyle`)의 데스크톱 세로 높이를 `height: 'fit-content'` 및 `maxHeight: 'calc(100dvh - 48px)'`로 설정.
-     - 2단 그리드의 좌측 열(3D 책 뷰어 + 메타 카드)에 `height: 'fit-content'`를 적용하여 모달 전체 세로 길이가 좌측 도서 정보의 자연스러운 높이에 딱 맞춰 고정되도록 처리.
-     - 우측 탭 영역에 `height: '100%'`, `overflow: 'hidden'`, 탭 콘텐츠 영역에 `overflow: 'hidden'`을 부여하여, 우측 내용이 많아져도 모달 전체가 늘어나지 않고 우측 카드 내부(`ScrapGallery`의 `overflowY: 'auto'`)에서만 부드럽게 스크롤되도록 보장.
-  3. `app/features/room/ScrapGallery.jsx` & `app/i18n/translations.js`:
-     - 수집 문장 슬라이드 카드 하단의 `[공유]` 버튼을 `disabled`, `opacity: 0.45`, `cursor: 'not-allowed'`로 UI 비활성화 처리하고 툴팁(`공유 기능 준비 중` / `Share feature coming soon`) 연동.
-     - 비활성화에 따라 미사용된 `handleShare` 및 `copyNotice` 코드를 정리하여 ESLint 경고 방지.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
