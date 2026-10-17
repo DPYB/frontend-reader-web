@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 프로필 이미지 6종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 로컬 에셋 제거 완료
 - 프로필(public/profile/) 이미지 WebP 변환 및 레거시 에셋 정리 완료
 - 로그인 페이지 배경 이미지 2종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 로컬 에셋 제거 완료
 - 서재 배경 이미지 5종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 `VITE_ASSET_BASE_URL` 설정 도입 완료

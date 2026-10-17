@@ -27,6 +27,7 @@
  */
 
 import { GENRE_LABELS, genreLabel } from './genres';
+import { cdnUrl } from '../config/cdn';
 
 // 장르 한글 라벨 목록 (genres.js에서 파생 — 백엔드 genre_type enum과 정합)
 export const GENRES = GENRE_LABELS;
@@ -83,7 +84,7 @@ export const LIBRARIANS = [
     imageHover: '/cursors/cat/cat_04.webp',
     clickMotionMs: 2000,
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
-    profileImage: '/profile/cat.webp',
+    profileImage: cdnUrl('profile/librarian/cat.webp'),
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_cat.png',
     nameImage: '/name/name_cat.webp',
@@ -128,7 +129,7 @@ export const LIBRARIANS = [
      */
     imgScale: 1.31,
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진 (커서 이미지와 별개 에셋)
-    profileImage: '/profile/stork.webp',
+    profileImage: cdnUrl('profile/librarian/stork.webp'),
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_stork.png',
     nameImage: '/name/name_stork.webp',
@@ -161,7 +162,7 @@ export const LIBRARIANS = [
     tip: { x: 0.18, y: 0.5 },
     tipHover: { x: 0.27, y: 0.4 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
-    profileImage: '/profile/nudi.webp',
+    profileImage: cdnUrl('profile/librarian/nudi.webp'),
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_nudi.png',
     nameImage: '/name/name_nudi.webp',
@@ -213,7 +214,7 @@ export const LIBRARIANS = [
     tip: { x: 0.42, y: 0.32 },
     tipHover: { x: 0.42, y: 0.32 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
-    profileImage: '/profile/gecko.webp',
+    profileImage: cdnUrl('profile/librarian/gecko.webp'),
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_gecko.png',
     nameImage: '/name/name_gecko.webp',

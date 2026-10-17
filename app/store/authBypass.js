@@ -14,6 +14,8 @@
  * 인증 연동이 끝나면 이 모듈과 참조하는 분기(AuthProvider, LoginPage)를 제거한다.
  */
 
+import { cdnUrl } from '../config/cdn';
+
 const FLAG = import.meta.env.VITE_AUTH_BYPASS;
 
 function resolveBypass() {
@@ -34,6 +36,6 @@ export const BYPASS_MEMBER = {
   nickname: '개발중인 집사',
   birth_date: '2000-01-01',
   gender: 'FEMALE',
-  profile_image_url: '/profile/chris.webp',
+  profile_image_url: cdnUrl('profile/test/chris.webp'),
 };
 
