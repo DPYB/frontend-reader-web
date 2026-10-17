@@ -17,6 +17,7 @@ import {
 } from '../api/authApi';
 import { clearChatSession } from './librarianStore';
 import { AUTH_BYPASS, BYPASS_MEMBER } from './authBypass';
+import { cdnUrl } from '../config/cdn';
 
 /**
  * 인증 전역 상태 (CLIAR-163).
@@ -66,7 +67,7 @@ export function AuthProvider({ children }) {
               sub: guestSub,
               email: 'guest@dpyb.local',
               nickname: '체험 손님 🐾',
-              profile_image_url: '/profile/clia.webp',
+              profile_image_url: cdnUrl('profile/test/clia.webp'),
               role: 'guest',
             });
             setStatus('authenticated');
@@ -153,7 +154,7 @@ export function AuthProvider({ children }) {
         sub: guestSub,
         email: 'guest@dpyb.local',
         nickname: '체험 손님 🐾',
-        profile_image_url: '/profile/clia.webp',
+        profile_image_url: cdnUrl('profile/test/clia.webp'),
         role: 'guest',
       };
       setMember(guestMember);
@@ -168,7 +169,7 @@ export function AuthProvider({ children }) {
       sub: guestSub,
       email: 'guest@dpyb.local',
       nickname: '체험 손님 🐾',
-      profile_image_url: '/profile/clia.webp',
+      profile_image_url: cdnUrl('profile/test/clia.webp'),
       role: 'guest',
     };
     setMember(guestMember);
