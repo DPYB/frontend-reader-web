@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { getColorPresets } from '../register/ocrUtils';
+import { cdnUrl } from '../../config/cdn';
 
-// 배경 이미지 (public/room/) — CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
-export const BG_SRC_CAT = '/room/readingroom_cat.webp';
+// 배경 이미지 — Cloudflare R2 `dpyb-public/background_UI/` (CDN: cdn.ai0208.xyz, 2026-10 이전)
+// CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
+export const BG_SRC_CAT = cdnUrl('background_UI/readingroom_cat.webp');
 // 슈빌(황새) 서재 배경: 라이트 모드 & 나이트 모드 전용 UI (2026-10)
-export const BG_SRC_STORK_LIGHT = '/room/readingroom_stork_light.webp';
-export const BG_SRC_STORK_NIGHT = '/room/readingroom_stork_night.webp';
-export const BG_SRC_STORK = '/room/readingroom_stork_night.webp'; // 하위 호환 기본값
+export const BG_SRC_STORK_LIGHT = cdnUrl('background_UI/readingroom_stork_light.webp');
+export const BG_SRC_STORK_NIGHT = cdnUrl('background_UI/readingroom_stork_night.webp');
+export const BG_SRC_STORK = BG_SRC_STORK_NIGHT; // 하위 호환 기본값
 // 누디 서재 배경 (사용자 제공 readingroom_nudi.png → webp 변환, 2026-09).
-export const BG_SRC_NUDI = '/room/readingroom_nudi.webp';
+export const BG_SRC_NUDI = cdnUrl('background_UI/readingroom_nudi.webp');
 // 게코 서재 배경 (사용자 제공 readingroom_gecko.png → webp 변환, 2560x1440 → 1920x1080, 2026-09).
-export const BG_SRC_GECKO = '/room/readingroom_gecko.webp';
+export const BG_SRC_GECKO = cdnUrl('background_UI/readingroom_gecko.webp');
 export const BG_SRC = BG_SRC_CAT; // 기본값 (하위 호환)
 // 배경 원본 비율 (원본 픽셀에 맞게 조정)
 export const BG_ASPECT = 768 / 432;

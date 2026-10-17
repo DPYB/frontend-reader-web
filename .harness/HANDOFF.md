@@ -1,5 +1,21 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-17: 서재 배경 이미지 Cloudflare R2 CDN 연결
+- 작업 브랜치: `feat/r2-cdn-background-assets`
+- **사용자 요청**:
+  - Cloudflare R2 `dpyb-public/background_UI/`에 업로드한 서재 배경 이미지 5종을 프론트엔드에 연결.
+- **작업 내용**:
+  1. `app/config/cdn.js` 신설:
+     - `ASSET_BASE_URL` (기본값 `https://cdn.ai0208.xyz`, `VITE_ASSET_BASE_URL`로 덮어쓰기 가능) 및 `cdnUrl(path)` 헬퍼 제공.
+  2. `app/features/room/shelfLayout.js`:
+     - `BG_SRC_CAT/STORK_LIGHT/STORK_NIGHT/NUDI/GECKO`를 `public/room/` 로컬 경로에서 R2 CDN 절대 URL로 전환.
+     - 배경은 CSS `background-image`로만 사용되므로 R2 CORS 설정 영향 없음.
+  3. `.env.example`: `VITE_ASSET_BASE_URL` 항목 문서화.
+  4. `public/room/` 로컬 서재 배경 파일 6종 전체 삭제 완료 (R2 CDN 전환에 따른 로컬 에셋 정리 및 저장소/번들 경량화).
+- **검증**:
+  - CDN 5개 파일 HEAD 요청 200 / `image/webp` 확인
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+
 ## 2026-10-17: GNB BETA 뱃지 독립 분리 및 첫방문/재방문 설문조사 모달 구현
 - 작업 브랜치: `feat/beta-survey-modal-and-badge-separation`
 - **사용자 요청**:
@@ -97,44 +113,6 @@
      - 수집 문장 슬라이드 카드 하단의 `[공유]` 버튼을 `disabled`, `opacity: 0.45`, `cursor: 'not-allowed'`로 UI 비활성화 처리하고 툴팁(`공유 기능 준비 중` / `Share feature coming soon`) 연동.
      - 비활성화에 따라 미사용된 `handleShare` 및 `copyNotice` 코드를 정리하여 ESLint 경고 방지.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-15: 도서 상세 모달 스케치 기반 전면 재정리 및 인터랙티브 3D 도서 연동
-- 작업 브랜치: `feat/reorganize-book-detail-with-3d-book`
-- **사용자 요청**:
-  - 도서 선택(클릭) 시 열리는 상세 화면을 사용자가 제공한 스케치 레이아웃으로 전면 재정리.
-  - 기존 2D 평면 이미지 대신, 앞표지/책등/종이 질감이 입혀진 3D 책 모델(`Book3D`)을 상세 모달 좌측 상단에 렌더링.
-  - 스케치 규격 반영:
-    - 좌측 상단: 3D 도서 (3D 회전 지원).
-    - 좌측 하단 메타 카드: 제목, 저자, [장르] [Status] [현재/총쪽], [독서 타이머] [문장수집] [수정].
-    - 우측 상단: [수집한 문장] [독서 타이머 기록] 탭.
-    - 우측 문장 탭: [<] [>] 슬라이드 네비게이션, 상단 [문장 사진], 중간 [저장된 날짜] + [수정]/[삭제], 하단 [인식 결과] 박스, [사용자 메모] 박스, 바닥 [page number] + [공유] 버튼.
-- **작업 내용**:
-  1. `app/features/room/Book3DViewer.jsx` 신설:
-     - `@react-three/fiber` 및 `@react-three/drei` 기반의 인터랙티브 3D 도서 뷰어 컴포넌트 구현.
-     - 도서의 앞표지(+X)와 책등(+Z), 책배의 두께가 입체적으로 조화롭게 보이는 쿼터뷰 카메라 각도 및 은은한 방사형 그라데이션 배경, 조명(Ambient + Directional) 설정.
-     - `OrbitControls`로 사용자가 마우스/터치로 360도 자유롭게 책을 돌려볼 수 있도록 지원 및 안내 칩 렌더링.
-  2. `app/features/room/BookDetail.jsx`:
-     - 좌측 평면 2D `<img>`를 제거하고 `<Book3DViewer>` 컴포넌트 배치.
-     - 좌측 하단에 스케치 규격 메타 카드 구축:
-       - 제목 및 저자 중앙 정렬, 메타 칩 한 줄(`[#장르]`, `[#상태]`, `[📖 현재/총쪽]`).
-       - 하단에 3개 주요 액션 버튼 나란히 배치: `[독서 타이머]`, `[문장수집]`, `[수정]`.
-       - 수정 모드 진입 시 `[완료]`, `[취소]` 및 비-게스트일 때 `[삭제]` 기능 자연스럽게 전환.
-     - 우측 상단 탭 헤더에서 불필요한 수정/삭제 버튼을 정리하고 순수 탭 전환 버튼만 배치.
-  3. `app/features/room/ScrapGallery.jsx`:
-     - 스케치에 표시된 1문장 카드 중심 슬라이드(캐러셀) 뷰어로 전면 개편:
-       - 좌우 [<] [>] 슬라이드 이동 버튼 및 키보드 좌우 방향키 단축키 지원.
-       - 상단에 큼직한 문장 사진(스캔 이미지) 배치 및 클릭 시 전체화면 Lightbox 확대 모달 지원.
-       - 중간에 저장된 날짜 뱃지, 순번 인디케이터(`1 / 5`), `[수정]`, `[삭제]` 버튼 배치.
-       - 하단에 `[인식 결과]` 박스(OCR 문장 텍스트)와 `[사용자 메모]` 박스(생각/메모 텍스트) 독립 영역 분리.
-       - 바닥에 `[p.쪽수]` 뱃지와 `[공유]` 버튼(원클릭 클립보드 복사 및 토스트 알림) 탑재.
-  4. `app/i18n/translations.js`:
-     - 신규 추가된 UI 요소(`rotate3dHint`, `unknownAuthor`, `deleteThisBook`, `scrapGallery.*`) 한국어 및 영어 1:1 완벽 번역 등록.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
