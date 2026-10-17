@@ -34,6 +34,6 @@ export const BYPASS_MEMBER = {
   nickname: '개발중인 집사',
   birth_date: '2000-01-01',
   gender: 'FEMALE',
-  profile_image_url: '/profile/chris.png',
+  profile_image_url: '/profile/chris.webp',
 };
 
