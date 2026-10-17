@@ -161,7 +161,7 @@ export const LIBRARIANS = [
     tip: { x: 0.18, y: 0.5 },
     tipHover: { x: 0.27, y: 0.4 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
-    profileImage: '/profile/nudi.jpg',
+    profileImage: '/profile/nudi.webp',
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_nudi.png',
     nameImage: '/name/name_nudi.webp',
@@ -213,7 +213,7 @@ export const LIBRARIANS = [
     tip: { x: 0.42, y: 0.32 },
     tipHover: { x: 0.42, y: 0.32 },
     // GNB·사서 프로필 페이지에서 쓰는 프로필 사진
-    profileImage: '/profile/gecko.jpg',
+    profileImage: '/profile/gecko.webp',
     // 상단 GNB 사서 테마별 로고 및 서비스 이름 이미지
     logoImage: '/logo/logo_gecko.png',
     nameImage: '/name/name_gecko.webp',

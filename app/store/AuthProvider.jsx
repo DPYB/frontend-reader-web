@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
               sub: guestSub,
               email: 'guest@dpyb.local',
               nickname: '체험 손님 🐾',
-              profile_image_url: '/profile/clia.png',
+              profile_image_url: '/profile/clia.webp',
               role: 'guest',
             });
             setStatus('authenticated');
@@ -153,7 +153,7 @@ export function AuthProvider({ children }) {
         sub: guestSub,
         email: 'guest@dpyb.local',
         nickname: '체험 손님 🐾',
-        profile_image_url: '/profile/clia.png',
+        profile_image_url: '/profile/clia.webp',
         role: 'guest',
       };
       setMember(guestMember);
@@ -168,7 +168,7 @@ export function AuthProvider({ children }) {
       sub: guestSub,
       email: 'guest@dpyb.local',
       nickname: '체험 손님 🐾',
-      profile_image_url: '/profile/clia.png',
+      profile_image_url: '/profile/clia.webp',
       role: 'guest',
     };
     setMember(guestMember);

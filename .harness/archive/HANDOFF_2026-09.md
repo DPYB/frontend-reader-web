@@ -1,5 +1,31 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-15: 마이페이지 독서 캘린더 날짜별 책장 선반화 및 미니 책등 꽂기 UI 구현
+- 작업 브랜치: `feat/mypage-calendar-bookshelf-view`
+- **사용자 요청**:
+  - 마이페이지 독서 캘린더에 각 날짜별 칸도 선반처럼 그날 읽은 책이 꽂아져 있는 것처럼 제작 요청.
+- **작업 내용**:
+  1. `app/features/mypage/MyPageReadingCalendar.jsx`:
+     - `getMiniSpineProps(book, index)` 헬퍼 구현:
+       - 도서의 `spineColor`, `heightFactor`, `thickness`를 우선 반영하고, 미지정 시 도서 id/제목 해시 기반으로 유려한 양장본 색상 및 68%~94% 범위의 자연스러운 책 높이/두께 편차 생성.
+     - `calendarDays` 계산부에서 날짜별 활동(`dayActivities`)을 순회하여 당일 읽은 고유 도서 목록(`books: dayBooks`) 추출 및 중복 제거.
+     - 달력 날짜 셀(`<button className="calendar-day-cell calendar-shelf-cell">`) 내부 구조 개편:
+       - 상단(`.calendar-cell-top`): 날짜 번호 및 출석 발자국 스탬프(`🐾`).
+       - 하단 선반 스테이지(`.calendar-shelf-stage`):
+         - 선반 위 꽂힌 미니 책등 컨테이너(`.calendar-shelf-books`): 당일 읽은 책들을 세로 양장본 책등 형태로 선반 위에 나란히 렌더링 (최대 3권 + 초과 시 `+N` 배지).
+         - 각 미니 책등(`.calendar-mini-book`): 3D 원통형 하이라이트(`mini-book-spine-shine`), 상하단 금박/은박 음각 밴드(`mini-book-spine-line`), 도서명 및 저자 툴팁, 호버 시 위로 살짝 뽑히는 리프팅 인터랙션 지원.
+         - 선반 나무 받침대(`.calendar-shelf-plank`): 바닥에 따뜻하고 사실적인 목재 플랭크 텍스처 및 베벨 하이라이트/그림자 렌더링.
+  2. `app/pages/MyPage.css`:
+     - 캘린더 날짜 셀을 원목 서가 칸(compartment) 느낌의 깊이감 있는 배경 그라데이션 및 내부 그림자로 스타일링.
+     - 다크 모드(`[data-theme='dark']`)에 맞춘 중후한 마호가니/월넛 목재 선반 텍스처와 미니 책등 그림자 최적화.
+     - 모바일 및 태블릿 반응형 브레이크포인트(`max-width: 640px`)에서 선반 및 미니 책등의 크기를 적절히 축소(`height: 66px`, 책등 폭 8px)하여 모든 디바이스에서 균형 잡힌 레이아웃 유지.
+  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 도서 상세 3D 모델 육면체 선 제거, 좌측 기준 높이 고정 및 공유 버튼 비활성화
 - 작업 브랜치: `feat/book-detail-height-fix-and-ui-refinements`
 - **사용자 요청**:
