@@ -11,7 +11,7 @@
      - `BG_SRC_CAT/STORK_LIGHT/STORK_NIGHT/NUDI/GECKO`를 `public/room/` 로컬 경로에서 R2 CDN 절대 URL로 전환.
      - 배경은 CSS `background-image`로만 사용되므로 R2 CORS 설정 영향 없음.
   3. `.env.example`: `VITE_ASSET_BASE_URL` 항목 문서화.
-  4. `public/room/` 로컬 파일은 운영 CDN 정상 확인 후 별도 PR에서 제거 예정(롤백 안전망).
+  4. `public/room/` 로컬 서재 배경 파일 6종 전체 삭제 완료 (R2 CDN 전환에 따른 로컬 에셋 정리 및 저장소/번들 경량화).
 - **검증**:
   - CDN 5개 파일 HEAD 요청 200 / `image/webp` 확인
   - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
