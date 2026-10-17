@@ -7,7 +7,12 @@ import { ApiError } from '../api/authApi';
 import { renderGoogleButton, triggerGoogleLogin, triggerKakaoLogin } from '../utils/socialAuth';
 import ServiceGuideModal from '../features/guide/ServiceGuideModal';
 import { shouldShowGuideModal, isGuideSeenInSession } from '../features/guide/guideStorage';
+import { cdnUrl } from '../config/cdn';
 import './LoginPage.css';
+
+// 로그인 배경 이미지 — Cloudflare R2 `dpyb-public/background_UI/login/` (CDN: cdn.ai0208.xyz)
+const LOGIN_BG_KO = cdnUrl('background_UI/login/login-bg.webp');
+const LOGIN_BG_EN = cdnUrl('background_UI/login/login_eng.webp');
 
 /**
  * 버튼/입력필드 이미지는 2560x1440 전체 화면 레이어 (투명 배경 + 위치 고정).
@@ -396,7 +401,7 @@ export default function LoginPage() {
       <div className="login-cover-layer">
         <img
           className="login-bg-img"
-          src={isEn ? '/login_eng.webp' : '/login-bg.webp'}
+          src={isEn ? LOGIN_BG_EN : LOGIN_BG_KO}
           alt="Don't Paw-get Your Book"
           width={2560}
           height={1440}

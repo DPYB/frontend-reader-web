@@ -1,5 +1,29 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-15: 도서 상세 3D 모델 육면체 선 제거, 좌측 기준 높이 고정 및 공유 버튼 비활성화
+- 작업 브랜치: `feat/book-detail-height-fix-and-ui-refinements`
+- **사용자 요청**:
+  1. 도서 상세 3D 모델에 커서를 올렸을 때 나타나는 육면체 뼈대 테두리 선(Edges glow) 미노출 처리.
+  2. 도서 상세 팝업의 세로 길이를 왼쪽(책정보) 높이에 맞춰 고정하고, 오른쪽 수집 문장 영역이 길어질 경우 우측 내부에서 스크롤되도록 개선.
+  3. 수집 문장 슬라이드 카드의 `[공유]` 버튼 UI 비활성화.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/Book3D.jsx` & `app/features/room/Book3DViewer.jsx`:
+     - `Book3D`에 `showEdges = true`, `interactive = true` prop을 추가하여 호버 시 테두리 선 렌더링 및 당겨짐 애니메이션을 조건부로 분기.
+     - `Book3DViewer`에서 `showEdges={false}`, `interactive={false}`를 전달하여 모달 내 3D 책 뷰어에서는 마우스 커서를 올려도 육면체 뼈대 선이 나타나지 않고 깔끔한 360도 OrbitControls 회전 조작에만 집중하도록 개선.
+  2. `app/features/room/BookDetail.jsx`:
+     - 모달 패널(`panelStyle`)의 데스크톱 세로 높이를 `height: 'fit-content'` 및 `maxHeight: 'calc(100dvh - 48px)'`로 설정.
+     - 2단 그리드의 좌측 열(3D 책 뷰어 + 메타 카드)에 `height: 'fit-content'`를 적용하여 모달 전체 세로 길이가 좌측 도서 정보의 자연스러운 높이에 딱 맞춰 고정되도록 처리.
+     - 우측 탭 영역에 `height: '100%'`, `overflow: 'hidden'`, 탭 콘텐츠 영역에 `overflow: 'hidden'`을 부여하여, 우측 내용이 많아져도 모달 전체가 늘어나지 않고 우측 카드 내부(`ScrapGallery`의 `overflowY: 'auto'`)에서만 부드럽게 스크롤되도록 보장.
+  3. `app/features/room/ScrapGallery.jsx` & `app/i18n/translations.js`:
+     - 수집 문장 슬라이드 카드 하단의 `[공유]` 버튼을 `disabled`, `opacity: 0.45`, `cursor: 'not-allowed'`로 UI 비활성화 처리하고 툴팁(`공유 기능 준비 중` / `Share feature coming soon`) 연동.
+     - 비활성화에 따라 미사용된 `handleShare` 및 `copyNotice` 코드를 정리하여 ESLint 경고 방지.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-15: 도서 상세 모달 스케치 기반 전면 재정리 및 인터랙티브 3D 도서 연동
 - 작업 브랜치: `feat/reorganize-book-detail-with-3d-book`
 - **사용자 요청**:
