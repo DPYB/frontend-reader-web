@@ -35,6 +35,14 @@ export default function BookRegisterForm({
   submitError,
   submitting,
   allFilled,
+  coverUploading,
+  onSelectCoverFile,
+  onTakePhoto,
+  onRemoveCover,
+  coverFileInputRef,
+  coverCameraInputRef,
+  onCoverFileInputChange,
+  onCoverCameraInputChange,
   onSubmit,
 }) {
   const formVisible = activeTab !== 'search' || (activeTab === 'search' && (ocrDone || title));
@@ -64,17 +72,95 @@ export default function BookRegisterForm({
         <div className="rb-detail-body">
           {/* 책 표지 */}
           <div className="rb-detail-cover-col">
-            <img
-              src={coverImageSrc(extraMeta.coverUrl)}
-              alt={title ? `${title} 표지` : '책 표지'}
-              className="rb-detail-cover-img"
-              onError={onFallbackCover}
-            />
+            <div className="rb-detail-cover-wrapper">
+              <img
+                src={coverImageSrc(extraMeta.coverUrl)}
+                alt={title ? `${title} 표지` : '책 표지'}
+                className="rb-detail-cover-img"
+                onError={onFallbackCover}
+              />
+              {(activeTab === 'manual' || editing) && (
+                <button
+                  type="button"
+                  className="rb-detail-cover-overlay"
+                  onClick={onSelectCoverFile}
+                  disabled={coverUploading}
+                  title="표지 사진 변경"
+                  aria-label="표지 사진 변경"
+                >
+                  <span className="rb-detail-cover-overlay-icon" aria-hidden="true">📷</span>
+                  <span className="rb-detail-cover-overlay-text">표지 등록</span>
+                </button>
+              )}
+              {coverUploading && (
+                <div className="rb-detail-cover-spinner-wrap" aria-live="polite">
+                  <span className="rb-detail-cover-spinner" />
+                  <span className="rb-detail-cover-spinnerText">업로드 중...</span>
+                </div>
+              )}
+            </div>
+
+            {/* 직접 입력 모드이거나 수정 모드일 때 표지 컨트롤 버튼 */}
+            {(activeTab === 'manual' || editing) && (
+              <div className="rb-cover-actions">
+                <button
+                  type="button"
+                  className="rb-cover-action-btn"
+                  onClick={onTakePhoto}
+                  disabled={coverUploading}
+                  title="카메라로 책 표지 촬영"
+                >
+                  📷 촬영
+                </button>
+                <button
+                  type="button"
+                  className="rb-cover-action-btn"
+                  onClick={onSelectCoverFile}
+                  disabled={coverUploading}
+                  title="기기에서 표지 사진 선택"
+                >
+                  🖼️ 앨범
+                </button>
+                {extraMeta.coverUrl && (
+                  <button
+                    type="button"
+                    className="rb-cover-action-btn rb-cover-action-btn--remove"
+                    onClick={onRemoveCover}
+                    disabled={coverUploading}
+                    title="표지 사진 초기화"
+                  >
+                    ✕ 제거
+                  </button>
+                )}
+              </div>
+            )}
+
             {extraMeta.sideCoverUrl && (
               <span className="rb-detail-cover-badge">
                 ✨ YES24 고화질 표지 적용됨
               </span>
             )}
+
+            {/* 숨겨진 파일 및 카메라 인풋 */}
+            <input
+              ref={coverFileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+              className="rb-hidden-file-input"
+              onChange={onCoverFileInputChange}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            <input
+              ref={coverCameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="rb-hidden-file-input"
+              onChange={onCoverCameraInputChange}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
           </div>
 
           {/* 표지 옆 입력 필드 */}

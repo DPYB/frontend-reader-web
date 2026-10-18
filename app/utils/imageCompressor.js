@@ -189,3 +189,98 @@ export async function compressQuoteImage(file, { maxDimension = 1600, quality = 
     img.src = objectUrl;
   });
 }
+
+/**
+ * 책 표지 사진을 3D 책 모델 텍스처에 최적화된 고화질 WebP Blob으로 압축합니다.
+ * 비율을 유지하면서 긴 축 기준 최대 1200px로 리사이징합니다.
+ *
+ * @param {File|Blob} file - 원본 표지 사진
+ * @param {object} [options]
+ * @param {number} [options.maxDimension=1200] - 최대 가로 또는 세로 해상도 (픽셀)
+ * @param {number} [options.quality=0.88] - WebP 압축 품질 (0~1)
+ * @returns {Promise<{ blob: Blob, previewUrl: string, dataUrl: string, width: number, height: number, imageElement: HTMLImageElement }>}
+ */
+export async function compressBookCover(file, { maxDimension = 1200, quality = 0.88 } = {}) {
+  if (!file) {
+    throw new Error('표지 이미지 파일이 전달되지 않았습니다.');
+  }
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      try {
+        const naturalWidth = img.naturalWidth || img.width;
+        const naturalHeight = img.naturalHeight || img.height;
+
+        if (!naturalWidth || !naturalHeight) {
+          throw new Error('이미지 크기를 계산할 수 없습니다.');
+        }
+
+        // 가로세로 비율 유지 리사이즈 계산
+        let targetWidth = naturalWidth;
+        let targetHeight = naturalHeight;
+
+        const maxSide = Math.max(naturalWidth, naturalHeight);
+        if (maxSide > maxDimension) {
+          const scale = maxDimension / maxSide;
+          targetWidth = Math.round(naturalWidth * scale);
+          targetHeight = Math.round(naturalHeight * scale);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Canvas 2D Context를 생성할 수 없습니다.');
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const previewUrl = URL.createObjectURL(blob);
+              const dataUrl = canvas.toDataURL('image/webp', quality);
+              resolve({ blob, previewUrl, dataUrl, width: targetWidth, height: targetHeight, imageElement: img });
+            } else {
+              canvas.toBlob(
+                (fallbackBlob) => {
+                  if (fallbackBlob) {
+                    const previewUrl = URL.createObjectURL(fallbackBlob);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve({ blob: fallbackBlob, previewUrl, dataUrl, width: targetWidth, height: targetHeight, imageElement: img });
+                  } else {
+                    reject(new Error('표지 이미지 Blob 변환에 실패했습니다.'));
+                  }
+                },
+                'image/jpeg',
+                quality
+              );
+            }
+          },
+          'image/webp',
+          quality
+        );
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('표지 이미지를 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.'));
+    };
+
+    img.src = objectUrl;
+  });
+}
+

@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-18: 도서 직접 등록 시 책 표지 사진 촬영/업로드 및 R2 Presigned URL 연동
+- 작업 브랜치: `feat/register-book-custom-cover-upload`
+- **사용자 요청**:
+  - 도서 직접 입력 모드에서 사용자가 책 표지를 사진 촬영하거나 선택하여 업로드할 수 있도록 지원하고, 이 사진이 서재 3D 책 모델의 앞표지(frontCover) 텍스처로 자동 적용되도록 구현.
+  - Cloudflare R2 `dpyb-public/frontcover/beta/` 경로 연동.
+- **작업 내용**:
+  1. `app/utils/imageCompressor.js`:
+     - `compressBookCover(file, { maxDimension: 1200, quality: 0.88 })`: 책 표지 종횡비를 유지하며 긴 축 기준 최대 1200px 리사이즈 및 고화질 WebP Blob 변환 유틸리티 구현.
+  2. `app/api/bookApi.js`:
+     - `getBookCoverPresignedUrl({ contentType })`: Core API(`POST /api/v1/library/books/cover/presigned-url`) 호출 함수 추가.
+  3. `app/pages/RegisterBook.jsx` & `BookRegisterForm.jsx` & `RegisterBook.css`:
+     - 표지 사진 마우스 호버 오버레이(`📷 표지 등록`), 카메라 촬영(`📷 촬영`), 앨범 선택(`🖼️ 앨범`), 표지 초기화(`✕ 제거`) 컨트롤 UI 추가.
+     - 모바일에서는 후면 카메라(`capture="environment"`) 자동 실행, PC에서는 웹캠 촬영 모달(`WebcamCaptureModal`) 지원.
+     - 표지 사진 업로드 시 대표 색상을 자동 추출(`extractDominantColorIndex`)하여 책등(spine) 컬러도 추천 프리셋으로 자동 매핑.
+     - Cloudflare R2 버킷 `dpyb-public/frontcover/beta/`로 Presigned PUT 직접 전송 및 R2 CDN URL(`https://cdn.ai0208.xyz/frontcover/beta/{uuid}.webp`) 바인딩.
+     - 백엔드 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 3D 모델 및 등록 폼에 즉시 반영되는 Graceful Fallback 구현.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-18: 문장 수집 이미지 Cloudflare R2 Presigned URL 연동 및 WebP 최적화
 - 작업 브랜치: `feat/quote-image-r2-upload`
 - **사용자 요청**:
@@ -92,18 +115,3 @@
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-17: 로그인 페이지 배경 이미지 Cloudflare R2 CDN 연결
-- 작업 브랜치: `feat/r2-cdn-login-background-assets`
-- **사용자 요청**:
-  - Cloudflare R2 `dpyb-public/background_UI/login/`에 업로드한 로그인 페이지 배경 이미지 2종(`login-bg.webp`, `login_eng.webp`)을 프론트엔드에 연결하고 로컬 파일 정리.
-- **작업 내용**:
-  1. `app/pages/LoginPage.jsx`:
-     - `cdnUrl` 헬퍼를 활용하여 `LOGIN_BG_KO`(`background_UI/login/login-bg.webp`) 및 `LOGIN_BG_EN`(`background_UI/login/login_eng.webp`) 절대 URL 연동.
-     - `src={isEn ? LOGIN_BG_EN : LOGIN_BG_KO}`로 한국어/영어 배경을 R2 CDN에서 로드하도록 전환.
-  2. `public/`:
-     - 기존 로컬 파일 2종(`login-bg.webp`, `login_eng.webp`) 전체 삭제 (~2.27MB 저장소/번들 경량화).
-  3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - CDN 2개 파일 HEAD 요청 200 / `image/webp` 확인
-  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과

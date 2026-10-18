@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 도서 직접 등록 시 책 표지 사진 촬영/업로드 및 Cloudflare R2 Presigned URL 연동 완료
 - 문장 수집 이미지 Cloudflare R2 Presigned URL 연동 및 WebP 최적화 완료
 - 마이페이지 프로필 사진 변경 및 Cloudflare R2 Presigned URL 직접 업로드 연동 완료
 - 프로필 이미지 6종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 로컬 에셋 제거 완료
