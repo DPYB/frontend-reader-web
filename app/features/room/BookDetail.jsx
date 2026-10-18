@@ -14,6 +14,7 @@ import ReadingSessionHistory from './ReadingSessionHistory'
 import Book3DViewer from './Book3DViewer'
 import { useResponsive } from '../../hooks/useResponsive'
 import { useLanguage } from '../../store/languageStore'
+import './BookDetail.css'
 
 const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
 
@@ -23,8 +24,28 @@ const STATUS_OPTIONS = ['시작전', '읽는 중', '잠시 멈춤', '완독']
  * @param {object} book - 선택된 책 데이터 (목록 요약: bookId/title/author/status 등)
  * @param {()=>void} onClose - 닫기 콜백
  * @param {()=>void} [onBackToShelf] - 선반으로 되돌아가기 콜백 (모바일 등)
+ * @param {()=>void} [onPrevBook] - 이전 도서 보기 콜백
+ * @param {()=>void} [onNextBook] - 다음 도서 보기 콜백
+ * @param {boolean} [hasPrev] - 이전 도서 존재 여부
+ * @param {boolean} [hasNext] - 다음 도서 존재 여부
+ * @param {number} [currentIndex] - 현재 도서 인덱스 (0-based)
+ * @param {number} [totalBooks] - 전체 도서 권수
+ * @param {string} [prevBookTitle] - 이전 도서 제목 (툴팁용)
+ * @param {string} [nextBookTitle] - 다음 도서 제목 (툴팁용)
  */
-export default function BookDetail({ book, onClose, onBackToShelf }) {
+export default function BookDetail({
+  book,
+  onClose,
+  onBackToShelf,
+  onPrevBook,
+  onNextBook,
+  hasPrev = false,
+  hasNext = false,
+  currentIndex = 0,
+  totalBooks = 0,
+  prevBookTitle = null,
+  nextBookTitle = null,
+}) {
   const { t, formatStatus, formatGenre } = useLanguage()
   const { isGuest, member } = useAuth()
   const { activeId: librarianId } = useLibrarian()
@@ -124,6 +145,29 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
       cancelled = true
     }
   }, [book.bookId, librarianId, presets])
+
+  // 키보드 좌/우 화살표로 이전/다음 도서 탐색 (입력 필드 포커스 중 제외)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase()
+      if (
+        activeTag === 'input' ||
+        activeTag === 'textarea' ||
+        document.activeElement?.isContentEditable
+      ) {
+        return
+      }
+      if (e.key === 'ArrowLeft' && onPrevBook && hasPrev) {
+        e.preventDefault()
+        onPrevBook()
+      } else if (e.key === 'ArrowRight' && onNextBook && hasNext) {
+        e.preventDefault()
+        onNextBook()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onPrevBook, onNextBook, hasPrev, hasNext])
 
   // 색상 팔레트 클릭 핸들러
   const handleSelectColor = (idx) => {
@@ -370,6 +414,56 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
         aria-hidden="true"
       />
 
+      {/* PC 전용 좌우 플로팅 대형 화살표 버튼 */}
+      {!isMobile && totalBooks > 1 && (onPrevBook || onNextBook) && (
+        <div
+          className="book-detail-side-nav-container"
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 'min(1000px, 94%)',
+            height: 0,
+            pointerEvents: 'none',
+            zIndex: 96,
+          }}
+        >
+          <button
+            type="button"
+            onClick={onPrevBook}
+            disabled={!hasPrev}
+            aria-label={t('bookDetail.prevBook', '이전 도서')}
+            title={
+              prevBookTitle
+                ? `${t('bookDetail.prevBook', '이전 도서')}: ${prevBookTitle} (←)`
+                : `${t('bookDetail.prevBook', '이전 도서')} (←)`
+            }
+            className="book-nav-float-btn prev"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onNextBook}
+            disabled={!hasNext}
+            aria-label={t('bookDetail.nextBook', '다음 도서')}
+            title={
+              nextBookTitle
+                ? `${t('bookDetail.nextBook', '다음 도서')}: ${nextBookTitle} (→)`
+                : `${t('bookDetail.nextBook', '다음 도서')} (→)`
+            }
+            className="book-nav-float-btn next"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <div style={panelStyle}>
         {/* 뒤로가기 / 선반으로 되돌아가기 — 최상단 왼쪽 (모바일 또는 onBackToShelf 전달 시) */}
         {(isMobile || onBackToShelf) && (
@@ -408,6 +502,74 @@ export default function BookDetail({ book, onClose, onBackToShelf }) {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
+        )}
+
+        {/* 상단 도서 네비게이션 필 (이전 도서 / 인덱스 / 다음 도서) */}
+        {totalBooks > 1 && (onPrevBook || onNextBook) && (
+          <div
+            className="book-detail-nav-pill"
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'var(--code-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 20,
+              padding: '2px 8px',
+              zIndex: 3,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              userSelect: 'none',
+            }}
+          >
+            <button
+              type="button"
+              onClick={onPrevBook}
+              disabled={!hasPrev}
+              aria-label={t('bookDetail.prevBook', '이전 도서')}
+              title={
+                prevBookTitle
+                  ? `${t('bookDetail.prevBook', '이전 도서')}: ${prevBookTitle} (←)`
+                  : `${t('bookDetail.prevBook', '이전 도서')} (←)`
+              }
+              className="book-detail-nav-arrow-btn"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: 'var(--text-muted, var(--text))',
+                minWidth: 42,
+                textAlign: 'center',
+                letterSpacing: 0.5,
+              }}
+            >
+              {currentIndex + 1} / {totalBooks}
+            </span>
+            <button
+              type="button"
+              onClick={onNextBook}
+              disabled={!hasNext}
+              aria-label={t('bookDetail.nextBook', '다음 도서')}
+              title={
+                nextBookTitle
+                  ? `${t('bookDetail.nextBook', '다음 도서')}: ${nextBookTitle} (→)`
+                  : `${t('bookDetail.nextBook', '다음 도서')} (→)`
+              }
+              className="book-detail-nav-arrow-btn"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
         )}
 
         {/* 닫기 — 최상단 오른쪽 (사용자 요청, 2026-09) */}

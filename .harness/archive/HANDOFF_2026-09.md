@@ -1,5 +1,32 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-17: 프로필 이미지 WebP 변환 및 레거시 에셋 정리
+- 작업 브랜치: `feat/convert-profile-images-to-webp`
+- **사용자 요청**:
+  1. `public/profile/` 폴더 내 이미지들을 WebP로 변환.
+  2. `default_avatar`의 용도 확인 및 미사용 시 삭제 여부 검토.
+- **작업 내용**:
+  1. 프로필 이미지 WebP 고품질 압축 변환:
+     - `chris.png` (116KB) ➔ `chris.webp` (25KB, 78% 절감)
+     - `clia.png` (129KB) ➔ `clia.webp` (27KB, 79% 절감)
+     - `gecko.jpg` (29KB) ➔ `gecko.webp` (25KB, 15% 절감)
+     - `nudi.png` (173KB) ➔ `nudi.webp` (28KB, 84% 절감)
+     - 기존 WebP 에셋(`cat.webp`, `stork.webp`)과 함께 일관된 WebP 포맷 체계 완성.
+  2. 코드 내 참조 경로 업데이트:
+     - `app/data/librarians.js`: 누디(`profileImage: '/profile/nudi.webp'`) 및 게코(`profileImage: '/profile/gecko.webp'`) 경로 업데이트.
+     - `app/store/AuthProvider.jsx`: 게스트/테스트 프로필 이미지 경로를 `/profile/clia.webp`로 업데이트.
+     - `app/store/authBypass.js`: 바이패스 계정 프로필 이미지를 `/profile/chris.webp`로 업데이트.
+  3. 레거시 이미지 정리:
+     - `public/profile/chris.png`, `clia.png`, `gecko.jpg`, `nudi.jpg`, `nudi.png` 삭제.
+  4. `default_avatar.svg` 용도 보존:
+     - `app/pages/MyPage.jsx`에서 사용자가 프로필 이미지를 등록하지 않았을 때 사용하는 기본 실루엣 SVG 아바타(801바이트)로, 현재 정상 사용 중임을 확인하고 보존.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-17: 로그인 페이지 배경 이미지 Cloudflare R2 CDN 연결
 - 작업 브랜치: `feat/r2-cdn-login-background-assets`
 - **사용자 요청**:

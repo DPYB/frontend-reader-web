@@ -1197,31 +1197,65 @@ export default function LibraryScene() {
 
       {/* 선택된 책 상세 팝업 (확대된 책 오른쪽) */}
       {selectedId && (() => {
-        const book =
+        const selectedKey =
           typeof selectedId === 'object'
+            ? selectedId?.id || selectedId?.bookId || selectedId?.title
+            : selectedId;
+        const bookIndex = sourceBooks.findIndex(
+          (b) =>
+            b.id === selectedKey ||
+            b.bookId === selectedKey ||
+            String(b.bookId) === String(selectedKey) ||
+            b.title === selectedKey
+        );
+        const book =
+          bookIndex >= 0
+            ? sourceBooks[bookIndex]
+            : typeof selectedId === 'object'
             ? selectedId
-            : sourceBooks.find(
-              (b) =>
-                b.id === selectedId ||
-                b.bookId === selectedId ||
-                String(b.bookId) === String(selectedId) ||
-                b.title === selectedId
-            );
-        return book ? (
+            : null;
+
+        if (!book) return null;
+
+        const hasPrev = bookIndex > 0;
+        const hasNext = bookIndex >= 0 && bookIndex < sourceBooks.length - 1;
+        const handlePrevBook = hasPrev
+          ? () => {
+              const target = sourceBooks[bookIndex - 1];
+              setSelectedId(target.id || target.bookId);
+            }
+          : undefined;
+        const handleNextBook = hasNext
+          ? () => {
+              const target = sourceBooks[bookIndex + 1];
+              setSelectedId(target.id || target.bookId);
+            }
+          : undefined;
+
+        return (
           <BookDetail
+            key={book.id || book.bookId || book.title}
             book={book}
+            currentIndex={bookIndex >= 0 ? bookIndex : 0}
+            totalBooks={sourceBooks.length}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            onPrevBook={handlePrevBook}
+            onNextBook={handleNextBook}
+            prevBookTitle={hasPrev ? sourceBooks[bookIndex - 1]?.title : null}
+            nextBookTitle={hasNext ? sourceBooks[bookIndex + 1]?.title : null}
             onClose={() => setSelectedId(null)}
             onBackToShelf={
               isMobile
                 ? () => {
-                  const targetShelfIdx = lastActiveShelfIdx ?? book.shelfIndex ?? 0;
-                  setSelectedId(null);
-                  setActiveMobileShelfIdx(targetShelfIdx);
-                }
+                    const targetShelfIdx = lastActiveShelfIdx ?? book.shelfIndex ?? 0;
+                    setSelectedId(null);
+                    setActiveMobileShelfIdx(targetShelfIdx);
+                  }
                 : undefined
             }
           />
-        ) : null;
+        );
       })()}
 
       {/* 모바일 선반 도서 수직 스크롤 바텀시트 */}
