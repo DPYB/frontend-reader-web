@@ -432,3 +432,19 @@ export function getQuoteImagePresignedUrl({ contentType = 'image/webp' } = {}) {
   });
 }
 
+/**
+ * 도서 앞표지(frontcover) 이미지 Cloudflare R2 업로드용 Presigned URL 발급.
+ * 백엔드(backend-core-api): POST /api/v1/library/books/cover/presigned-url
+ *
+ * @param {object} [params]
+ * @param {string} [params.contentType='image/webp']
+ * @returns {Promise<{ presignedUrl: string, imageUrl: string }>}
+ */
+export function getBookCoverPresignedUrl({ contentType = 'image/webp' } = {}) {
+  return authFetch('/library/books/cover/presigned-url', {
+    method: 'POST',
+    body: { contentType },
+  });
+}
+
+

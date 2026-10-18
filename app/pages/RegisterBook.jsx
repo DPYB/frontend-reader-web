@@ -6,9 +6,11 @@ import { getColorPresets, extractDominantColorIndex, loadImage } from '../featur
 import { GENRE_CODES, GENRE_NONE, genreCode, detectGenreCode } from '../data/genres';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
-import { searchBookByIsbn, searchBooksByKeyword, toReadingStatus } from '../api/bookApi';
+import { searchBookByIsbn, searchBooksByKeyword, toReadingStatus, getBookCoverPresignedUrl } from '../api/bookApi';
 import { setVisual } from '../store/bookVisuals';
-import { ApiError } from '../api/authApi';
+import { ApiError, uploadImageToPresignedUrl } from '../api/authApi';
+import { compressBookCover } from '../utils/imageCompressor';
+import { showGlobalToast } from '../components/toastContext';
 import { getBookThickness } from '../features/room/bookExtractor';
 import WebcamCaptureModal from '../features/room/WebcamCaptureModal';
 import RecommendationBanner from '../features/register/RecommendationBanner';
@@ -140,11 +142,111 @@ export default function RegisterBook() {
   const [totalPage, setTotalPage] = useState('');
   const [currentPage, setCurrentPage] = useState('0');
 
+  // ── 표지 사진 촬영 / 업로드 상태 ──
+  const coverFileInputRef = useRef(null);
+  const coverCameraInputRef = useRef(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverWebcamOpen, setCoverWebcamOpen] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const { isUnifiedMobileUX: isMobile } = useResponsive();
 
   const isLibraryFull = !ocrBookId && books.length >= MAX_LIBRARY_BOOKS;
+
+  /**
+   * 사용자가 촬영 또는 선택한 표지 사진 처리 및 R2 Presigned 업로드
+   */
+  const handleCoverFile = useCallback(async (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showGlobalToast('이미지 파일만 선택할 수 있습니다.', 'error');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      showGlobalToast('이미지 파일 크기는 15MB 이하여야 합니다.', 'error');
+      return;
+    }
+
+    setCoverUploading(true);
+    let previewUrl = null;
+
+    try {
+      // 1. 비율 유지 고화질 WebP 압축 (최대 1200px, quality 0.88)
+      const compressed = await compressBookCover(file, { maxDimension: 1200, quality: 0.88 });
+      previewUrl = compressed.previewUrl;
+
+      // 즉시 로컬 프리뷰 반영
+      setExtraMeta((prev) => ({
+        ...prev,
+        coverUrl: previewUrl,
+        sideCoverUrl: null, // 직접 촬영/업로드 시 알라딘 sideCoverUrl 해제
+      }));
+
+      // 표지 대표 색상으로 책등 컬러 추천 매핑
+      if (compressed.imageElement && presets.length > 0) {
+        const dominantIdx = extractDominantColorIndex(compressed.imageElement, presets);
+        if (dominantIdx >= 0) {
+          setColorIdx(dominantIdx);
+        }
+      }
+
+      // 2. Cloudflare R2 Presigned URL 다이렉트 업로드 (dpyb-public/frontcover/beta/)
+      try {
+        const { presignedUrl, imageUrl } = await getBookCoverPresignedUrl({ contentType: 'image/webp' });
+        await uploadImageToPresignedUrl(presignedUrl, compressed.blob, 'image/webp');
+        setExtraMeta((prev) => ({
+          ...prev,
+          coverUrl: imageUrl,
+          sideCoverUrl: null,
+        }));
+        showGlobalToast('책 표지가 성공적으로 등록되었습니다.', 'success');
+      } catch (uploadErr) {
+        console.warn('[RegisterBook] 표지 R2 업로드 fallback (백엔드 준비 중):', uploadErr);
+        // 백엔드 미배포 시 previewUrl을 그대로 유지하여 3D 모델 및 등록 시 활용
+        showGlobalToast('책 표지가 임시 적용되었습니다. (백엔드 업로드 준비 중)', 'warning');
+      }
+    } catch (err) {
+      console.error('[RegisterBook] 표지 이미지 처리 오류:', err);
+      showGlobalToast('표지 이미지를 처리하지 못했습니다. 다시 시도해 주세요.', 'error');
+    } finally {
+      setCoverUploading(false);
+    }
+  }, [presets]);
+
+  const handleSelectCoverFile = useCallback(() => {
+    coverFileInputRef.current?.click();
+  }, []);
+
+  const handleTakeCoverPhoto = useCallback(() => {
+    if (isMobile) {
+      coverCameraInputRef.current?.click();
+    } else {
+      setCoverWebcamOpen(true);
+    }
+  }, [isMobile]);
+
+  const handleCoverFileInputChange = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (file) handleCoverFile(file);
+    e.target.value = '';
+  }, [handleCoverFile]);
+
+  const handleRemoveCover = useCallback(() => {
+    setExtraMeta((prev) => ({
+      ...prev,
+      coverUrl: null,
+      sideCoverUrl: null,
+    }));
+    showGlobalToast('책 표지가 기본 이미지로 초기화되었습니다.', 'info');
+  }, []);
+
+  const handleCoverWebcamCapture = useCallback((file) => {
+    setCoverWebcamOpen(false);
+    handleCoverFile(file);
+  }, [handleCoverFile]);
 
   /**
    * 장르 자동 분류
@@ -768,6 +870,14 @@ export default function RegisterBook() {
             submitError={submitError}
             submitting={submitting}
             allFilled={allFilled}
+            coverUploading={coverUploading}
+            onSelectCoverFile={handleSelectCoverFile}
+            onTakePhoto={handleTakeCoverPhoto}
+            onRemoveCover={handleRemoveCover}
+            coverFileInputRef={coverFileInputRef}
+            coverCameraInputRef={coverCameraInputRef}
+            onCoverFileInputChange={handleCoverFileInputChange}
+            onCoverCameraInputChange={handleCoverFileInputChange}
             onSubmit={handleSubmit}
           />
         </form>
@@ -775,6 +885,10 @@ export default function RegisterBook() {
 
       {webcamOpen && (
         <WebcamCaptureModal guideFrame onCapture={handleWebcamCapture} onClose={() => setWebcamOpen(false)} />
+      )}
+
+      {coverWebcamOpen && (
+        <WebcamCaptureModal guideFrame onCapture={handleCoverWebcamCapture} onClose={() => setCoverWebcamOpen(false)} />
       )}
 
       <IsbnGuideModal
