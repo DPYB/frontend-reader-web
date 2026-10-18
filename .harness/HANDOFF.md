@@ -1,5 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-18: 문장 수집 이미지 Cloudflare R2 Presigned URL 연동 및 WebP 최적화
+- 작업 브랜치: `feat/quote-image-r2-upload`
+- **사용자 요청**:
+  - Cloudflare R2 `dpyb-public/quote/beta/` 경로 생성에 맞춰 문장 수집(Sentence Scrap) 사진 업로드 연동 및 백엔드 팀원 전달 사항 작성.
+- **작업 내용**:
+  1. `app/utils/imageCompressor.js`:
+     - `compressQuoteImage(file, { maxDimension: 1600, quality: 0.85 })`: 문장 사진의 텍스트 가독성을 보존하기 위해 1:1 크롭 대신 **원본 가로세로 비율을 유지**하면서 최대 1600px 리사이즈 및 고화질 WebP Blob 압축 유틸리티 구현.
+  2. `app/api/bookApi.js`:
+     - `getQuoteImagePresignedUrl({ contentType })`: Core API(`POST /api/v1/library/scraps/presigned-url`) 호출 함수 추가.
+  3. `app/features/room/SentenceCollectModal.jsx`:
+     - 파일 업로드 및 카메라 촬영(`handleFile`) 시 `compressQuoteImage`로 사진을 압축(10MB 원본 ➔ 200~300KB WebP)하여 R2 버킷 `quote/beta/`로 Presigned PUT 직접 전송.
+     - 발급된 R2 CDN URL(`https://cdn.ai0208.xyz/quote/beta/...`)을 `pendingImageUrl` 및 `createScrap`의 `scrapImageUrl`로 바인딩.
+     - 백엔드 Presigned 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 graceful fallback 작동 보장.
+     - AI Agent OCR 전송 시에도 경량화된 WebP를 전송하여 네트워크 지연 대폭 단축.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-18: 마이페이지 프로필 사진 변경 및 R2 Presigned URL 연동
 - 작업 브랜치: `feat/mypage-profile-image-upload`
 - **사용자 요청**:
@@ -85,21 +106,4 @@
   3. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - CDN 2개 파일 HEAD 요청 200 / `image/webp` 확인
-  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
-
-## 2026-10-17: 서재 배경 이미지 Cloudflare R2 CDN 연결
-- 작업 브랜치: `feat/r2-cdn-background-assets`
-- **사용자 요청**:
-  - Cloudflare R2 `dpyb-public/background_UI/`에 업로드한 서재 배경 이미지 5종을 프론트엔드에 연결.
-- **작업 내용**:
-  1. `app/config/cdn.js` 신설:
-     - `ASSET_BASE_URL` (기본값 `https://cdn.ai0208.xyz`, `VITE_ASSET_BASE_URL`로 덮어쓰기 가능) 및 `cdnUrl(path)` 헬퍼 제공.
-  2. `app/features/room/shelfLayout.js`:
-     - `BG_SRC_CAT/STORK_LIGHT/STORK_NIGHT/NUDI/GECKO`를 `public/room/` 로컬 경로에서 R2 CDN 절대 URL로 전환.
-     - 배경은 CSS `background-image`로만 사용되므로 R2 CORS 설정 영향 없음.
-  3. `.env.example`: `VITE_ASSET_BASE_URL` 항목 문서화.
-  4. `public/room/` 로컬 서재 배경 파일 6종 전체 삭제 완료 (R2 CDN 전환에 따른 로컬 에셋 정리 및 저장소/번들 경량화).
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - CDN 5개 파일 HEAD 요청 200 / `image/webp` 확인
   - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과

@@ -416,3 +416,19 @@ export function updateScrap(scrapId, { sentence, pageNumber = null, memo = null,
 export function deleteScrap(scrapId) {
   return authFetch(`/library/scraps/${scrapId}`, { method: 'DELETE' });
 }
+
+/**
+ * 문장 수집(quote) 이미지 Cloudflare R2 업로드용 Presigned URL 발급.
+ * 백엔드(backend-core-api): POST /api/v1/library/scraps/presigned-url
+ *
+ * @param {object} [params]
+ * @param {string} [params.contentType='image/webp']
+ * @returns {Promise<{ presignedUrl: string, imageUrl: string }>}
+ */
+export function getQuoteImagePresignedUrl({ contentType = 'image/webp' } = {}) {
+  return authFetch('/library/scraps/presigned-url', {
+    method: 'POST',
+    body: { contentType },
+  });
+}
+

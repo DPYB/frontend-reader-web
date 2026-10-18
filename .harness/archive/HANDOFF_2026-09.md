@@ -1,5 +1,22 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-17: 서재 배경 이미지 Cloudflare R2 CDN 연결
+- 작업 브랜치: `feat/r2-cdn-background-assets`
+- **사용자 요청**:
+  - Cloudflare R2 `dpyb-public/background_UI/`에 업로드한 서재 배경 이미지 5종을 프론트엔드에 연결.
+- **작업 내용**:
+  1. `app/config/cdn.js` 신설:
+     - `ASSET_BASE_URL` (기본값 `https://cdn.ai0208.xyz`, `VITE_ASSET_BASE_URL`로 덮어쓰기 가능) 및 `cdnUrl(path)` 헬퍼 제공.
+  2. `app/features/room/shelfLayout.js`:
+     - `BG_SRC_CAT/STORK_LIGHT/STORK_NIGHT/NUDI/GECKO`를 `public/room/` 로컬 경로에서 R2 CDN 절대 URL로 전환.
+     - 배경은 CSS `background-image`로만 사용되므로 R2 CORS 설정 영향 없음.
+  3. `.env.example`: `VITE_ASSET_BASE_URL` 항목 문서화.
+  4. `public/room/` 로컬 서재 배경 파일 6종 전체 삭제 완료 (R2 CDN 전환에 따른 로컬 에셋 정리 및 저장소/번들 경량화).
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - CDN 5개 파일 HEAD 요청 200 / `image/webp` 확인
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+
 ## 2026-10-17: GNB BETA 뱃지 독립 분리 및 첫방문/재방문 설문조사 모달 구현
 - 작업 브랜치: `feat/beta-survey-modal-and-badge-separation`
 - **사용자 요청**:

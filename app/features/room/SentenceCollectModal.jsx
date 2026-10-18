@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBooks } from '../../store/booksStore';
-import { getLibraryBook } from '../../api/bookApi';
+import { getLibraryBook, getQuoteImagePresignedUrl } from '../../api/bookApi';
 import { createOcrSentence, createReadingRecord } from '../../api/recordApi';
 import { getWeatherCondition } from '../../api/geolocation';
-import { ApiError } from '../../api/authApi';
+import { uploadImageToPresignedUrl, ApiError } from '../../api/authApi';
+import { compressQuoteImage } from '../../utils/imageCompressor';
 import WebcamCaptureModal from './WebcamCaptureModal';
 // [크롭 모달 임시 비활성화] 재활성화 시 하단 주석과 함께 이 import도 복원
 // import ImageCropModal from '../../components/ImageCropModal';
@@ -102,25 +103,54 @@ export default function SentenceCollectModal({ book, onClose }) {
   }, [reloadQuotes]);
 
   /**
-   * [크롭 모달 임시 비활성화] 파일 선택/촬영 시 크롭 없이 바로 OCR 요청
+   * [크롭 모달 임시 비활성화] 파일 선택/촬영 시 크롭 없이 바로 WebP 압축, R2 Presigned URL 업로드 및 OCR 요청
    * 크롭 모달 재활성화 시: setCropTargetFile(file)로 교체
    */
   async function handleFile(file) {
     if (!file) return;
-    const previewDataUrl = URL.createObjectURL(file);
-    setPreviewUrl(previewDataUrl);
     setOcrLoading(true);
     setOcrError('');
     setEditingQuoteId(null);
 
+    let compressed = null;
+    try {
+      // 1. 클라이언트 측 고화질 WebP 압축 (비율 유지, 최대 1600px, quality 0.85)
+      compressed = await compressQuoteImage(file, { maxDimension: 1600, quality: 0.85 });
+      setPreviewUrl(compressed.previewUrl);
+    } catch (compressErr) {
+      console.warn('[SentenceCollectModal] 이미지 압축 실패, 원본 사용:', compressErr);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+
+    const uploadBlob = compressed?.blob || file;
+    const fileForOcr = compressed?.blob
+      ? new File([compressed.blob], 'quote.webp', { type: 'image/webp' })
+      : file;
+
+    // 2. Cloudflare R2 Presigned URL 다이렉트 업로드 (dpyb-public/quote/beta/)
+    let r2ImageUrl = null;
+    try {
+      const { presignedUrl, imageUrl } = await getQuoteImagePresignedUrl({ contentType: 'image/webp' });
+      await uploadImageToPresignedUrl(presignedUrl, uploadBlob, 'image/webp');
+      r2ImageUrl = imageUrl;
+      setPendingImageUrl(imageUrl);
+    } catch (uploadErr) {
+      console.warn('[SentenceCollectModal] R2 Presigned 업로드 fallback (백엔드 준비 중):', uploadErr);
+      setPendingImageUrl(compressed?.previewUrl || URL.createObjectURL(file));
+    }
+
+    // 3. AI Agent OCR 텍스트 추출 (경량화된 WebP 파일 전송)
     try {
       const result = await createOcrSentence({
-        imageFile: file,
+        imageFile: fileForOcr,
         bookId: book.bookId,
         saveScrap: false,
       });
       setText(result.text || '');
-      setPendingImageUrl(result.scrapImageUrl || previewDataUrl);
+      // R2 업로드가 성공했으면 R2 CDN URL을 유지하고, 실패했으면 OCR 결과 URL 또는 로컬 프리뷰 사용
+      if (!r2ImageUrl) {
+        setPendingImageUrl(result.scrapImageUrl || compressed?.previewUrl || URL.createObjectURL(file));
+      }
       if (!result.text?.trim()) {
         setOcrError('이미지에서 문장을 찾지 못했어요. 글자가 선명하게 보이도록 다시 찍어 주세요.');
       }
