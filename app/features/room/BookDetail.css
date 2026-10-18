@@ -1,0 +1,87 @@
+/* BookDetail 도서 상세 모달 스타일 */
+.book-detail-nav-arrow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.book-detail-nav-arrow-btn:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--primary, #e6a050);
+  transform: scale(1.08);
+}
+
+.book-detail-nav-arrow-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  color: var(--text-dim, rgba(150, 150, 150, 0.4));
+}
+
+/* PC 전용 좌우 플로팅 대형 화살표 버튼 */
+.book-nav-float-btn {
+  position: absolute;
+  top: 0;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(26, 24, 23, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  z-index: 100;
+  padding: 0;
+}
+
+.book-nav-float-btn:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.12);
+  background: rgba(42, 38, 35, 0.95);
+  border-color: rgba(230, 160, 80, 0.7);
+  box-shadow: 0 0 20px rgba(230, 160, 80, 0.35), 0 8px 28px rgba(0, 0, 0, 0.5);
+  color: #f5a623;
+}
+
+.book-nav-float-btn:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.book-nav-float-btn:disabled {
+  opacity: 0.22;
+  cursor: not-allowed;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.book-nav-float-btn.prev {
+  left: -24px;
+}
+
+.book-nav-float-btn.next {
+  right: -24px;
+}
+
+@media (max-width: 1100px) {
+  .book-nav-float-btn.prev {
+    left: 8px;
+  }
+  .book-nav-float-btn.next {
+    right: 8px;
+  }
+}

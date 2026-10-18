@@ -155,6 +155,8 @@ export const translations = {
       savedQuotesTab: '수집한 문장',
       timerHistoryTab: '독서 타이머 기록',
       chooseColor: '책등 및 표지 색상',
+      prevBook: '이전 도서',
+      nextBook: '다음 도서',
     },
     scrapGallery: {
       loadError: '문장을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
@@ -437,6 +439,8 @@ export const translations = {
       savedQuotesTab: 'Saved Quotes',
       timerHistoryTab: 'Book Timer Records',
       chooseColor: 'Book Spine & Cover Color',
+      prevBook: 'Previous Book',
+      nextBook: 'Next Book',
     },
     scrapGallery: {
       loadError: 'Failed to load quotes. Please try again later.',

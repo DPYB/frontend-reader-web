@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
+import { useBooks } from '../store/booksStore';
 import MyPageReadingList from '../features/mypage/MyPageReadingList';
 import MyPageReadingCalendar from '../features/mypage/MyPageReadingCalendar';
 import BookDetail from '../features/room/BookDetail';
@@ -19,6 +20,7 @@ const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 export default function MyPage() {
   const { t, isEn } = useLanguage();
   const { member, isGuest, logout, setMember } = useAuth();
+  const { books } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -337,12 +339,32 @@ export default function MyPage() {
       )}
 
       {/* ── 도서 상세 모달 ── */}
-      {selectedBook && (
-        <BookDetail
-          book={selectedBook}
-          onClose={() => setSelectedBook(null)}
-        />
-      )}
+      {selectedBook && (() => {
+        const bookIndex = books.findIndex(
+          (b) =>
+            b.bookId === selectedBook.bookId ||
+            b.id === selectedBook.id ||
+            String(b.bookId) === String(selectedBook.bookId) ||
+            b.title === selectedBook.title
+        );
+        const hasPrev = bookIndex > 0;
+        const hasNext = bookIndex >= 0 && bookIndex < books.length - 1;
+        return (
+          <BookDetail
+            key={selectedBook.bookId || selectedBook.id || selectedBook.title}
+            book={selectedBook}
+            currentIndex={bookIndex >= 0 ? bookIndex : 0}
+            totalBooks={books.length}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            onPrevBook={hasPrev ? () => setSelectedBook(books[bookIndex - 1]) : undefined}
+            onNextBook={hasNext ? () => setSelectedBook(books[bookIndex + 1]) : undefined}
+            prevBookTitle={hasPrev ? books[bookIndex - 1]?.title : null}
+            nextBookTitle={hasNext ? books[bookIndex + 1]?.title : null}
+            onClose={() => setSelectedBook(null)}
+          />
+        );
+      })()}
     </section>
   );
 }

@@ -1,5 +1,31 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-18: 도서 상세 모달 내 이전/다음 도서 탐색 네비게이션 기능 추가
+- 작업 브랜치: `feat/book-detail-prev-next-navigation`
+- **사용자 요청**:
+  - 서재 선반에서 도서 클릭 시(PC 환경) 현재 보고 있는 도서의 상세 모달을 닫지 않고도 다음/이전 책으로 바로 이동하여 탐색할 수 있는 네비게이션 버튼 제공.
+- **작업 내용**:
+  1. `app/i18n/translations.js`:
+     - `bookDetail.prevBook` ('이전 도서' / 'Previous Book'), `bookDetail.nextBook` ('다음 도서' / 'Next Book') 다국어 키 추가.
+  2. `app/features/room/BookDetail.css` 신설:
+     - PC 전용 플로팅 대형 좌우 화살표 버튼(`.book-nav-float-btn`) 및 모달 상단 네비게이션 필(`.book-detail-nav-arrow-btn`) 스타일링.
+     - 다크 글래스모피즘(`backdrop-filter: blur(12px)`), 은은한 호버 글로우 및 부드러운 스케일 트랜지션 적용.
+  3. `app/features/room/BookDetail.jsx`:
+     - 네비게이션 관련 props(`onPrevBook`, `onNextBook`, `hasPrev`, `hasNext`, `currentIndex`, `totalBooks`, `prevBookTitle`, `nextBookTitle`) 수신 및 컴팩트 상단 필(`{currentIndex + 1} / {totalBooks}`)과 PC 전용 좌우 플로팅 쉐브론 버튼 배치.
+     - 키보드 좌/우 화살표 단축키(`ArrowLeft`, `ArrowRight`) 리스너 연동 (입력창/메모 편집 포커스 중 제외).
+  4. `app/features/room/LibraryScene.jsx`:
+     - 선반 내 전체 도서 목록(`sourceBooks`) 기반으로 현재 선택된 도서의 인덱스 추적 및 `onPrevBook`/`onNextBook` 핸들러 바인딩.
+     - 도서 전환 시 React key(`key={book.id || book.bookId || book.title}`)를 통해 3D 뷰어, 상세 데이터, 문장 갤러리 및 타이머 세션 상태가 완벽히 초기화되어 stale state 없이 즉시 반영되도록 구현.
+     - 배경 3D 책장에서도 선택된 책이 자동으로 슬라이드 아웃/인 애니메이션 동기화.
+  5. `app/pages/MyPage.jsx`:
+     - 마이페이지 독서 리스트 및 독서 캘린더 모달에서도 동일한 이전/다음 도서 탐색이 가능하도록 `useBooks` 연동 및 네비게이션 props 바인딩.
+  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-18: 도서 직접 등록 시 책 표지 사진 촬영/업로드 및 R2 Presigned URL 연동
 - 작업 브랜치: `feat/register-book-custom-cover-upload`
 - **사용자 요청**:
@@ -88,30 +114,3 @@
 - **검증**:
   - CDN 6개 파일 HEAD 요청 200 / `image/webp` 확인
   - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
-
-## 2026-10-17: 프로필 이미지 WebP 변환 및 레거시 에셋 정리
-- 작업 브랜치: `feat/convert-profile-images-to-webp`
-- **사용자 요청**:
-  1. `public/profile/` 폴더 내 이미지들을 WebP로 변환.
-  2. `default_avatar`의 용도 확인 및 미사용 시 삭제 여부 검토.
-- **작업 내용**:
-  1. 프로필 이미지 WebP 고품질 압축 변환:
-     - `chris.png` (116KB) ➔ `chris.webp` (25KB, 78% 절감)
-     - `clia.png` (129KB) ➔ `clia.webp` (27KB, 79% 절감)
-     - `gecko.jpg` (29KB) ➔ `gecko.webp` (25KB, 15% 절감)
-     - `nudi.png` (173KB) ➔ `nudi.webp` (28KB, 84% 절감)
-     - 기존 WebP 에셋(`cat.webp`, `stork.webp`)과 함께 일관된 WebP 포맷 체계 완성.
-  2. 코드 내 참조 경로 업데이트:
-     - `app/data/librarians.js`: 누디(`profileImage: '/profile/nudi.webp'`) 및 게코(`profileImage: '/profile/gecko.webp'`) 경로 업데이트.
-     - `app/store/AuthProvider.jsx`: 게스트/테스트 프로필 이미지 경로를 `/profile/clia.webp`로 업데이트.
-     - `app/store/authBypass.js`: 바이패스 계정 프로필 이미지를 `/profile/chris.webp`로 업데이트.
-  3. 레거시 이미지 정리:
-     - `public/profile/chris.png`, `clia.png`, `gecko.jpg`, `nudi.jpg`, `nudi.png` 삭제.
-  4. `default_avatar.svg` 용도 보존:
-     - `app/pages/MyPage.jsx`에서 사용자가 프로필 이미지를 등록하지 않았을 때 사용하는 기본 실루엣 SVG 아바타(801바이트)로, 현재 정상 사용 중임을 확인하고 보존.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
