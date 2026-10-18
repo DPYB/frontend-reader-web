@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import MyPageReadingList from '../features/mypage/MyPageReadingList';
 import MyPageReadingCalendar from '../features/mypage/MyPageReadingCalendar';
 import BookDetail from '../features/room/BookDetail';
 import { useLanguage } from '../store/languageStore';
+import { cropAndCompressAvatar } from '../utils/imageCompressor';
+import { getProfileImagePresignedUrl, uploadImageToPresignedUrl, updateMe } from '../api/authApi';
+import { showGlobalToast } from '../components/toastContext';
 import './MyPage.css';
 
 // 회원이 프로필 사진을 올리지 않았을 때 쓰는 기본 아바타 (깔끔한 기본 실루엣)
@@ -15,9 +18,13 @@ const GENDER_LABEL = { MALE: '남성', FEMALE: '여성' };
 
 export default function MyPage() {
   const { t, isEn } = useLanguage();
-  const { member, isGuest, logout } = useAuth();
+  const { member, isGuest, logout, setMember } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const fileInputRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState(null);
 
   // 스몰 메뉴(탭): 'books' | 'calendar' | 'profile'
   const [selectedTab, setSelectedTab] = useState(null);
@@ -41,12 +48,90 @@ export default function MyPage() {
   }, [loggingOut, logout, navigate]);
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
-  const profileImage = member?.profileImageUrl || member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
+  const profileImage = previewAvatarUrl || member?.profileImageUrl || member?.profile_image_url || DEFAULT_PROFILE_IMAGE;
   const email = member?.email ?? '';
   const rawBirthDate = member?.birthDate || member?.birth_date;
   const birthDate = isGuest ? '2000년 1월 1일' : (rawBirthDate ?? '-');
   const nickname = member?.nickname ?? '';
   const gender = GENDER_LABEL[member?.gender] ?? (isGuest ? '-' : '선택 안 함');
+
+  // 프로필 아바타 클릭 -> 파일 선택창 열기
+  const handleAvatarClick = useCallback(() => {
+    if (uploadingAvatar) return;
+    fileInputRef.current?.click();
+  }, [uploadingAvatar]);
+
+  // 프로필 이미지 선택 및 R2 Presigned URL 업로드 처리
+  const handleAvatarFileChange = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showGlobalToast(isEn ? 'Please select a valid image file.' : '이미지 파일만 선택할 수 있습니다.', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    // 10MB 크기 제한
+    if (file.size > 10 * 1024 * 1024) {
+      showGlobalToast(t('mypage.avatarSizeError', '이미지 파일 크기는 10MB 이하여야 합니다.'), 'error');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingAvatar(true);
+    let previewUrl = null;
+
+    try {
+      // 1:1 정방형 중앙 크롭 & 512x512 고품질 WebP로 압축
+      const compressed = await cropAndCompressAvatar(file, { targetSize: 512, quality: 0.88 });
+      previewUrl = compressed.previewUrl;
+      setPreviewAvatarUrl(previewUrl);
+
+      // 게스트 모드일 경우: 로컬 브라우저 상태만 임시 반영
+      if (isGuest) {
+        setMember((prev) => ({
+          ...prev,
+          profile_image_url: previewUrl,
+          profileImageUrl: previewUrl,
+        }));
+        showGlobalToast(t('mypage.avatarGuestNotice', '체험 손님 모드에서는 브라우저 미리보기로만 임시 반영됩니다.'), 'info');
+        return;
+      }
+
+      // 정회원 모드: 백엔드 Presigned URL 발급 -> R2 직접 PUT 전송 -> 회원 프로필 갱신
+      try {
+        const { presignedUrl, imageUrl } = await getProfileImagePresignedUrl({ contentType: 'image/webp' });
+        await uploadImageToPresignedUrl(presignedUrl, compressed.blob, 'image/webp');
+        await updateMe({ profile_image_url: imageUrl });
+
+        setMember((prev) => ({
+          ...prev,
+          profile_image_url: imageUrl,
+          profileImageUrl: imageUrl,
+        }));
+        showGlobalToast(t('mypage.avatarSuccess', '프로필 사진이 변경되었습니다.'), 'success');
+      } catch (uploadErr) {
+        // 백엔드 엔드포인트 미배포(404/500 등) 시 로컬 프리뷰를 유지하고 안내 메시지 제공
+        console.warn('Presigned upload failed, keeping local preview fallback:', uploadErr);
+        setMember((prev) => ({
+          ...prev,
+          profile_image_url: previewUrl,
+          profileImageUrl: previewUrl,
+        }));
+        showGlobalToast(
+          isEn ? 'Profile photo changed (local preview). Backend upload endpoint is in preparation.' : '프로필 사진이 임시 적용되었습니다. (백엔드 업로드 연동 준비 중)',
+          'warning'
+        );
+      }
+    } catch (compressErr) {
+      console.error('Image compression failed:', compressErr);
+      showGlobalToast(t('mypage.avatarFailed', '프로필 사진 업로드에 실패했습니다.'), 'error');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  }, [isGuest, isEn, t, setMember]);
 
   // ── 알림 설정 ──
   const [notifyRecommend, setNotifyRecommend] = useState(true);
@@ -98,13 +183,41 @@ export default function MyPage() {
           <div className="mypage-profile-card">
             <h2 className="mypage-card-heading">{t('mypage.cardProfile', '👤 내 프로필')}</h2>
             <div className="mypage-avatar-wrap">
-              <img
-                className="mypage-avatar"
-                src={profileImage}
-                alt="프로필 사진"
-                width={96}
-                height={96}
-                decoding="async"
+              <button
+                type="button"
+                className="mypage-avatar-btn"
+                onClick={handleAvatarClick}
+                disabled={uploadingAvatar}
+                title={t('mypage.changeAvatar', '프로필 사진 변경')}
+                aria-label={t('mypage.changeAvatar', '프로필 사진 변경')}
+              >
+                <img
+                  className="mypage-avatar"
+                  src={profileImage}
+                  alt={nickname ? `${nickname}의 프로필 사진` : '프로필 사진'}
+                  width={96}
+                  height={96}
+                  decoding="async"
+                />
+                <span className="mypage-avatar-overlay">
+                  <span className="mypage-avatar-overlay-icon" aria-hidden="true">📷</span>
+                  <span className="mypage-avatar-overlay-text">{t('mypage.changeAvatarShort', '변경')}</span>
+                </span>
+                {uploadingAvatar && (
+                  <span className="mypage-avatar-spinner-wrap" aria-live="polite">
+                    <span className="mypage-avatar-spinner" />
+                  </span>
+                )}
+                <span className="mypage-avatar-badge" aria-hidden="true">📷</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                className="mypage-avatar-input"
+                onChange={handleAvatarFileChange}
+                tabIndex={-1}
+                aria-hidden="true"
               />
             </div>
 
