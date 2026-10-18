@@ -404,3 +404,42 @@ export function updateMe(patch) {
 export function deleteMe() {
   return authFetch('/users/me', { method: 'DELETE' });
 }
+
+/**
+ * 프로필 이미지 R2 업로드용 Presigned URL 발급.
+ * 백엔드(backend-core-api): POST /api/v1/users/me/profile-image/presigned-url
+ *
+ * @param {object} [params]
+ * @param {string} [params.contentType='image/webp']
+ * @returns {Promise<{ presignedUrl: string, imageUrl: string }>}
+ */
+export function getProfileImagePresignedUrl({ contentType = 'image/webp' } = {}) {
+  return authFetch('/users/me/profile-image/presigned-url', {
+    method: 'POST',
+    body: { contentType },
+  });
+}
+
+/**
+ * R2 버킷에 Presigned PUT URL로 파일 직접 업로드.
+ * 브라우저 -> Cloudflare R2 직접 전송 (백엔드 부하 없음).
+ *
+ * @param {string} presignedUrl
+ * @param {Blob|File} fileBlob
+ * @param {string} [contentType='image/webp']
+ * @returns {Promise<boolean>}
+ */
+export async function uploadImageToPresignedUrl(presignedUrl, fileBlob, contentType = 'image/webp') {
+  const res = await fetch(presignedUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+    },
+    body: fileBlob,
+  });
+  if (!res.ok) {
+    throw new Error(`R2 upload failed with status ${res.status}`);
+  }
+  return true;
+}
+

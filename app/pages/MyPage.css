@@ -125,12 +125,42 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* 프로필 아바타 */
+/* 프로필 아바타 & 변경 버튼 */
 .mypage-avatar-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 4px 0 8px;
+  position: relative;
+}
+
+.mypage-avatar-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.2s ease;
+}
+
+.mypage-avatar-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.mypage-avatar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.mypage-avatar-btn:disabled {
+  cursor: wait;
+  opacity: 0.85;
 }
 
 .mypage-avatar {
@@ -140,6 +170,103 @@
   object-fit: cover;
   border: 3px solid var(--accent);
   background: var(--border);
+  display: block;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mypage-avatar-btn:hover:not(:disabled) .mypage-avatar {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* 마우스 호버 시 나타나는 어두운 오버레이 */
+.mypage-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(1.5px);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  user-select: none;
+}
+
+.mypage-avatar-btn:hover:not(:disabled) .mypage-avatar-overlay {
+  opacity: 1;
+}
+
+.mypage-avatar-overlay-icon {
+  font-size: 18px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.mypage-avatar-overlay-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* 우측 하단 카메라 플로팅 배지 */
+.mypage-avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--code-bg);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s ease, background 0.2s ease;
+  pointer-events: none;
+}
+
+.mypage-avatar-btn:hover:not(:disabled) .mypage-avatar-badge {
+  transform: scale(1.12);
+}
+
+/* 업로드 로딩 스피너 오버레이 */
+.mypage-avatar-spinner-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.mypage-avatar-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: mypage-avatar-spin 0.75s linear infinite;
+}
+
+@keyframes mypage-avatar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mypage-avatar-input {
+  display: none !important;
 }
 
 /* 프로필 정보 목록 */

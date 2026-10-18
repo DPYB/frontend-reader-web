@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-18: 마이페이지 프로필 사진 변경 및 R2 Presigned URL 연동
+- 작업 브랜치: `feat/mypage-profile-image-upload`
+- **사용자 요청**:
+  - 사용자가 마이페이지에서 프로필 사진을 변경할 때 Cloudflare R2 `dpyb-public/profile/beta/`에 자동으로 저장되도록 구현.
+- **작업 내용**:
+  1. `app/utils/imageCompressor.js` 신설:
+     - `cropAndCompressAvatar(file, { targetSize: 512, quality: 0.88 })`: 브라우저 Canvas 기반 1:1 정방형 중앙 크롭 및 고품질 WebP Blob 변환 유틸리티 구현.
+  2. `app/api/authApi.js`:
+     - `getProfileImagePresignedUrl({ contentType })`: 백엔드(`POST /api/v1/users/me/profile-image/presigned-url`) 호출 함수 구현.
+     - `uploadImageToPresignedUrl(presignedUrl, blob, contentType)`: R2 버킷 직접 PUT 전송 함수 구현.
+  3. `app/pages/MyPage.jsx` & `MyPage.css`:
+     - 프로필 아바타 클릭 시 파일 선택창(`input[type="file"]`) 연동 및 카메라 호버 오버레이, 플로팅 카메라 배지(`📷`), 업로드 스피너 UI 구현.
+     - 10MB 크기 제한 및 이미지 MIME 타입 검증, 게스트 체험 모드 시 로컬 브라우저 임시 반영 fallback 구현.
+     - 백엔드 Presigned API 미배포 시에도 graceful fallback(로컬 프리뷰 보존 및 안내 토스트) 처리.
+  4. `app/i18n/translations.js`:
+     - `changeAvatar`, `changeAvatarShort`, `avatarUploading`, `avatarSuccess`, `avatarFailed`, `avatarGuestNotice`, `avatarSizeError` 다국어 키 추가.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-17: 프로필 이미지 Cloudflare R2 CDN 연결 및 로컬 에셋 정리
 - 작업 브랜치: `feat/r2-cdn-profile-assets`
 - **사용자 요청**:
@@ -80,33 +103,3 @@
 - **검증**:
   - CDN 5개 파일 HEAD 요청 200 / `image/webp` 확인
   - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
-
-## 2026-10-17: GNB BETA 뱃지 독립 분리 및 첫방문/재방문 설문조사 모달 구현
-- 작업 브랜치: `feat/beta-survey-modal-and-badge-separation`
-- **사용자 요청**:
-  1. GNB 상단 브랜드 캡슐에 묶여 있던 `BETA` 뱃지를 독립된 버튼으로 분리.
-  2. `BETA` 클릭 시 설문조사 모달 오픈:
-     - 소개 및 감사 문구와 함께 [첫방문], [재방문] 2가지 선택 버튼 제공.
-     - [첫방문] 클릭 시 첫방문자용 8개 설문 항목 진행.
-     - [재방문] 클릭 시 재방문자용 12개 설문 항목 진행 (스크린샷 파일 첨부 및 미리보기/삭제 기능 포함).
-     - 제출 완료 화면 및 안전한 로컬 저장(`localStorage`) 지원.
-- **작업 내용**:
-  1. `app/features/survey/BetaSurveyModal.jsx` & `BetaSurveyModal.css` 신설:
-     - Glassmorphism & DPYB 테마(라이트/다크 모드 지원) 기반의 고급스러운 설문조사 모달 컴포넌트 구현.
-     - Step 1: 환영 및 참여 부탁 메시지와 함께 [첫방문 설문](약 2분 소요)과 [재방문 설문](약 3분 소요) 카드형 버튼 제공.
-     - Step 2 (첫방문): 유사 서비스 경험, 독서 기록 관리 방법, 가입/시작 불편점, 서비스 이해도, 화면 디자인/구성 1~5점 표, 사용 기능 다중선택, 헷갈렸던 점, 연령대 8개 문항 구현.
-     - Step 2 (재방문): 사용 기기 및 브라우저, 오늘 사용 기능, 불편했던 점(+스크린샷 첨부), 오류/비정상 동작(+스크린샷 첨부), AI 사서 도움 여부, 가장 유용한 기능, 재방문 이유, 속도 만족도, 불필요한 기능, 있었으면 하는 기능, 오늘의 만족도(1~5점), 자유 개선 의견 12개 문항 구현.
-     - 이미지 첨부 시 캔버스 압축(최대 1000px, JPEG 0.75) 헬퍼를 적용하여 가볍고 안전하게 base64 데이터로 변환/저장 및 미리보기 제공.
-     - Step 3: 제출 완료 및 따뜻한 감사 안내 화면 제공, `localStorage('dpyb_beta_surveys')`에 결과 저장.
-  2. `app/components/Gnb.jsx` & `Gnb.css`:
-     - `.gnb-desktop-brand` 내 `NavLink`에서 `BETA`를 완전히 분리하여 우측에 독립된 글라스 버튼(`<button className="gnb-beta-badge">`)으로 배치.
-     - 모바일 GNB 상단 우측의 `.gnb-beta-badge--mobile`도 클릭 시 동일하게 설문조사 모달이 열리도록 연동.
-     - 호버 시 은은한 리프팅 및 액센트 글로우 인터랙션 스타일링.
-  3. `app/i18n/translations.js`:
-     - `gnb.betaSurvey`, `gnb.betaSurveyTooltip` 다국어 키 한국어 및 영어 추가.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)

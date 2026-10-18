@@ -3,6 +3,7 @@
 단계가 끝나면 그 단계를 한 줄로 갱신한다. 세션별 서술은 `HANDOFF.md`에 남긴다.
 
 ## 완료된 단계
+- 마이페이지 프로필 사진 변경 및 Cloudflare R2 Presigned URL 직접 업로드 연동 완료
 - 프로필 이미지 6종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 로컬 에셋 제거 완료
 - 프로필(public/profile/) 이미지 WebP 변환 및 레거시 에셋 정리 완료
 - 로그인 페이지 배경 이미지 2종 Cloudflare R2 CDN(cdn.ai0208.xyz) 연결 및 로컬 에셋 제거 완료
