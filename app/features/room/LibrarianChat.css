@@ -912,7 +912,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #f7f3ed;
   pointer-events: none;
 }
 
@@ -938,7 +938,7 @@
   align-items: center;
   justify-content: center;
   border: 1.5px solid var(--accent);
-  background: var(--bg);
+  background: #f7f3ed;
 }
 
 .lc-chat-toggle-avatar {

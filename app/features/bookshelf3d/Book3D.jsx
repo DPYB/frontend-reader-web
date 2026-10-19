@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {
   createSpineTexture,
   createFrontCoverTexture,
+  createBackCoverTexture,
   getSharedTextureImage,
   onSharedTextureReady,
 } from './bookTextureHelper';
@@ -107,17 +108,25 @@ export default function Book3D({
     });
   }, [coverMap, coverUrl, coverColor, title, author, textureVer, invalidate]);
 
+  // 뒤표지(Back Cover) 캔버스 텍스처: 기본 표지 색상 + 은은하게 투명도를 대폭 낮춘(16%) 질감 텍스처 오버레이
+  const dynamicBackCoverMap = useMemo(() => {
+    void textureVer;
+    return createBackCoverTexture(coverColor, getSharedTextureImage());
+  }, [coverColor, textureVer]);
+
   // 텍스처 언마운트 시 메모리 해제
   useEffect(() => {
     return () => {
       if (dynamicSpineMap && !spineMap) dynamicSpineMap.dispose();
       if (dynamicCoverMap && !coverMap) dynamicCoverMap.dispose();
+      if (dynamicBackCoverMap) dynamicBackCoverMap.dispose();
     };
-  }, [dynamicSpineMap, dynamicCoverMap, spineMap, coverMap]);
+  }, [dynamicSpineMap, dynamicCoverMap, dynamicBackCoverMap, spineMap, coverMap]);
 
   const materials = useMemo(() => {
     const activeSpineMap = dynamicSpineMap || texture;
     const activeCoverMap = dynamicCoverMap || texture;
+    const activeBackCoverMap = dynamicBackCoverMap || texture;
 
     // 책등(+Z): dynamicSpineMap(도서 이름 + 책등 색상 + 은은한 질감)
     const spine = new THREE.MeshStandardMaterial({
@@ -139,14 +148,14 @@ export default function Book3D({
       bumpScale: 0.012,
     });
 
-    // 뒤표지(-X): 기본 coverColor + 질감 텍스처
+    // 뒤표지(-X): dynamicBackCoverMap(부드러운 16% opacity 질감 + 클래식 테두리)
     const backCover = new THREE.MeshStandardMaterial({
-      color: coverColor,
-      map: texture,
+      color: '#ffffff',
+      map: activeBackCoverMap,
       roughness: 0.65,
       metalness: 0.05,
       bumpMap: texture || null,
-      bumpScale: 0.01,
+      bumpScale: 0.005,
     });
 
     // 책배(페이지 단면) 머티리얼
@@ -159,7 +168,7 @@ export default function Book3D({
     // [+X, -X, +Y, -Y, +Z, -Z]
     // +X: 앞표지, -X: 뒤표지, +Y/-Y: 페이지 위/아래, +Z: 책등, -Z: 페이지 뒤
     return [frontCover, backCover, pages, pages, spine, pages];
-  }, [spineColor, coverColor, dynamicSpineMap, dynamicCoverMap, spineMap, coverMap, pageColor, texture]);
+  }, [spineColor, coverColor, dynamicSpineMap, dynamicCoverMap, dynamicBackCoverMap, spineMap, coverMap, pageColor, texture]);
 
   // 책등(+Z 로컬)이 회전 적용 후 향하는 월드 방향 = 빠져나오는 방향
   const forward = useMemo(() => {

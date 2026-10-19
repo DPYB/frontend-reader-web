@@ -367,3 +367,46 @@ export function createFrontCoverTexture({
 
   return canvasTexture;
 }
+
+/**
+ * 책 뒷표지(Back Cover) 캔버스 텍스처 생성
+ * - 너비 512px, 높이 768px (비율 1:1.5)
+ * - 배경: coverColor + 낮은 opacity(0.16)의 은은한 질감 텍스처 오버레이
+ * - 뒷표지 클래식 엠보싱 장식선
+ */
+export function createBackCoverTexture(coverColor, sharedImg) {
+  const width = 512;
+  const height = 768;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // 1. 기본 배경색 (도서 표지 색상)
+  ctx.fillStyle = coverColor || '#3e2723';
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. 종이/가죽 질감 텍스처 합성 (뒷면 텍스처 opacity 0.16으로 은은하게 적용)
+  const texture = sharedImg || getSharedTextureImage();
+  if (texture && texture.complete && texture.naturalWidth > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(texture, 0, 0, width, height);
+    ctx.restore();
+  }
+
+  // 3. 뒷표지 클래식 엠보싱 테두리 라인
+  const textColor = getContrastTextColor(coverColor);
+  ctx.strokeStyle = textColor === '#261b14' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.14)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(32, 32, width - 64, height - 64);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(38, 38, width - 76, height - 76);
+
+  const canvasTexture = new THREE.CanvasTexture(canvas);
+  canvasTexture.colorSpace = THREE.SRGBColorSpace;
+  return canvasTexture;
+}
+

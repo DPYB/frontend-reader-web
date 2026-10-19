@@ -461,6 +461,7 @@
     display: block;
     box-sizing: border-box;
     border: 1px solid var(--border);
+    background: #f7f3ed;
     flex-shrink: 0;
 }
 
@@ -524,6 +525,7 @@
     object-fit: cover;
     border: 2px solid var(--accent);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    background: #f7f3ed;
     box-sizing: border-box;
 }
 
