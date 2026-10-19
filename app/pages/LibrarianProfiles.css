@@ -102,7 +102,7 @@
   height: 76px;
   border-radius: 50%;
   border: 2.5px solid var(--accent);
-  background: var(--bg);
+  background: #f7f3ed;
   overflow: hidden;
   margin-top: 4px;
   flex-shrink: 0;

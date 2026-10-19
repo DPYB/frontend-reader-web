@@ -21,6 +21,11 @@
   display: block;
   object-fit: contain;
   user-select: none;
+  /* 커서 이동 및 클릭 전환 시 흐려짐(blur) 방지: 선명한 엣지 보간 및 GPU 서브픽셀 래스터화 고정 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   /*
    * 커서는 마우스를 따라 매 프레임 움직이므로 drop-shadow는 2겹으로 제한한다
    * (로그인 로고와 동일한 겹수). 겹수를 늘리면 이동 중 재래스터화 비용이 커진다.

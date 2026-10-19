@@ -1,5 +1,37 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-19: 사서 프로필 배경 통일, 블루 커서 화질 선명화 및 3D 도서 뒤표지 텍스처 완화
+- 작업 브랜치: `feat/librarian-profile-bg-cursor-and-3d-backcover-opacity`
+- **사용자 요청**:
+  1. 사서들 프로필 사진 배경 컬러 통일.
+  2. 블루 커서용 이미지 중 클릭 시 변경되는 모션 이미지(`cat_04.webp`) 화질 검토 및 개선/선명화(sharpen).
+  3. 3D 도서로 볼 때 책의 뒷면(Back Cover) 텍스처 opacity 낮추기.
+- **작업 내용**:
+  1. **사서 프로필 사진 4종 배경 컬러 `#F7F3ED` 통일**:
+     - 사서 4종(`cat`, `stork`, `nudi`, `gecko`)의 프로필 이미지 배경을 분석하여 따뜻한 아이보리 톤(`#F7F3ED`, RGB: 247, 243, 237)으로 일괄 통일.
+       - `cat.webp`, `stork.webp`: 기존 `#F7F3ED` 배경 유지.
+       - `nudi.webp`: 투명 RGBA 채널을 `#F7F3ED` 캔버스에 합성하여 WebP(Q95)로 변환.
+       - `gecko.webp`: 기존 순백색(`#FFFFFF`) 배경을 `#F7F3ED`로 치환/블렌딩하여 WebP(Q95)로 변환.
+     - 통일된 4종 WebP 파일을 `public/profile/librarian/`에 배치하고, `app/data/librarians.js`의 `profileImage` 경로를 `/profile/librarian/{id}.webp`로 매핑.
+     - CSS 스타일 레벨에서도 일관된 배경색 보장:
+       - `app/pages/LibrarianProfiles.css`: `.lp-avatar`에 `background: #f7f3ed;` 지정 (다크모드에서도 일관된 톤 유지).
+       - `app/components/Gnb.css`: `.gnb-profile`, `.gnb-sheet-librarian-avatar img`에 `background: #f7f3ed;` 지정.
+       - `app/features/room/LibrarianChat.css`: `.lc-mobile-fab-avatar`, `.lc-chat-toggle-avatar-wrap`에 `background: #f7f3ed;` 지정.
+  2. **블루 커서 클릭 모션 이미지(`cat_04.webp`) 화질 개선 및 선명화(Sharpen)**:
+     - `public/cursors/cat/cat_04.webp` 화질 분석: 클릭 시 브라우저 서브픽셀 렌더링 및 모션 전환 시 엣지가 뭉개져 보이는 현상 확인.
+     - Pillow 언샤프 마스크(`ImageFilter.UnsharpMask(radius=1.2, percent=160, threshold=3)`) 및 미세 콘트라스트(1.05x) 보정을 적용하고 손실을 최소화한 WebP Q98로 재인코딩하여 선명도 및 캐릭터 윤곽 복원.
+     - `app/features/room/LibrarianCursor.css`: `.librarian-cursor-img`에 `image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; transform: translateZ(0); backface-visibility: hidden;` 추가로 실시간 커서 트랜스폼 중 GPU 텍스처 보간 시 흐려짐(blur) 원천 차단.
+  3. **3D 도서 뒤표지(Back Cover) 텍스처 투명도(Opacity) 완화**:
+     - 원인 분석: 기존 앞표지/책등은 캔버스 합성으로 `globalAlpha = 0.35` 수준의 은은한 오버레이를 적용했으나, 뒤표지는 `Book3D.jsx`에서 raw grayscale 텍스처를 100% full opacity로 덮어씌워 지나치게 어둡고 탁해 보였음.
+     - `app/features/bookshelf3d/bookTextureHelper.js`: `createBackCoverTexture(coverColor, sharedImg)` 신설. 텍스처 오버레이 `globalAlpha = 0.16`로 대폭 완화하여 부드럽고 고급스러운 종이 질감을 구현하고, 클래식 음각/양각 테두리 프레임 데코레이션 추가.
+     - `app/features/bookshelf3d/Book3D.jsx`: `dynamicBackCoverMap` 캔버스 텍스처 메모이제이션 및 언마운트 시 dispose 처리, `backCover` 머티리얼에 `map: activeBackCoverMap`, `bumpScale: 0.005` 적용.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-19: 도서 상세 모달 내 3D/2D 도서 뷰어 전환 기능 및 선호도 저장 구현
 - 작업 브랜치: `feat/book-detail-2d-3d-toggle`
 - **사용자 요청**:
@@ -87,29 +119,6 @@
      - 백엔드 Presigned 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 graceful fallback 작동 보장.
      - AI Agent OCR 전송 시에도 경량화된 WebP를 전송하여 네트워크 지연 대폭 단축.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-18: 마이페이지 프로필 사진 변경 및 R2 Presigned URL 연동
-- 작업 브랜치: `feat/mypage-profile-image-upload`
-- **사용자 요청**:
-  - 사용자가 마이페이지에서 프로필 사진을 변경할 때 Cloudflare R2 `dpyb-public/profile/beta/`에 자동으로 저장되도록 구현.
-- **작업 내용**:
-  1. `app/utils/imageCompressor.js` 신설:
-     - `cropAndCompressAvatar(file, { targetSize: 512, quality: 0.88 })`: 브라우저 Canvas 기반 1:1 정방형 중앙 크롭 및 고품질 WebP Blob 변환 유틸리티 구현.
-  2. `app/api/authApi.js`:
-     - `getProfileImagePresignedUrl({ contentType })`: 백엔드(`POST /api/v1/users/me/profile-image/presigned-url`) 호출 함수 구현.
-     - `uploadImageToPresignedUrl(presignedUrl, blob, contentType)`: R2 버킷 직접 PUT 전송 함수 구현.
-  3. `app/pages/MyPage.jsx` & `MyPage.css`:
-     - 프로필 아바타 클릭 시 파일 선택창(`input[type="file"]`) 연동 및 카메라 호버 오버레이, 플로팅 카메라 배지(`📷`), 업로드 스피너 UI 구현.
-     - 10MB 크기 제한 및 이미지 MIME 타입 검증, 게스트 체험 모드 시 로컬 브라우저 임시 반영 fallback 구현.
-     - 백엔드 Presigned API 미배포 시에도 graceful fallback(로컬 프리뷰 보존 및 안내 토스트) 처리.
-  4. `app/i18n/translations.js`:
-     - `changeAvatar`, `changeAvatarShort`, `avatarUploading`, `avatarSuccess`, `avatarFailed`, `avatarGuestNotice`, `avatarSizeError` 다국어 키 추가.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

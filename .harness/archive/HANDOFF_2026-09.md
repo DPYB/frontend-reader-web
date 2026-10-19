@@ -1,5 +1,28 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-18: 마이페이지 프로필 사진 변경 및 R2 Presigned URL 연동
+- 작업 브랜치: `feat/mypage-profile-image-upload`
+- **사용자 요청**:
+  - 사용자가 마이페이지에서 프로필 사진을 변경할 때 Cloudflare R2 `dpyb-public/profile/beta/`에 자동으로 저장되도록 구현.
+- **작업 내용**:
+  1. `app/utils/imageCompressor.js` 신설:
+     - `cropAndCompressAvatar(file, { targetSize: 512, quality: 0.88 })`: 브라우저 Canvas 기반 1:1 정방형 중앙 크롭 및 고품질 WebP Blob 변환 유틸리티 구현.
+  2. `app/api/authApi.js`:
+     - `getProfileImagePresignedUrl({ contentType })`: 백엔드(`POST /api/v1/users/me/profile-image/presigned-url`) 호출 함수 구현.
+     - `uploadImageToPresignedUrl(presignedUrl, blob, contentType)`: R2 버킷 직접 PUT 전송 함수 구현.
+  3. `app/pages/MyPage.jsx` & `MyPage.css`:
+     - 프로필 아바타 클릭 시 파일 선택창(`input[type="file"]`) 연동 및 카메라 호버 오버레이, 플로팅 카메라 배지(`📷`), 업로드 스피너 UI 구현.
+     - 10MB 크기 제한 및 이미지 MIME 타입 검증, 게스트 체험 모드 시 로컬 브라우저 임시 반영 fallback 구현.
+     - 백엔드 Presigned API 미배포 시에도 graceful fallback(로컬 프리뷰 보존 및 안내 토스트) 처리.
+  4. `app/i18n/translations.js`:
+     - `changeAvatar`, `changeAvatarShort`, `avatarUploading`, `avatarSuccess`, `avatarFailed`, `avatarGuestNotice`, `avatarSizeError` 다국어 키 추가.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-17: 프로필 이미지 Cloudflare R2 CDN 연결 및 로컬 에셋 정리
 - 작업 브랜치: `feat/r2-cdn-profile-assets`
 - **사용자 요청**:
