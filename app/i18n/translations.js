@@ -157,6 +157,9 @@ export const translations = {
       chooseColor: '책등 및 표지 색상',
       prevBook: '이전 도서',
       nextBook: '다음 도서',
+      view3d: '3D 도서',
+      view2d: '2D 표지',
+      cover2dHint: '2D 도서 표지',
     },
     scrapGallery: {
       loadError: '문장을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
@@ -441,6 +444,9 @@ export const translations = {
       chooseColor: 'Book Spine & Cover Color',
       prevBook: 'Previous Book',
       nextBook: 'Next Book',
+      view3d: '3D Book',
+      view2d: '2D Cover',
+      cover2dHint: '2D Book Cover',
     },
     scrapGallery: {
       loadError: 'Failed to load quotes. Please try again later.',
