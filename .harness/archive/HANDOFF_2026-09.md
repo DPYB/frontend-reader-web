@@ -1,5 +1,27 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-17: 프로필 이미지 Cloudflare R2 CDN 연결 및 로컬 에셋 정리
+- 작업 브랜치: `feat/r2-cdn-profile-assets`
+- **사용자 요청**:
+  - Cloudflare R2 `dpyb-public/profile/`에 업로드된 사서 및 테스트 프로필 이미지 6종을 프론트엔드에 연결하고 로컬 파일 정리.
+  - 버킷 구조:
+    - `dpyb-public/profile/librarian/`: `cat.webp`, `gecko.webp`, `nudi.webp`, `stork.webp`
+    - `dpyb-public/profile/test/`: `chris.webp`, `clia.webp`
+- **작업 내용**:
+  1. `app/data/librarians.js`:
+     - `cdnUrl` 헬퍼를 활용하여 사서 4종의 `profileImage` 경로를 R2 CDN 경로(`profile/librarian/{id}.webp`)로 전환.
+  2. `app/store/AuthProvider.jsx`:
+     - 게스트/테스트 세션의 `profile_image_url`을 `cdnUrl('profile/test/clia.webp')`로 전환.
+  3. `app/store/authBypass.js`:
+     - 로컬 개발 우회 계정의 `profile_image_url`을 `cdnUrl('profile/test/chris.webp')`로 전환.
+  4. `public/profile/`:
+     - R2 CDN 전환에 따라 로컬 WebP 파일 6종(`cat.webp`, `chris.webp`, `clia.webp`, `gecko.webp`, `nudi.webp`, `stork.webp`) 전체 삭제.
+     - 회원 기본 아바타 fallback인 `default_avatar.svg`는 로컬에 유지.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - CDN 6개 파일 HEAD 요청 200 / `image/webp` 확인
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+
 ## 2026-10-17: 프로필 이미지 WebP 변환 및 레거시 에셋 정리
 - 작업 브랜치: `feat/convert-profile-images-to-webp`
 - **사용자 요청**:
