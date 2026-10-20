@@ -193,13 +193,23 @@ export default function Book3D({
     let lambda = 8;
 
     if (isDragging && dragPosition) {
-      // 드래그 중: 마우스 포인터 3D 좌표를 즉각 따라오며 살짝 앞으로 떠오름
+      // 드래그 중: 3D 좌표가 직접 주어졌을 때
       targetX = dragPosition[0];
       targetY = dragPosition[1];
       targetZ = dragPosition[2] + 0.45;
-      targetScaleXY = 1.06;
-      targetScaleZ = 1.06;
-      lambda = 26;
+      targetScaleXY = 1.08;
+      targetScaleZ = 1.08;
+      lambda = 24;
+    } else if (isDragging) {
+      // 드래그 중: 목표 선반 스냅 위치에서 살짝 앞으로 떠오르고 커져서 이동 피드백 제공
+      const lift = 0.22;
+      const forwardPull = 0.35;
+      targetX = position[0] + forward[0] * forwardPull;
+      targetY = position[1] + lift + forward[1] * forwardPull;
+      targetZ = position[2] + forward[2] * forwardPull + 0.18;
+      targetScaleXY = 1.08;
+      targetScaleZ = 1.08;
+      lambda = 18;
     } else if (selected) {
       const pull = 1.6;
       const lift = 0.35;
@@ -254,7 +264,10 @@ export default function Book3D({
       onPointerDown={
         interactive
           ? (e) => {
-              onDragInitiate?.(e);
+              const native = e.nativeEvent || e;
+              const clientX = native.clientX ?? (native.touches && native.touches[0]?.clientX);
+              const clientY = native.clientY ?? (native.touches && native.touches[0]?.clientY);
+              onDragInitiate?.({ clientX, clientY, nativeEvent: native });
             }
           : undefined
       }

@@ -12,7 +12,6 @@ export default function ShelfDropZones({
   shelves = [],
   activeTargetShelfIdx = null,
   isDragging = false,
-  onHoverShelf,
   glowColor = '#ff9a3c',
 }) {
   const shelfGeometries = useMemo(() => {
@@ -44,6 +43,7 @@ export default function ShelfDropZones({
     <group>
       {shelfGeometries.map((g, idx) => {
         const isTarget = activeTargetShelfIdx === idx;
+        if (!isTarget) return null;
 
         return (
           <group
@@ -51,52 +51,32 @@ export default function ShelfDropZones({
             position={g.pos}
             rotation={g.euler}
           >
-            {/* 마우스 감지용 보이지 않는 넉넉한 히트박스 */}
-            <mesh
-              position={[0, g.height / 2, 0]}
-              onPointerOver={(e) => {
-                e.stopPropagation();
-                onHoverShelf?.(idx);
-              }}
-              onPointerOut={(e) => {
-                e.stopPropagation();
-                if (activeTargetShelfIdx === idx) {
-                  onHoverShelf?.(null);
-                }
-              }}
-            >
-              <boxGeometry args={[g.width + 0.35, g.height + 0.45, g.depth + 0.8]} />
-              <meshBasicMaterial visible={false} />
-            </mesh>
-
             {/* 마우스가 올려졌을 때 선반 바닥 및 뒤판에 나타나는 타깃 글로우 */}
-            {isTarget && (
-              <group position={[0, 0.02, 0]}>
-                {/* 선반 바닥 안착 가이드 평면 */}
-                <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                  <planeGeometry args={[g.width, g.depth * 1.5]} />
-                  <meshBasicMaterial
-                    color={glowColor}
-                    transparent
-                    opacity={0.38}
-                    side={THREE.DoubleSide}
-                    depthWrite={false}
-                  />
-                </mesh>
+            <group position={[0, 0.02, 0]}>
+              {/* 선반 바닥 안착 가이드 평면 */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[g.width, g.depth * 1.5]} />
+                <meshBasicMaterial
+                  color={glowColor}
+                  transparent
+                  opacity={0.42}
+                  side={THREE.DoubleSide}
+                  depthWrite={false}
+                />
+              </mesh>
 
-                {/* 선반 후면 세로 가이드 라인 */}
-                <mesh position={[0, g.height / 2, -g.depth / 2]}>
-                  <planeGeometry args={[g.width, g.height]} />
-                  <meshBasicMaterial
-                    color={glowColor}
-                    transparent
-                    opacity={0.14}
-                    side={THREE.DoubleSide}
-                    depthWrite={false}
-                  />
-                </mesh>
-              </group>
-            )}
+              {/* 선반 후면 세로 가이드 라인 */}
+              <mesh position={[0, g.height / 2, -g.depth / 2]}>
+                <planeGeometry args={[g.width, g.height]} />
+                <meshBasicMaterial
+                  color={glowColor}
+                  transparent
+                  opacity={0.18}
+                  side={THREE.DoubleSide}
+                  depthWrite={false}
+                />
+              </mesh>
+            </group>
           </group>
         );
       })}
