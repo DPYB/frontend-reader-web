@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useBooks } from '../store/booksStore';
 import { useLibrarian } from '../store/librarianStore';
 import { getColorPresets, extractDominantColorIndex, loadImage } from '../features/register/ocrUtils';
-import { GENRE_CODES, GENRE_NONE, genreCode, detectGenreCode } from '../data/genres';
+import { GENRE_CODES, GENRE_NONE, genreCode, detectGenreCode, genreLabel } from '../data/genres';
+import { formatGenre as formatGenreHelper } from '../i18n/translations';
 import { classifyGenre } from '../api/genreApi';
 import { createOcrCover } from '../api/recordApi';
 import { searchBookByIsbn, searchBooksByKeyword, toReadingStatus, getBookCoverPresignedUrl } from '../api/bookApi';
@@ -50,24 +51,46 @@ function deriveStatus(currentPage, totalPage) {
 }
 
 /**
- * 장르 메인 라벨 및 세부 분류/보조 라벨을 조합하여 반환.
+ * 장르 메인 라벨 및 세부 분류/보조 라벨을 다국어(KO/EN) 모드에 맞춰 조합하여 반환.
  */
-function getGenreSubLabel(genreCodeValue, subject = '', displayGenre = '') {
-  if (!genreCodeValue || genreCodeValue === GENRE_NONE) return '미지정';
+// eslint-disable-next-line react-refresh/only-export-components
+export function getGenreSubLabel(genreCodeValue, subject = '', displayGenre = '', isEn = false, formatGenreFn = null) {
+  if (!genreCodeValue || genreCodeValue === GENRE_NONE || genreCodeValue === '미지정' || genreCodeValue === 'Unspecified') {
+    return isEn ? 'Unspecified' : '미지정';
+  }
 
+  // 1. 다국어 포맷터를 통한 메인 장르 라벨 도출
+  const resolvedMain = formatGenreFn
+    ? formatGenreFn(genreCodeValue)
+    : formatGenreHelper(genreCodeValue, isEn);
+
+  const mainLabel = resolvedMain || (isEn ? genreCodeValue : (genreLabel(genreCodeValue) || genreCodeValue));
+
+  // 2. [영문 모드]: 한국어 세부 주제 노출 차단, 메인 장르만 깔끔하게 표시
+  if (isEn) {
+    return mainLabel;
+  }
+
+  // 3. [한국어 모드]: 기존 세부 주제 결합 로직 보존
   if (displayGenre && displayGenre.trim()) {
     const trimmed = displayGenre.trim();
-    if (trimmed.includes('(') || trimmed.startsWith(genreCodeValue)) {
+    if (trimmed.includes('(') || trimmed.startsWith(mainLabel)) {
       return trimmed;
     }
-    return `${genreCodeValue} (${trimmed})`;
+    if (trimmed === mainLabel || trimmed === genreCodeValue) {
+      return mainLabel;
+    }
+    return `${mainLabel} (${trimmed})`;
   }
 
-  if (subject && subject.trim() && subject.trim() !== genreCodeValue) {
-    return `${genreCodeValue} (${subject.trim()})`;
+  if (subject && subject.trim()) {
+    const trimmedSub = subject.trim();
+    if (trimmedSub !== mainLabel && trimmedSub !== genreCodeValue) {
+      return `${mainLabel} (${trimmedSub})`;
+    }
   }
 
-  return genreCodeValue;
+  return mainLabel;
 }
 
 // 서재 선반 최대 권수
@@ -80,7 +103,7 @@ const MAX_IMAGE_SIZE_MB = 5;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 export default function RegisterBook() {
-  const { t } = useLanguage();
+  const { t, isEn, formatGenre } = useLanguage();
   const { books, addBook, saveReadingProgress, saveBookMeta, reload } = useBooks();
   const navigate = useNavigate();
   const location = useLocation();
@@ -850,7 +873,7 @@ export default function RegisterBook() {
             genreLoading={genreLoading}
             subject={subject}
             displayGenre={displayGenre}
-            genreSubLabel={getGenreSubLabel(genre, subject, displayGenre)}
+            genreSubLabel={getGenreSubLabel(genre, subject, displayGenre, isEn, formatGenre)}
             presets={presets}
             colorIdx={colorIdx}
             setColorIdx={setColorIdx}
