@@ -22,6 +22,7 @@ import {
   saveShelfAssignments,
   reconcileShelfGroups,
   moveBookAssignment,
+  findTargetShelfIndex,
 } from './shelfBookStorage';
 import {
   BG_ASPECT,
@@ -383,6 +384,8 @@ export default function LibraryScene() {
   const [hoveredDropShelfIdx, setHoveredDropShelfIdx] = useState(null);
   const [dragToast, setDragToast] = useState('');
   const dragInitiateInfoRef = useRef(null); // { startX, startY, bookId, isDragTriggered }
+  const justDroppedRef = useRef(false);
+  const sceneContentRef = useRef(null);
 
   const lastClientPosRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
 
@@ -623,13 +626,25 @@ export default function LibraryScene() {
       };
     });
   }, [rawSourceBooks, librarianPresets]);
+  const currentShelfBounds = useMemo(() => getShelfTouchBounds(librarianId), [librarianId]);
+  const shelfFolder = useMemo(() => getShelfFolder(librarianId), [librarianId]);
+
   const shelfGroups = useMemo(() => {
     return reconcileShelfGroups(sourceBooks, activeConfig.shelves, shelfAssignments);
   }, [sourceBooks, activeConfig.shelves, shelfAssignments]);
 
+  // 도서 드래그 중 목표 선반 위에 있을 때 해당 선반 위치로 실시간 스냅 프리뷰 제공
+  const effectiveShelfGroups = useMemo(() => {
+    if (draggingBookId && hoveredDropShelfIdx !== null) {
+      const previewAssignments = moveBookAssignment(shelfGroups, draggingBookId, hoveredDropShelfIdx);
+      return reconcileShelfGroups(sourceBooks, activeConfig.shelves, previewAssignments);
+    }
+    return shelfGroups;
+  }, [draggingBookId, hoveredDropShelfIdx, shelfGroups, sourceBooks, activeConfig.shelves]);
+
   const placements = useMemo(() => {
-    return placeBooks(sourceBooks, activeConfig.shelves, shelfGroups);
-  }, [sourceBooks, activeConfig.shelves, shelfGroups]);
+    return placeBooks(sourceBooks, activeConfig.shelves, effectiveShelfGroups);
+  }, [sourceBooks, activeConfig.shelves, effectiveShelfGroups]);
 
   // 도서 3D 선반 드래그 중 마우스 전역 이동 및 놓기(pointerup) 추적
   useEffect(() => {
@@ -648,13 +663,22 @@ export default function LibraryScene() {
         setDraggingBookId(info.bookId);
         setHoveredBook(null); // 호버 말풍선 정리
       }
+
+      // 씬 16:9 컨테이너 좌표계 기준으로 목표 선반 실시간 판별
+      if (info.isDragTriggered && sceneContentRef.current) {
+        const rect = sceneContentRef.current.getBoundingClientRect();
+        const targetShelf = findTargetShelfIndex(clientX, clientY, rect, currentShelfBounds);
+        setHoveredDropShelfIdx(targetShelf);
+      }
     };
 
     const handleGlobalPointerUp = () => {
       const info = dragInitiateInfoRef.current;
       if (!info) return;
 
-      if (info.isDragTriggered && hoveredDropShelfIdx !== null) {
+      const wasTriggered = info.isDragTriggered;
+
+      if (wasTriggered && hoveredDropShelfIdx !== null) {
         // 목표 선반으로 책 이동 확정 및 영구 저장
         setShelfAssignments((prevAssignments) => {
           const freshGroups = reconcileShelfGroups(sourceBooks, activeConfig.shelves, prevAssignments);
@@ -666,6 +690,14 @@ export default function LibraryScene() {
         const targetShelfNum = hoveredDropShelfIdx + 1;
         setDragToast(`${targetShelfNum}번 선반에 꽂았습니다 ✨`);
         setTimeout(() => setDragToast(''), 1800);
+      }
+
+      // 드래그 직후 발생하는 onClick 이벤트에서 상세 모달이 열리지 않도록 보호
+      if (wasTriggered) {
+        justDroppedRef.current = true;
+        setTimeout(() => {
+          justDroppedRef.current = false;
+        }, 150);
       }
 
       // 상태 초기화
@@ -686,13 +718,10 @@ export default function LibraryScene() {
       window.removeEventListener('touchmove', handleGlobalPointerMove);
       window.removeEventListener('touchend', handleGlobalPointerUp);
     };
-  }, [hoveredDropShelfIdx, librarianId, currentUserId, activeConfig.shelves, sourceBooks]);
+  }, [hoveredDropShelfIdx, librarianId, currentUserId, activeConfig.shelves, sourceBooks, currentShelfBounds]);
 
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];
-
-  const currentShelfBounds = useMemo(() => getShelfTouchBounds(librarianId), [librarianId]);
-  const shelfFolder = useMemo(() => getShelfFolder(librarianId), [librarianId]);
 
   return (
     <div
@@ -723,6 +752,7 @@ export default function LibraryScene() {
        * 배경과 캔버스가 항상 같은 16:9 박스를 공유하므로 3D 책과 책장 정합이 유지된다.
        */}
       <div
+        ref={sceneContentRef}
         style={{
           position: 'absolute',
           left: isMobile ? 0 : '50%',
@@ -763,23 +793,8 @@ export default function LibraryScene() {
             shelves={activeConfig.shelves}
             activeTargetShelfIdx={hoveredDropShelfIdx}
             isDragging={Boolean(draggingBookId)}
-            onHoverShelf={setHoveredDropShelfIdx}
             glowColor={getGlowColor(librarianId, isDark)}
           />
-
-          {/* 도서 드래그 이동 시 3D 레이캐스트 좌표 추적 평면 */}
-          {Boolean(draggingBookId) && (
-            <mesh
-              position={[camera.position[0], camera.position[1], camera.position[2] - 8]}
-              onPointerMove={(e) => {
-                e.stopPropagation();
-                setDragPosition([e.point.x, e.point.y, e.point.z]);
-              }}
-            >
-              <planeGeometry args={[120, 120]} />
-              <meshBasicMaterial visible={false} />
-            </mesh>
-          )}
 
           {placements.map((b) => (
             <Book3D
@@ -797,17 +812,18 @@ export default function LibraryScene() {
               isDragging={draggingBookId === b.id}
               dragPosition={draggingBookId === b.id ? dragPosition : null}
               onDragInitiate={(e) => {
-                const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
-                const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+                const native = e?.nativeEvent || e;
+                const clientX = e?.clientX ?? native?.clientX ?? (native?.touches && native?.touches[0]?.clientX);
+                const clientY = e?.clientY ?? native?.clientY ?? (native?.touches && native?.touches[0]?.clientY);
                 dragInitiateInfoRef.current = {
-                  startX: clientX,
-                  startY: clientY,
+                  startX: clientX ?? 0,
+                  startY: clientY ?? 0,
                   bookId: b.id,
                   isDragTriggered: false,
                 };
               }}
               onSelect={() => {
-                if (dragInitiateInfoRef.current?.isDragTriggered) return;
+                if (justDroppedRef.current || dragInitiateInfoRef.current?.isDragTriggered) return;
                 if (isMobile) {
                   const sIdx = b.shelfIndex ?? 0;
                   setLastActiveShelfIdx(sIdx);

@@ -165,3 +165,80 @@ export function moveBookAssignment(currentGroups, bookId, targetShelfIdx, target
 
   return newAssignments;
 }
+
+/**
+ * 2D 씬 컨테이너와 선반 터치 영역 바운드를 기반으로 현재 포인터(마우스/터치)가 위치한 목표 선반 인덱스를 찾습니다.
+ *
+ * @param {number} clientX
+ * @param {number} clientY
+ * @param {DOMRect} sceneRect - 16:9 씬 컨테이너의 getBoundingClientRect()
+ * @param {Array<{ top: string, height: string, left: string, width: string }>} bounds - 현재 사서의 선반 바운드 목록
+ * @returns {number|null} 감지된 목표 선반 인덱스 (선반 영역 밖이면 null)
+ */
+export function findTargetShelfIndex(clientX, clientY, sceneRect, bounds) {
+  if (!sceneRect || !bounds || bounds.length === 0) return null;
+  if (sceneRect.width <= 0 || sceneRect.height <= 0) return null;
+
+  const pctX = ((clientX - sceneRect.left) / sceneRect.width) * 100;
+  const pctY = ((clientY - sceneRect.top) / sceneRect.height) * 100;
+
+  const parsed = bounds.map((b) => {
+    const top = parseFloat(b.top);
+    const height = parseFloat(b.height);
+    const left = parseFloat(b.left);
+    const width = parseFloat(b.width);
+    return {
+      top,
+      height,
+      left,
+      width,
+      right: left + width,
+      bottom: top + height,
+      centerX: left + width / 2,
+      centerY: top + height / 2,
+    };
+  });
+
+  // 1차: 선반 바운드 내 직접 호버 체크 (넉넉한 조작 마진 적용: 수평 ±4.5%, 수직 ±2.5%)
+  for (let i = 0; i < parsed.length; i += 1) {
+    const b = parsed[i];
+    const padX = 4.5;
+    const padY = 2.5;
+    if (
+      pctX >= b.left - padX &&
+      pctX <= b.right + padX &&
+      pctY >= b.top - padY &&
+      pctY <= b.bottom + padY
+    ) {
+      return i;
+    }
+  }
+
+  // 2차: 책장 전체 영역(X 범위 ±6%, Y 범위 ±5%) 내에 있을 때 중심점 거리 기준으로 가장 가까운 선반 선택
+  const minLeft = Math.min(...parsed.map((b) => b.left));
+  const maxRight = Math.max(...parsed.map((b) => b.right));
+  const minTop = Math.min(...parsed.map((b) => b.top));
+  const maxBottom = Math.max(...parsed.map((b) => b.bottom));
+
+  if (
+    pctX >= minLeft - 6.0 &&
+    pctX <= maxRight + 6.0 &&
+    pctY >= minTop - 5.0 &&
+    pctY <= maxBottom + 5.0
+  ) {
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    parsed.forEach((b, idx) => {
+      // Y 거리에 1.5배 가중치 (선반은 위아래 단 구분이 핵심이므로)
+      const dist = Math.hypot((pctX - b.centerX) * 0.8, (pctY - b.centerY) * 1.5);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = idx;
+      }
+    });
+    return closestIdx;
+  }
+
+  return null;
+}
+

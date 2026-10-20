@@ -1,5 +1,38 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 인터랙션 결함 수정 및 안정화
+- 작업 브랜치: `fix/bookshelf-drag-drop-interaction-v2`
+- **사용자 요청**:
+  - 머지 완료 후 실제 서재에서 책 드래그 이동이 동작하지 않는 현상 재확인 및 해결.
+- **원인 분석**:
+  1. **ThreeEvent vs Native PointerEvent 좌표 누락**: `Book3D.jsx`의 `onPointerDown`에서 전달된 이벤트 `e`는 R3F `ThreeEvent`로, `e.clientX`가 직접 존재하지 않아 `undefined`가 됨. 이로 인해 `Math.hypot(NaN, NaN)`이 되어 6px 드래그 임계값 체크가 절대 true가 되지 못하고 드래그 모드가 발동되지 않음.
+  2. **DragPlane의 3D 이벤트 차단**: 3D 공간의 거대한 투명 평면(`DragPlane`)이 `stopPropagation()`을 호출하여 레이캐스트 이벤트가 차단되거나 좌표계 왜곡이 발생함.
+  3. **실시간 스냅 프리뷰 피드백 부재**: 드래그 중인 도서가 목표 선반 위에 올랐을 때 목표 선반 위치로 이동하는 시각적 스냅이 없어 사용자 체감이 부족했음.
+  4. **드래그 종료 시 click 이벤트 간섭**: 마우스/터치를 뗐을 때 즉시 모달 열림(`onClick`)이 발동될 수 있는 레이스 컨디션 존재.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/Book3D.jsx`:
+     - `onPointerDown`에서 R3F `ThreeEvent`의 `nativeEvent`로부터 `clientX`, `clientY`를 안전하게 추출하여 `onDragInitiate`로 전달.
+     - `isDragging` 시 목표 선반 스냅 위치(`position`)를 기준으로 살짝 떠오르고(`lift = 0.22`, `forwardPull = 0.35`, `z + 0.18`), 크기가 1.08배 커지며 골드 글로우가 켜지도록 3D 모션 개선.
+  2. `app/features/room/shelfBookStorage.js`:
+     - `findTargetShelfIndex(clientX, clientY, sceneRect, bounds)` 신설 및 export: 16:9 컨테이너 좌표계(`sceneRect`)를 기준으로 각 선반의 2D 바운드 퍼센트(`top`, `height`, `left`, `width`)를 분석하여 현재 마우스/터치가 위치한 목표 선반 인덱스를 100% 오차 없이 정밀 판별.
+  3. `app/features/room/ShelfDropZones.jsx`:
+     - 레이캐스트 차단 우려가 있는 불필요한 히트박스를 제거하고, 순수하게 목표 선반(`activeTargetShelfIdx`) 바닥 및 후면의 은은한 글로우 하이라이트 평면만 그리는 시각적 가이드 컴포넌트로 최적화.
+  4. `app/features/room/LibraryScene.jsx`:
+     - 16:9 배경 박스에 `sceneContentRef` 연결.
+     - `effectiveShelfGroups` 및 `placements` 연동: 도서 드래그 중 목표 선반(`hoveredDropShelfIdx`) 위에 있을 때 임시 선반 배치를 실시간 반영하여 책이 목표 선반 위치로 즉시 스냅 이동하는 프리뷰 제공.
+     - `handleGlobalPointerMove`에서 `findTargetShelfIndex`로 `hoveredDropShelfIdx` 실시간 갱신.
+     - `handleGlobalPointerUp`에서 목표 선반 이동 확정 및 `saveShelfAssignments` 영구 저장.
+     - `justDroppedRef` 도입(150ms 보호 윈도우): 도서 드래그 완료 직후 발생하는 `onClick` 이벤트에서 도서 상세 모달이 열리지 않도록 완벽 분리.
+     - 불필요하고 이벤트를 방해하던 3D `DragPlane` 제거.
+  5. `app/index.css`:
+     - `body.reading-room.is-dragging-book`에 `user-select: none !important; -webkit-user-select: none !important; touch-action: none !important;` 추가로 제스처 간섭 원천 차단.
+  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 및 선반별 배치 영속화 구현
 - 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
 - **사용자 요청**:
@@ -107,32 +140,10 @@
      - 배경 3D 책장에서도 선택된 책이 자동으로 슬라이드 아웃/인 애니메이션 동기화.
   5. `app/pages/MyPage.jsx`:
      - 마이페이지 독서 리스트 및 독서 캘린더 모달에서도 동일한 이전/다음 도서 탐색이 가능하도록 `useBooks` 연동 및 네비게이션 props 바인딩.
-  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-18: 도서 직접 등록 시 책 표지 사진 촬영/업로드 및 R2 Presigned URL 연동
-- 작업 브랜치: `feat/register-book-custom-cover-upload`
-- **사용자 요청**:
-  - 도서 직접 입력 모드에서 사용자가 책 표지를 사진 촬영하거나 선택하여 업로드할 수 있도록 지원하고, 이 사진이 서재 3D 책 모델의 앞표지(frontCover) 텍스처로 자동 적용되도록 구현.
-  - Cloudflare R2 `dpyb-public/frontcover/beta/` 경로 연동.
-- **작업 내용**:
-  1. `app/utils/imageCompressor.js`:
-     - `compressBookCover(file, { maxDimension: 1200, quality: 0.88 })`: 책 표지 종횡비를 유지하며 긴 축 기준 최대 1200px 리사이즈 및 고화질 WebP Blob 변환 유틸리티 구현.
-  2. `app/api/bookApi.js`:
-     - `getBookCoverPresignedUrl({ contentType })`: Core API(`POST /api/v1/library/books/cover/presigned-url`) 호출 함수 추가.
-  3. `app/pages/RegisterBook.jsx` & `BookRegisterForm.jsx` & `RegisterBook.css`:
-     - 표지 사진 마우스 호버 오버레이(`📷 표지 등록`), 카메라 촬영(`📷 촬영`), 앨범 선택(`🖼️ 앨범`), 표지 초기화(`✕ 제거`) 컨트롤 UI 추가.
-     - 모바일에서는 후면 카메라(`capture="environment"`) 자동 실행, PC에서는 웹캠 촬영 모달(`WebcamCaptureModal`) 지원.
-     - 표지 사진 업로드 시 대표 색상을 자동 추출(`extractDominantColorIndex`)하여 책등(spine) 컬러도 추천 프리셋으로 자동 매핑.
-     - Cloudflare R2 버킷 `dpyb-public/frontcover/beta/`로 Presigned PUT 직접 전송 및 R2 CDN URL(`https://cdn.ai0208.xyz/frontcover/beta/{uuid}.webp`) 바인딩.
-     - 백엔드 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 3D 모델 및 등록 폼에 즉시 반영되는 Graceful Fallback 구현.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
+

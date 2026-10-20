@@ -284,6 +284,9 @@ body.reading-room {
 body.reading-room.is-dragging-book,
 body.reading-room.is-dragging-book * {
   cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
 }
 
 /* 모바일 서재 가로 스크롤바 숨김 및 고무줄 오버스크롤 차단 */
