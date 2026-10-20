@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getColorPresets } from '../register/ocrUtils';
 import { cdnUrl } from '../../config/cdn';
+import { reconcileShelfGroups } from './shelfBookStorage';
 
 // 배경 이미지 — Cloudflare R2 `dpyb-public/background_UI/` (CDN: cdn.ai0208.xyz, 2026-10 이전)
 // CLIAR-180: 내 서재 UI 갱신, WebP로 변환(1920px, 16:9 비율 유지)
@@ -554,32 +555,36 @@ const MIN_SQUEEZE = 0.02; // 압축 하한(너무 얇아지지 않게)
 /**
  * 등록된 책 목록을 선반들에 배치.
  *  - 책은 선반 순서대로(위 선반부터) 채워짐. 선반의 capacity(권수)로 다음 선반 넘김(0/미설정=무제한).
+ *  - customAssignments(선반별 지정 도서 맵 또는 groups 배열)가 주어지면 해당 배치 순서를 최우선 적용.
  *  - 한 선반 안에서 width는 "squeeze 폭": 자연 두께 합이 width를 넘으면 그만큼 압축, 남으면 원래 두께 유지.
  *  - 책 행은 선반 중앙 정렬.
  * @param {Array} books - { id, title, thickness, heightFactor, spineColor, coverColor }
  * @param {Array} shelves - 선반 설정 배열
- * @returns {Array} placements - { ...book, position, size, rotation }
+ * @param {Record<number, string[]>|Array<Array<object>>|null} [customAssignments=null] - 사용자 지정 선반 배치
+ * @returns {Array} placements - { ...book, position, size, rotation, shelfIndex, shelfId, bookIndexInShelf }
  */
-export function placeBooks(books, shelves = DEFAULT_SHELVES) {
+export function placeBooks(books, shelves = DEFAULT_SHELVES, customAssignments = null) {
   const placements = [];
   if (!shelves.length) return placements;
 
   /*
-   * 1) 책을 선반별로 분배 (capacity 기준).
-   * capacity가 없거나 0이면 무제한(그 선반이 남은 책을 전부 담음).
-   * 예전엔 "마지막 선반"은 capacity를 무시하고 항상 나머지 전부를 담았는데,
-   * 각 선반을 정확히 N권씩만 채우고 싶다는 요청(2026-09)에 따라 마지막 선반도
-   * 똑같이 capacity를 지키도록 변경했다. 모든 선반의 용량을 합친 것보다 책이
-   * 많으면 그 초과분은 어느 선반에도 배치되지 않아 화면에 보이지 않는다.
+   * 1) 책을 선반별로 분배 (customAssignments 우선, 없으면 capacity 기준 순차 분배).
    */
-  let ptr = 0;
-  const groups = shelves.map((shelf) => {
-    const cap = shelf.capacity && shelf.capacity > 0 ? shelf.capacity : Infinity;
-    const take = Math.min(cap, books.length - ptr);
-    const slice = books.slice(ptr, ptr + Math.max(0, take));
-    ptr += slice.length;
-    return slice;
-  });
+  let groups;
+  if (Array.isArray(customAssignments)) {
+    groups = customAssignments;
+  } else if (customAssignments && typeof customAssignments === 'object') {
+    groups = reconcileShelfGroups(books, shelves, customAssignments);
+  } else {
+    let ptr = 0;
+    groups = shelves.map((shelf) => {
+      const cap = shelf.capacity && shelf.capacity > 0 ? shelf.capacity : Infinity;
+      const take = Math.min(cap, books.length - ptr);
+      const slice = books.slice(ptr, ptr + Math.max(0, take));
+      ptr += slice.length;
+      return slice;
+    });
+  }
 
   // 2) 각 선반 안에서 squeeze 배치
   shelves.forEach((shelf, i) => {
@@ -604,7 +609,7 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
       scale = Math.max(MIN_SQUEEZE, (shelf.width - gaps) / sumT);
     }
     let cursor = -shelf.width / 2; // 왼쪽 끝부터 오른쪽으로 채움
-    for (const book of shelfBooks) {
+    shelfBooks.forEach((book, bookIdx) => {
       const t = book.thickness * scale;
       const centerOffset = cursor + t / 2;
       cursor += t + GAP;
@@ -617,6 +622,7 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
         ...book,
         shelfIndex: i,
         shelfId: shelf.id,
+        bookIndexInShelf: bookIdx,
         rotation: [euler.x, euler.y, euler.z],
         size: [t, height, shelf.depth],
         position: [
@@ -625,7 +631,7 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES) {
           shelf.pos[2] + dirX.z * centerOffset + up.z * (height / 2),
         ],
       });
-    }
+    });
   });
 
   return placements;

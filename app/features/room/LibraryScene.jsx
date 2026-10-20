@@ -16,6 +16,13 @@ import { useLibrarian, loadSavedChatSessionByLibrarian } from '../../store/libra
 import { useAuth } from '../../store/authStore';
 import './LibrarianChat.css';
 import { TransformControls } from '@react-three/drei';
+import ShelfDropZones from './ShelfDropZones';
+import {
+  loadShelfAssignments,
+  saveShelfAssignments,
+  reconcileShelfGroups,
+  moveBookAssignment,
+} from './shelfBookStorage';
 import {
   BG_ASPECT,
   getBgSrc,
@@ -359,6 +366,24 @@ export default function LibraryScene() {
     setWorkingConfig(saved || { camera: getDefaultCamera(librarianId), shelves: getDefaultShelves(librarianId) });
   }, [librarianId]);
 
+  // 선반별 도서 배치 순서 (localStorage 기반 사용자/사서별 영속화)
+  const [shelfAssignments, setShelfAssignments] = useState(() => {
+    return loadShelfAssignments(librarianId, currentUserId);
+  });
+
+  // 사서(librarianId) 또는 사용자 계정 변경 시 해당 계정의 선반 배치 로드
+  useEffect(() => {
+    const loaded = loadShelfAssignments(librarianId, currentUserId);
+    setShelfAssignments(loaded);
+  }, [librarianId, currentUserId]);
+
+  // 도서 3D 선반 드래그 앤 드롭 상태
+  const [draggingBookId, setDraggingBookId] = useState(null);
+  const [dragPosition, setDragPosition] = useState(null);
+  const [hoveredDropShelfIdx, setHoveredDropShelfIdx] = useState(null);
+  const [dragToast, setDragToast] = useState('');
+  const dragInitiateInfoRef = useRef(null); // { startX, startY, bookId, isDragTriggered }
+
   const lastClientPosRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
 
   /*
@@ -441,6 +466,18 @@ export default function LibraryScene() {
     document.body.classList.add('reading-room');
     return () => document.body.classList.remove('reading-room');
   }, []);
+
+  // 도서 드래그 이동 중 grabbing 커서 클래스 토글
+  useEffect(() => {
+    if (draggingBookId) {
+      document.body.classList.add('is-dragging-book');
+    } else {
+      document.body.classList.remove('is-dragging-book');
+    }
+    return () => {
+      document.body.classList.remove('is-dragging-book');
+    };
+  }, [draggingBookId]);
 
   useEffect(() => {
     if (!isDev) return;
@@ -586,7 +623,71 @@ export default function LibraryScene() {
       };
     });
   }, [rawSourceBooks, librarianPresets]);
-  const placements = useMemo(() => placeBooks(sourceBooks, activeConfig.shelves), [sourceBooks, activeConfig.shelves]);
+  const shelfGroups = useMemo(() => {
+    return reconcileShelfGroups(sourceBooks, activeConfig.shelves, shelfAssignments);
+  }, [sourceBooks, activeConfig.shelves, shelfAssignments]);
+
+  const placements = useMemo(() => {
+    return placeBooks(sourceBooks, activeConfig.shelves, shelfGroups);
+  }, [sourceBooks, activeConfig.shelves, shelfGroups]);
+
+  // 도서 3D 선반 드래그 중 마우스 전역 이동 및 놓기(pointerup) 추적
+  useEffect(() => {
+    const handleGlobalPointerMove = (e) => {
+      const info = dragInitiateInfoRef.current;
+      if (!info) return;
+
+      const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
+      const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+      if (clientX === undefined || clientY === undefined) return;
+
+      const dist = Math.hypot(clientX - info.startX, clientY - info.startY);
+      // 6px 이상 움직이면 도서 이동 드래그 모드로 공식 전환
+      if (dist > 6 && !info.isDragTriggered) {
+        info.isDragTriggered = true;
+        setDraggingBookId(info.bookId);
+        setHoveredBook(null); // 호버 말풍선 정리
+      }
+    };
+
+    const handleGlobalPointerUp = () => {
+      const info = dragInitiateInfoRef.current;
+      if (!info) return;
+
+      if (info.isDragTriggered && hoveredDropShelfIdx !== null) {
+        // 목표 선반으로 책 이동 확정 및 영구 저장
+        setShelfAssignments((prevAssignments) => {
+          const freshGroups = reconcileShelfGroups(sourceBooks, activeConfig.shelves, prevAssignments);
+          const newAssignments = moveBookAssignment(freshGroups, info.bookId, hoveredDropShelfIdx);
+          saveShelfAssignments(librarianId, currentUserId, newAssignments);
+          return newAssignments;
+        });
+
+        const targetShelfNum = hoveredDropShelfIdx + 1;
+        setDragToast(`${targetShelfNum}번 선반에 꽂았습니다 ✨`);
+        setTimeout(() => setDragToast(''), 1800);
+      }
+
+      // 상태 초기화
+      dragInitiateInfoRef.current = null;
+      setDraggingBookId(null);
+      setDragPosition(null);
+      setHoveredDropShelfIdx(null);
+    };
+
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('touchmove', handleGlobalPointerMove, { passive: true });
+    window.addEventListener('touchend', handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('touchmove', handleGlobalPointerMove);
+      window.removeEventListener('touchend', handleGlobalPointerUp);
+    };
+  }, [hoveredDropShelfIdx, librarianId, currentUserId, activeConfig.shelves, sourceBooks]);
+
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];
 
@@ -602,7 +703,7 @@ export default function LibraryScene() {
         width: '100vw',
         marginLeft: 'calc(50% - 50vw)',
         height: '100svh',
-        cursor: calibrating ? 'auto' : 'none',
+        cursor: calibrating ? 'auto' : draggingBookId ? 'grabbing' : 'none',
         // 모바일에서는 손가락 슬라이딩으로 전체 씬(좌/중앙/우)을 구경할 수 있도록 가로 스크롤 허용, 세로는 고정
         overflowX: isMobile ? 'auto' : 'hidden',
         overflowY: 'hidden',
@@ -657,6 +758,29 @@ export default function LibraryScene() {
             />
           )}
 
+          {/* 선반 드래그 앤 드롭 목표 구역 안내 & 감지 레이어 */}
+          <ShelfDropZones
+            shelves={activeConfig.shelves}
+            activeTargetShelfIdx={hoveredDropShelfIdx}
+            isDragging={Boolean(draggingBookId)}
+            onHoverShelf={setHoveredDropShelfIdx}
+            glowColor={getGlowColor(librarianId, isDark)}
+          />
+
+          {/* 도서 드래그 이동 시 3D 레이캐스트 좌표 추적 평면 */}
+          {Boolean(draggingBookId) && (
+            <mesh
+              position={[camera.position[0], camera.position[1], camera.position[2] - 8]}
+              onPointerMove={(e) => {
+                e.stopPropagation();
+                setDragPosition([e.point.x, e.point.y, e.point.z]);
+              }}
+            >
+              <planeGeometry args={[120, 120]} />
+              <meshBasicMaterial visible={false} />
+            </mesh>
+          )}
+
           {placements.map((b) => (
             <Book3D
               key={b.id}
@@ -670,7 +794,20 @@ export default function LibraryScene() {
               coverColor={b.coverColor}
               selected={selectedId === b.id}
               glowColor={getGlowColor(librarianId, isDark)}
+              isDragging={draggingBookId === b.id}
+              dragPosition={draggingBookId === b.id ? dragPosition : null}
+              onDragInitiate={(e) => {
+                const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
+                const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+                dragInitiateInfoRef.current = {
+                  startX: clientX,
+                  startY: clientY,
+                  bookId: b.id,
+                  isDragTriggered: false,
+                };
+              }}
               onSelect={() => {
+                if (dragInitiateInfoRef.current?.isDragTriggered) return;
                 if (isMobile) {
                   const sIdx = b.shelfIndex ?? 0;
                   setLastActiveShelfIdx(sIdx);
@@ -679,9 +816,10 @@ export default function LibraryScene() {
                   setSelectedId((prev) => (prev === b.id ? null : b.id));
                 }
               }}
-              onHover={(over) =>
-                setHoveredBook((cur) => (over ? b : cur?.id === b.id ? null : cur))
-              }
+              onHover={(over) => {
+                if (draggingBookId) return;
+                setHoveredBook((cur) => (over ? b : cur?.id === b.id ? null : cur));
+              }}
             />
           ))}
         </Canvas>
@@ -1097,7 +1235,7 @@ export default function LibraryScene() {
 
       {/* 마우스를 따라다니는 사서 + 우상단 말풍선(답변).
           커서 모션은 hover가 아니라 책을 선택(클릭)했을 때만 전환된다 (CLIAR-239). */}
-      {!calibrating && (
+      {!calibrating && !draggingBookId && (
         <LibrarianCursor
           librarian={librarian}
           answer={chatAnswer}
@@ -1276,6 +1414,71 @@ export default function LibraryScene() {
             setSelectedId(book.id || book.bookId);
           }}
         />
+      )}
+
+      {/* 도서 선반 드래그 중 상단 가이드 칩 */}
+      {Boolean(draggingBookId) && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 90,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 18px',
+            borderRadius: 999,
+            background: 'rgba(26, 20, 16, 0.92)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1.5px solid var(--accent, #ff9a3c)',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+            pointerEvents: 'none',
+            letterSpacing: '-0.2px',
+          }}
+        >
+          <span>📚</span>
+          <span>
+            {hoveredDropShelfIdx !== null
+              ? `${hoveredDropShelfIdx + 1}번 선반에 놓으면 꽂힙니다 ✨`
+              : '원하는 선반으로 드래그하여 꽂으세요'}
+          </span>
+        </div>
+      )}
+
+      {/* 선반 이동 완료 토스트 배너 */}
+      {Boolean(dragToast) && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 90,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 18px',
+            borderRadius: 999,
+            background: 'rgba(20, 32, 24, 0.94)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1.5px solid #4ade80',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+            pointerEvents: 'none',
+          }}
+        >
+          <span>✅</span>
+          <span>{dragToast}</span>
+        </div>
       )}
     </div>
   );
