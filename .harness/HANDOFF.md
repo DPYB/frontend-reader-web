@@ -1,5 +1,38 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 및 선반별 배치 영속화 구현
+- 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
+- **사용자 요청**:
+  - 서재 선반에 책이 있을 때, 드래그로 사용자가 원하는 선반에 꽂을 수 있게 이동 가능하게 구현.
+  - 백엔드 팀원에게 전달할 사항 정리.
+- **작업 내용**:
+  1. `app/features/room/shelfBookStorage.js` 신설:
+     - `getShelfStorageKey(librarianId, userId)`: 사용자 계정 및 사서별 독립적인 로컬 스토리지 키 관리 (`myReadingRoom.shelfAssignments.{userId}.{librarianId}`).
+     - `loadShelfAssignments`, `saveShelfAssignments`: 선반별 도서 ID 목록(`{ [shelfIndex]: string[] }`) 영속화.
+     - `reconcileShelfGroups(books, shelves, savedAssignments)`: 삭제된 도서 자동 정리, 신규 등록 도서 빈 슬롯 자동 배치, 선반 capacity 한도 준수 정합성 보장.
+     - `moveBookAssignment(currentGroups, bookId, targetShelfIdx)`: 도서의 선반 간 이동 및 새 assignments 생성.
+  2. `app/features/room/ShelfDropZones.jsx` 신설:
+     - 3D 공간 상에서 각 선반의 위치(pos), 크기(width, depth), 회전(euler)에 맞춘 투명 히트박스 배치.
+     - 도서 드래그 중 마우스 호버 시 해당 선반 바닥 및 후면에 네온/골드 글로우 하이라이트 평면 렌더링으로 직관적인 드롭 타깃 시각 피드백 제공.
+  3. `app/features/bookshelf3d/Book3D.jsx`:
+     - `isDragging`, `dragPosition`, `onDragInitiate` props 추가.
+     - 드래그 중인 도서는 3D 공간에서 마우스 포인터 월드 좌표를 즉각 추적(`lambda = 26`)하며, 앞으로 살짝 떠오르고(`z + 0.45`), 황금빛 테두리 글로우가 켜지도록 애니메이션 보강.
+  4. `app/features/room/LibraryScene.jsx`:
+     - 6px 이상 마우스 이동 시에만 도서 이동 드래그 모드로 전환하여, 가벼운 클릭 시 도서 상세 모달 오픈 경험과 완벽히 분리.
+     - 도서 드래그 중 3D 레이캐스트 투명 평면(`DragPlane`)을 통해 마우스 위치를 정밀하게 3D 월드 좌표로 변환.
+     - 드래그 중 상단 가이드 칩(`{N}번 선반에 놓으면 꽂힙니다 ✨`) 및 선반 이동 완료 시 확인 토스트 배너 연동.
+     - 드래그 중 마우스 커서를 `grabbing`으로 전환하고, 드래그 중에는 사서 커서(`LibrarianCursor`)를 일시 숨김 처리하여 도서 시야 확보.
+  5. `app/index.css`:
+     - `body.reading-room.is-dragging-book` 스타일 추가 (`cursor: grabbing !important;`).
+  6. `app/features/room/shelfLayout.js`:
+     - `placeBooks(books, shelves, customAssignments)`: 사용자 커스텀 배치(`shelfGroups`)를 1순위로 지원하도록 확장.
+  7. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-19: 사서 프로필 배경 통일, 블루 커서 화질 선명화 및 3D 도서 뒤표지 텍스처 완화
 - 작업 브랜치: `feat/librarian-profile-bg-cursor-and-3d-backcover-opacity`
 - **사용자 요청**:
@@ -97,27 +130,6 @@
      - 표지 사진 업로드 시 대표 색상을 자동 추출(`extractDominantColorIndex`)하여 책등(spine) 컬러도 추천 프리셋으로 자동 매핑.
      - Cloudflare R2 버킷 `dpyb-public/frontcover/beta/`로 Presigned PUT 직접 전송 및 R2 CDN URL(`https://cdn.ai0208.xyz/frontcover/beta/{uuid}.webp`) 바인딩.
      - 백엔드 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 3D 모델 및 등록 폼에 즉시 반영되는 Graceful Fallback 구현.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-18: 문장 수집 이미지 Cloudflare R2 Presigned URL 연동 및 WebP 최적화
-- 작업 브랜치: `feat/quote-image-r2-upload`
-- **사용자 요청**:
-  - Cloudflare R2 `dpyb-public/quote/beta/` 경로 생성에 맞춰 문장 수집(Sentence Scrap) 사진 업로드 연동 및 백엔드 팀원 전달 사항 작성.
-- **작업 내용**:
-  1. `app/utils/imageCompressor.js`:
-     - `compressQuoteImage(file, { maxDimension: 1600, quality: 0.85 })`: 문장 사진의 텍스트 가독성을 보존하기 위해 1:1 크롭 대신 **원본 가로세로 비율을 유지**하면서 최대 1600px 리사이즈 및 고화질 WebP Blob 압축 유틸리티 구현.
-  2. `app/api/bookApi.js`:
-     - `getQuoteImagePresignedUrl({ contentType })`: Core API(`POST /api/v1/library/scraps/presigned-url`) 호출 함수 추가.
-  3. `app/features/room/SentenceCollectModal.jsx`:
-     - 파일 업로드 및 카메라 촬영(`handleFile`) 시 `compressQuoteImage`로 사진을 압축(10MB 원본 ➔ 200~300KB WebP)하여 R2 버킷 `quote/beta/`로 Presigned PUT 직접 전송.
-     - 발급된 R2 CDN URL(`https://cdn.ai0208.xyz/quote/beta/...`)을 `pendingImageUrl` 및 `createScrap`의 `scrapImageUrl`로 바인딩.
-     - 백엔드 Presigned 엔드포인트 미배포 상태에서도 에러 없이 로컬 Blob/Data URL로 graceful fallback 작동 보장.
-     - AI Agent OCR 전송 시에도 경량화된 WebP를 전송하여 네트워크 지연 대폭 단축.
   4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)

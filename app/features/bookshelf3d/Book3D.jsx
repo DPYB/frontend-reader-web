@@ -62,6 +62,9 @@ export default function Book3D({
   interactive = true,
   onSelect,
   onHover,
+  isDragging = false,
+  dragPosition = null,
+  onDragInitiate = null,
 }) {
   const { invalidate } = useThree();
   const [textureVer, setTextureVer] = useState(0);
@@ -181,30 +184,44 @@ export default function Book3D({
     const g = groupRef.current;
     if (!g) return;
 
-    // 빠져나오는 거리/상승/추가 회전
-    let pull = 0;
-    let lift = 0;
+    let targetX;
+    let targetY;
+    let targetZ;
+    let targetScaleXY = 1;
+    let targetScaleZ = 1;
     let extraRotY = 0;
+    let lambda = 8;
 
-    if (selected) {
-      pull = 1.6;
-      lift = 0.35;
+    if (isDragging && dragPosition) {
+      // 드래그 중: 마우스 포인터 3D 좌표를 즉각 따라오며 살짝 앞으로 떠오름
+      targetX = dragPosition[0];
+      targetY = dragPosition[1];
+      targetZ = dragPosition[2] + 0.45;
+      targetScaleXY = 1.06;
+      targetScaleZ = 1.06;
+      lambda = 26;
+    } else if (selected) {
+      const pull = 1.6;
+      const lift = 0.35;
       extraRotY = (-Math.PI / 2) * pullDir; // 앞표지가 보이도록
+      targetX = position[0] + forward[0] * pull * pullDir;
+      targetY = position[1] + lift + forward[1] * pull * pullDir;
+      targetZ = position[2] + forward[2] * pull * pullDir;
+      targetScaleXY = selectedScale;
+      targetScaleZ = selectedScale * selectedDepthScale;
     } else if (hovered) {
       // CLIAR-243: 옆 책을 가리지 않도록 밀림을 최소화(예전 0.25 → 0.05).
-      // 선택 가능 여부는 아래 테두리 glow(Edges)로 표시한다.
-      pull = 0.05;
+      const pull = 0.05;
+      targetX = position[0] + forward[0] * pull * pullDir;
+      targetY = position[1] + forward[1] * pull * pullDir;
+      targetZ = position[2] + forward[2] * pull * pullDir;
+    } else {
+      targetX = position[0];
+      targetY = position[1];
+      targetZ = position[2];
     }
 
-    const targetX = position[0] + forward[0] * pull * pullDir;
-    const targetY = position[1] + lift + forward[1] * pull * pullDir;
-    const targetZ = position[2] + forward[2] * pull * pullDir;
-    // 선택 시 전체 크기 확대 + depth(로컬 Z)는 추가로 더 두툼하게
-    const targetScaleXY = selected ? selectedScale : 1;
-    const targetScaleZ = selected ? selectedScale * selectedDepthScale : 1;
-
     // 프레임 독립적 damping
-    const lambda = 8;
     g.position.x = THREE.MathUtils.damp(g.position.x, targetX, lambda, delta);
     g.position.y = THREE.MathUtils.damp(g.position.y, targetY, lambda, delta);
     g.position.z = THREE.MathUtils.damp(g.position.z, targetZ, lambda, delta);
@@ -215,14 +232,10 @@ export default function Book3D({
     g.scale.y = THREE.MathUtils.damp(g.scale.y, targetScaleXY, lambda, delta);
     g.scale.z = THREE.MathUtils.damp(g.scale.z, targetScaleZ, lambda, delta);
 
-    // 테두리 glow — hover일 때만 은은하게 페이드인 (CLIAR-243).
-    // 예전엔 selected일 때도 계속 켜져 있어, 책을 클릭해 확대된(상세 팝업이 뜬)
-    // 상태에서도 정육면체 윤곽선이 그대로 보였다. 선택된 책은 이미 확대·회전으로
-    // 충분히 강조되므로, 확대 후에는 테두리를 끈다(사용자 요청, 2026-09).
-    // Edges의 ref는 Line2 메시를 가리키므로 실제 투명도는 .material.opacity에 있다.
-    const glowOn = hovered && !selected;
-    const targetCore = glowOn ? 0.9 : 0;
-    const targetHalo = glowOn ? 0.35 : 0;
+    // 테두리 glow — hover이거나 드래그 중일 때 은은하게 페이드인
+    const glowOn = (hovered || isDragging) && !selected;
+    const targetCore = glowOn ? 0.95 : 0;
+    const targetHalo = glowOn ? 0.45 : 0;
     const coreMat = edgeCoreRef.current?.material;
     const haloMat = edgeHaloRef.current?.material;
     if (coreMat) {
@@ -238,6 +251,13 @@ export default function Book3D({
       ref={groupRef}
       position={position}
       rotation={[rx, ry, rz]}
+      onPointerDown={
+        interactive
+          ? (e) => {
+              onDragInitiate?.(e);
+            }
+          : undefined
+      }
       onPointerOver={
         interactive
           ? (e) => {
@@ -259,7 +279,7 @@ export default function Book3D({
         interactive
           ? (e) => {
               e.stopPropagation();
-              onSelect?.();
+              onSelect?.(e);
             }
           : undefined
       }
