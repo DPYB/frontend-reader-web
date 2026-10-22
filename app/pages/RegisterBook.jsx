@@ -318,11 +318,12 @@ export default function RegisterBook() {
       setEditing(true);
       setFromRecommendation(true);
 
-      if (book.genre) {
-        const upper = typeof book.genre === 'string' ? book.genre.trim().toUpperCase() : '';
-        const normalizedGenre = GENRE_CODES.includes(upper)
-          ? upper
-          : genreCode(book.genre) || detectGenreCode(book.genre) || book.genre;
+      const upper = typeof book.genre === 'string' ? book.genre.trim().toUpperCase() : '';
+      const normalizedGenre = GENRE_CODES.includes(upper)
+        ? upper
+        : genreCode(book.genre) || detectGenreCode(book.genre);
+
+      if (normalizedGenre && GENRE_CODES.includes(normalizedGenre)) {
         setGenre(normalizedGenre);
       } else {
         autoClassifyGenre({ title: book.title, author: book.author, isbn: book.isbn || '' });
