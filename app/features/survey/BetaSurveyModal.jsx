@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './BetaSurveyModal.css';
+import { sendSurveyToDiscord } from './discordSurveyWebhook';
 
 // 질문 상수 및 옵션 정의
 const FIRST_VISIT_BOOK_RECORD_OPTIONS = [
@@ -248,7 +249,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
   };
 
   // --- 제출 핸들러 ---
-  const handleSubmitFirstVisit = (e) => {
+  const handleSubmitFirstVisit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -266,14 +267,18 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
       // localStorage quota exceeded or error fallback
     }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setStep('completed');
-      scrollToTop();
-    }, 400);
+    try {
+      await sendSurveyToDiscord('first_visit', firstForm);
+    } catch (err) {
+      console.error('Failed to send survey to Discord webhook:', err);
+    }
+
+    setIsSubmitting(false);
+    setStep('completed');
+    scrollToTop();
   };
 
-  const handleSubmitReturning = (e) => {
+  const handleSubmitReturning = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -291,11 +296,15 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
       // localStorage quota exceeded fallback
     }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setStep('completed');
-      scrollToTop();
-    }, 400);
+    try {
+      await sendSurveyToDiscord('returning', returningForm);
+    } catch (err) {
+      console.error('Failed to send survey to Discord webhook:', err);
+    }
+
+    setIsSubmitting(false);
+    setStep('completed');
+    scrollToTop();
   };
 
   if (!isOpen) return null;

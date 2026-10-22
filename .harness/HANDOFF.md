@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-22: BETA 피드백 설문조사 디스코드 웹훅 연동 및 실시간 알림 카드 구현
+- 작업 브랜치: `feat/survey-discord-webhook-integration`
+- **사용자 요청**:
+  - BETA 피드백 설문조사 제출 시 디스코드 웹훅 채널(#beta-feedback)로 실시간 알림이 전송되도록 연동 구현 (옵션 A: 프론트엔드 직접 연동).
+  - 웹후크 봇 이름 및 프로필 설정, 전송 포맷 최적화.
+- **작업 내용**:
+  1. `app/features/survey/discordSurveyWebhook.js` 신설:
+     - `sendSurveyToDiscord(type, formData)`: Discord Webhook 엔드포인트 연동 (`VITE_DISCORD_SURVEY_WEBHOOK_URL`).
+     - 첫 방문 설문: 연령대, 디자인 만족도(별점), 서비스 이해도, 유사 서비스 경험, 기존 독서 기록 방식, 회원가입 난이도, 사용 기능, 헷갈렸던 점을 체계적인 Discord Embed 카드로 포맷팅.
+     - 재방문 설문: 기기/브라우저 환경, 종합 만족도(별점), 속도 체감, 유용한 기능, 재방문 이유, AI 사서 도움 정도, 불편사항, 버그 제보, 추가 희망 기능 등을 Discord Embed 카드로 포맷팅.
+     - 이미지 첨부 지원: 불편사항/버그 캡처 이미지가 첨부된 경우, DataURL을 Blob으로 변환하여 `FormData` 멀티파트 첨부파일(`attachment://inconvenience.jpg`, `attachment://bug.jpg`)로 전송 및 Embed 내 인라인 렌더링.
+  2. `app/features/survey/BetaSurveyModal.jsx`:
+     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`에 `sendSurveyToDiscord` 호출 연동 (로컬 스토리지 백업 보존 및 비동기 예외 안전 처리).
+  3. `.env.example`:
+     - `VITE_DISCORD_SURVEY_WEBHOOK_URL` 환경 변수 문서화.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-22: 사서 대화창 토론 모드 UI 비활성화 및 소셜 로그인 실패 원인 분석 점검
 - 작업 브랜치: `feat/check-social-login-and-disable-debate`
 - **사용자 요청**:
@@ -84,21 +106,9 @@
 - 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
 - **사용자 요청**:
   - 서재 선반에 책이 있을 때, 드래그로 사용자가 원하는 선반에 꽂을 수 있게 이동 가능하게 구현.
-  - 백엔드 팀원에게 전달할 사항 정리.
-- **작업 내용**:
-  1. `app/features/room/shelfBookStorage.js` 신설:
-     - `getShelfStorageKey(librarianId, userId)`: 사용자 계정 및 사서별 독립적인 로컬 스토리지 키 관리 (`myReadingRoom.shelfAssignments.{userId}.{librarianId}`).
-     - `loadShelfAssignments`, `saveShelfAssignments`: 선반별 도서 ID 목록(`{ [shelfIndex]: string[] }`) 영속화.
-     - `reconcileShelfGroups(books, shelves, savedAssignments)`: 삭제된 도서 자동 정리, 신규 등록 도서 빈 슬롯 자동 배치, 선반 capacity 한도 준수 정합성 보장.
-     - `moveBookAssignment(currentGroups, bookId, targetShelfIdx)`: 도서의 선반 간 이동 및 새 assignments 생성.
-  2. `app/features/room/ShelfDropZones.jsx` 신설:
-     - 3D 공간 상에서 각 선반의 위치(pos), 크기(width, depth), 회전(euler)에 맞춘 투명 히트박스 배치.
-     - 도서 드래그 중 마우스 호버 시 해당 선반 바닥 및 후면에 네온/골드 글로우 하이라이트 평면 렌더링으로 직관적인 드롭 타깃 시각 피드백 제공.
-  3. `app/features/bookshelf3d/Book3D.jsx`:
-     - `isDragging`, `dragPosition`, `onDragInitiate` props 추가.
-     - 드래그 중인 도서는 3D 공간에서 마우스 포인터 월드 좌표를 즉각 추적(`lambda = 26`)하며, 앞으로 살짝 떠오르고(`z + 0.45`), 황금빛 테두리 글로우가 켜지도록 애니메이션 보강.
-  4. `app/features/room/LibraryScene.jsx`:
-     - 6px 이상 마우스 이동 시에만 도서 이동 드래그 모드로 전환하여, 가벼운 클릭 시 도서 상세 모달 오픈 경험과 완벽히 분리.
+  - 백엔드 �  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+�여, 가벼운 클릭 시 도서 상세 모달 오픈 경험과 완벽히 분리.
      - 도서 드래�  - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 ��처 opacity 낮추기.
@@ -127,28 +137,3 @@
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-19: 도서 상세 모달 내 3D/2D 도서 뷰어 전환 기능 및 선호도 저장 구현
-- 작업 브랜치: `feat/book-detail-2d-3d-toggle`
-- **사용자 요청**:
-  - 도서 상세 모달에서 보이는 3D 도서를 사용자가 원하는 대로 2D 평면 표지로도 볼 수 있도록 3D/2D 전환 기능 추가.
-- **작업 내용**:
-  1. `app/i18n/translations.js`:
-     - `bookDetail.view3d` ('3D 도서' / '3D Book'), `bookDetail.view2d` ('2D 표지' / '2D Cover'), `bookDetail.cover2dHint` ('2D 도서 표지' / '2D Book Cover') 다국어 키 추가.
-  2. `app/features/room/Book3DViewer.jsx`:
-     - 뷰어 우측 상단에 3D / 2D 세그먼트 토글 버튼(`[ 🎲 3D ] [ 🖼️ 2D ]`) 추가.
-     - 사용자의 뷰 모드 선택을 `localStorage` (`myReadingRoom.bookDetailViewMode`)에 영구 저장하여, 다른 도서를 탐색하거나 재방문 시에도 사용자가 선호하는 모드(2D/3D)가 일관되게 유지되도록 구현.
-     - **2D 모드 렌더링**:
-       - 표지 이미지(`coverUrl`)가 등록된 경우, 드롭 섀도우 및 부드러운 호버 스케일 효과가 적용된 고해상도 2D 표지 이미지 렌더링 (이미지 로드 실패 시 graceful fallback).
-       - 표지 이미지가 없거나 로드 실패 시, 도서의 책등/표지 색상 그라데이션 및 양각 책등 주름 효과가 적용된 세련된 그래픽 북커버(제목, 저자 표시) 렌더링.
-     - 뷰어 하단 안내 힌트 칩을 모드에 따라 실시간 전환 (`3D 도서 드래그 회전` ↔ `2D 도서 표지`).
-  3. `app/features/room/BookDetail.css`:
-     - 세그먼트 토글 버튼(`.book-viewer-mode-toggle`, `.book-viewer-mode-btn`), 2D 표지 컨테이너(`.book-viewer-2d-container`), 표지 이미지(`.book-viewer-2d-img`), 그래픽 북커버 Fallback(`.book-viewer-2d-fallback`) 스타일링 및 부드러운 페이드인 애니메이션 추가.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-
