@@ -45,6 +45,33 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
+.lc-mode-tab.lc-mode-tab--disabled,
+.lc-mode-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  color: var(--text);
+  background: transparent;
+  box-shadow: none;
+}
+
+.lc-mode-tab.lc-mode-tab--disabled:hover,
+.lc-mode-tab:disabled:hover {
+  color: var(--text);
+  background: transparent;
+}
+
+.lc-mode-tab-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  background: rgba(140, 140, 140, 0.16);
+  border: 1px solid var(--border);
+  color: var(--text);
+  line-height: 1.2;
+  margin-left: 2px;
+}
+
 /* 📚 내 서재 조회 모드 뷰 */
 .lc-library-view {
   display: flex;

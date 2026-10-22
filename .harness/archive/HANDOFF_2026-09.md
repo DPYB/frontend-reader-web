@@ -1,5 +1,28 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-19: 도서 상세 모달 내 3D/2D 도서 뷰어 전환 기능 및 선호도 저장 구현
+- 작업 브랜치: `feat/book-detail-2d-3d-toggle`
+- **사용자 요청**:
+  - 도서 상세 모달에서 보이는 3D 도서를 사용자가 원하는 대로 2D 평면 표지로도 볼 수 있도록 3D/2D 전환 기능 추가.
+- **작업 내용**:
+  1. `app/i18n/translations.js`:
+     - `bookDetail.view3d` ('3D 도서' / '3D Book'), `bookDetail.view2d` ('2D 표지' / '2D Cover'), `bookDetail.cover2dHint` ('2D 도서 표지' / '2D Book Cover') 다국어 키 추가.
+  2. `app/features/room/Book3DViewer.jsx`:
+     - 뷰어 우측 상단에 3D / 2D 세그먼트 토글 버튼(`[ 🎲 3D ] [ 🖼️ 2D ]`) 추가.
+     - 사용자의 뷰 모드 선택을 `localStorage` (`myReadingRoom.bookDetailViewMode`)에 영구 저장하여, 다른 도서를 탐색하거나 재방문 시에도 사용자가 선호하는 모드(2D/3D)가 일관되게 유지되도록 구현.
+     - **2D 모드 렌더링**:
+       - 표지 이미지(`coverUrl`)가 등록된 경우, 드롭 섀도우 및 부드러운 호버 스케일 효과가 적용된 고해상도 2D 표지 이미지 렌더링 (이미지 로드 실패 시 graceful fallback).
+       - 표지 이미지가 없거나 로드 실패 시, 도서의 책등/표지 색상 그라데이션 및 양각 책등 주름 효과가 적용된 세련된 그래픽 북커버(제목, 저자 표시) 렌더링.
+     - 뷰어 하단 안내 힌트 칩을 모드에 따라 실시간 전환 (`3D 도서 드래그 회전` ↔ `2D 도서 표지`).
+  3. `app/features/room/BookDetail.css`:
+     - 세그먼트 토글 버튼(`.book-viewer-mode-toggle`, `.book-viewer-mode-btn`), 2D 표지 컨테이너(`.book-viewer-2d-container`), 표지 이미지(`.book-viewer-2d-img`), 그래픽 북커버 Fallback(`.book-viewer-2d-fallback`) 스타일링 및 부드러운 페이드인 애니메이션 추가.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-18: 도서 상세 모달 내 이전/다음 도서 탐색 네비게이션 기능 추가
 - 작업 브랜치: `feat/book-detail-prev-next-navigation`
 - **사용자 요청**:

@@ -856,6 +856,7 @@ export default function LibrarianChat({ librarian, answer, onAnswer, onOpenDetai
   };
 
   const handleChangeMode = (mode) => {
+    if (mode === 'debate') return;
     setChatMode(mode);
     if (onAnswer) onAnswer(modeAnswers[mode] || null);
   };
