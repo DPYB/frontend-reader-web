@@ -24,10 +24,13 @@ export default function ChatModeTabs({
       </button>
       <button
         type="button"
-        className={`lc-mode-tab ${chatMode === 'debate' ? 'active' : ''}`}
-        onClick={() => onChangeMode('debate')}
+        className={`lc-mode-tab lc-mode-tab--disabled ${chatMode === 'debate' ? 'active' : ''}`}
+        disabled
+        aria-disabled="true"
+        title={t('chat.modeDebateDisabled', '토론 모드는 준비 중입니다.')}
       >
-        {t('chat.modeDebate', '💡 토론')}
+        <span>{t('chat.modeDebate', '💡 토론')}</span>
+        <span className="lc-mode-tab-tag">{t('chat.modeDebateTag', '준비중')}</span>
       </button>
     </div>
   );
