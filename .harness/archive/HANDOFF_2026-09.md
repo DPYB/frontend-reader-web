@@ -1,5 +1,31 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-18: 도서 상세 모달 내 이전/다음 도서 탐색 네비게이션 기능 추가
+- 작업 브랜치: `feat/book-detail-prev-next-navigation`
+- **사용자 요청**:
+  - 서재 선반에서 도서 클릭 시(PC 환경) 현재 보고 있는 도서의 상세 모달을 닫지 않고도 다음/이전 책으로 바로 이동하여 탐색할 수 있는 네비게이션 버튼 제공.
+- **작업 내용**:
+  1. `app/i18n/translations.js`:
+     - `bookDetail.prevBook` ('이전 도서' / 'Previous Book'), `bookDetail.nextBook` ('다음 도서' / 'Next Book') 다국어 키 추가.
+  2. `app/features/room/BookDetail.css` 신설:
+     - PC 전용 플로팅 대형 좌우 화살표 버튼(`.book-nav-float-btn`) 및 모달 상단 네비게이션 필(`.book-detail-nav-arrow-btn`) 스타일링.
+     - 다크 글래스모피즘(`backdrop-filter: blur(12px)`), 은은한 호버 글로우 및 부드러운 스케일 트랜지션 적용.
+  3. `app/features/room/BookDetail.jsx`:
+     - 네비게이션 관련 props(`onPrevBook`, `onNextBook`, `hasPrev`, `hasNext`, `currentIndex`, `totalBooks`, `prevBookTitle`, `nextBookTitle`) 수신 및 컴팩트 상단 필(`{currentIndex + 1} / {totalBooks}`)과 PC 전용 좌우 플로팅 쉐브론 버튼 배치.
+     - 키보드 좌/우 화살표 단축키(`ArrowLeft`, `ArrowRight`) 리스너 연동 (입력창/메모 편집 포커스 중 제외).
+  4. `app/features/room/LibraryScene.jsx`:
+     - 선반 내 전체 도서 목록(`sourceBooks`) 기반으로 현재 선택된 도서의 인덱스 추적 및 `onPrevBook`/`onNextBook` 핸들러 바인딩.
+     - 도서 전환 시 React key(`key={book.id || book.bookId || book.title}`)를 통해 3D 뷰어, 상세 데이터, 문장 갤러리 및 타이머 세션 상태가 완벽히 초기화되어 stale state 없이 즉시 반영되도록 구현.
+     - 배경 3D 책장에서도 선택된 책이 자동으로 슬라이드 아웃/인 애니메이션 동기화.
+  5. `app/pages/MyPage.jsx`:
+     - 마이페이지 독서 리스트 및 독서 캘린더 모달에서도 동일한 이전/다음 도서 탐색이 가능하도록 `useBooks` 연동 및 네비게이션 props 바인딩.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-18: 도서 직접 등록 시 책 표지 사진 촬영/업로드 및 R2 Presigned URL 연동
 - 작업 브랜치: `feat/register-book-custom-cover-upload`
 - **사용자 요청**:

@@ -28,8 +28,8 @@ const BUTTONS = [
   {
     id: 'signup',
     src: '/button/signup_btn.webp',
-    tooltipKo: '회원가입 (준비 중)',
-    tooltipEn: 'Sign Up (Coming Soon)',
+    tooltipKo: '회원가입',
+    tooltipEn: 'Sign Up',
     left: 40.9, top: 61.5, width: 7.8, height: 8.5,
   },
   {
@@ -63,15 +63,15 @@ const BUTTONS = [
   {
     id: 'kakao',
     src: '/button/kakao_btn.webp',
-    tooltipKo: '카카오 로그인 (준비 중)',
-    tooltipEn: 'Kakao Login (Coming Soon)',
+    tooltipKo: '카카오 로그인',
+    tooltipEn: 'Kakao Login',
     left: 44.0, top: 85.83, width: 13.98, height: 3.75,
   },
   {
     id: 'google',
     src: '/button/google_btn.webp',
-    tooltipKo: 'Google 로그인 (준비 중)',
-    tooltipEn: 'Google Login (Coming Soon)',
+    tooltipKo: 'Google 로그인',
+    tooltipEn: 'Google Login',
     left: 44.0, top: 91.25, width: 13.98, height: 3.75,
   },
 ];
@@ -381,11 +381,11 @@ export default function LoginPage() {
     }
   };
 
-  /** 버튼별 비활성 조건 — 회원가입·비밀번호찾기·카카오·구글(준비 중 비활성), 로그인은 입력 검증, 체험은 요청 중(loading)일 때 잠근다. */
+  /** 버튼별 비활성 조건 — 비밀번호찾기(준비 중 비활성), 로그인은 입력 검증, 회원가입/소셜/체험은 요청 중(loading)일 때 잠근다. */
   const isButtonDisabled = (id) => {
-    if (id === 'signup' || id === 'password' || id === 'kakao' || id === 'google') return true;
+    if (id === 'password') return true;
     if (id === 'login') return !isLoginEnabled;
-    if (id === 'dpyb') return loading;
+    if (id === 'signup' || id === 'kakao' || id === 'google' || id === 'dpyb') return loading;
     return false;
   };
 
