@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../store/authStore';
 import { useLibrarian } from '../store/librarianStore';
-import { fetchMonthlyReport, fetchWeeklyReport, getAvailableWeeks } from '../api/reportApi';
+import { fetchMonthlyReport, fetchWeeklyReport } from '../api/reportApi';
 import { downloadReportAsPdf } from '../lib/pdfExport';
 import { genreLabel } from '../data/genres';
 import { useLanguage } from '../store/languageStore';
@@ -122,6 +122,53 @@ function getAvailableMonths() {
   return list;
 }
 
+// ISO YYYY-MM-DD 포맷팅 함수
+function formatIsoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// 시작 날짜로부터 7일간(시작일 포함 7일)의 주간 범위 정보 생성
+function calculateWeekRange(startIsoStr) {
+  if (!startIsoStr) return null;
+  const [sy, sm, sd] = startIsoStr.split('-').map(Number);
+  const start = new Date(sy, sm - 1, sd);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const endIso = formatIsoDate(end);
+  const mStart = String(start.getMonth() + 1).padStart(2, '0');
+  const dStart = String(start.getDate()).padStart(2, '0');
+  const mEnd = String(end.getMonth() + 1).padStart(2, '0');
+  const dEnd = String(end.getDate()).padStart(2, '0');
+
+  // 대표 연/월: 중간일 기준
+  const mid = new Date(start);
+  mid.setDate(start.getDate() + 3);
+  const year = mid.getFullYear();
+  const month = mid.getMonth() + 1;
+
+  const firstDayOfMonth = new Date(year, month - 1, 1);
+  const firstDayWeekday = firstDayOfMonth.getDay() === 0 ? 7 : firstDayOfMonth.getDay();
+  const weekNum = Math.ceil((mid.getDate() + firstDayWeekday - 1) / 7);
+
+  const dateRangeStr = `${mStart}.${dStart} ~ ${mEnd}.${dEnd}`;
+
+  return {
+    year,
+    month,
+    weekNum,
+    startIso: startIsoStr,
+    endIso,
+    dateRangeStr,
+    labelKo: `${startIsoStr} ~ ${endIso} (7일간)`,
+    labelEn: `${startIsoStr} - ${endIso} (7 days)`,
+    shortLabel: `${mStart}.${dStart} ~ ${mEnd}.${dEnd}`,
+  };
+}
+
 export default function MonthlyReport() {
   const { t, isEn } = useLanguage();
   const { isGuest } = useAuth();
@@ -132,18 +179,20 @@ export default function MonthlyReport() {
   const [periodType, setPeriodType] = useState('monthly');
 
   const availableMonths = useMemo(() => getAvailableMonths(), []);
-  const availableWeeks = useMemo(() => getAvailableWeeks(), []);
+  const todayIso = useMemo(() => formatIsoDate(new Date()), []);
+  const defaultWeeklyStartIso = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6); // 오늘 기준 최근 7일 시작일
+    return formatIsoDate(d);
+  }, []);
 
   const [year, setYear] = useState(() => availableMonths[0]?.year || 2026);
   const [month, setMonth] = useState(() => availableMonths[0]?.month || 9);
-  const [selectedWeekKey, setSelectedWeekKey] = useState(() => {
-    const first = availableWeeks[0];
-    return first ? `${first.year}-W${first.weekNumber}` : '';
-  });
+  const [weeklyStartDate, setWeeklyStartDate] = useState(defaultWeeklyStartIso);
 
   const selectedWeek = useMemo(() => {
-    return availableWeeks.find((w) => `${w.year}-W${w.weekNumber}` === selectedWeekKey) || availableWeeks[0] || null;
-  }, [availableWeeks, selectedWeekKey]);
+    return calculateWeekRange(weeklyStartDate);
+  }, [weeklyStartDate]);
 
   const [, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -364,29 +413,6 @@ export default function MonthlyReport() {
       {/* ── 리포트 상단 컨트롤 헤더 ── */}
       <div className="report-header">
         <div className="report-title-area">
-          <div className="report-period-and-badge">
-            <div className="report-period-toggle" role="tablist" aria-label="리포트 주기 선택">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={periodType === 'weekly'}
-                className={`report-period-btn ${periodType === 'weekly' ? 'active' : ''}`}
-                onClick={() => setPeriodType('weekly')}
-              >
-                {t('report.tabWeekly', '주간 리포트')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={periodType === 'monthly'}
-                className={`report-period-btn ${periodType === 'monthly' ? 'active' : ''}`}
-                onClick={() => setPeriodType('monthly')}
-              >
-                {t('report.tabMonthly', '월간 리포트')}
-              </button>
-            </div>
-          </div>
-
           <h1 className="report-title">
             <span className="librarian-badge">
               [{librarian.displayName || librarian.name}]
@@ -399,19 +425,47 @@ export default function MonthlyReport() {
         </div>
 
         <div className="report-actions">
-          {periodType === 'weekly' ? (
-            <select
-              className="report-month-select"
-              value={selectedWeekKey}
-              onChange={(e) => setSelectedWeekKey(e.target.value)}
-              aria-label="주간 선택"
+          {/* 주간 / 월간 전환 토글 버튼 (날짜 선택기 왼쪽) */}
+          <div className="report-period-toggle" role="tablist" aria-label="리포트 주기 선택">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={periodType === 'weekly'}
+              className={`report-period-btn ${periodType === 'weekly' ? 'active' : ''}`}
+              onClick={() => setPeriodType('weekly')}
             >
-              {availableWeeks.map((opt) => (
-                <option key={`${opt.year}-W${opt.weekNumber}`} value={`${opt.year}-W${opt.weekNumber}`}>
-                  {isEn ? `${opt.year} W${String(opt.weekNumber).padStart(2, '0')} (${opt.startDate} ~ ${opt.endDate})` : opt.label}
-                </option>
-              ))}
-            </select>
+              {t('report.tabWeekly', '주간 리포트')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={periodType === 'monthly'}
+              className={`report-period-btn ${periodType === 'monthly' ? 'active' : ''}`}
+              onClick={() => setPeriodType('monthly')}
+            >
+              {t('report.tabMonthly', '월간 리포트')}
+            </button>
+          </div>
+
+          {/* 기간별 날짜 선택기 */}
+          {periodType === 'weekly' ? (
+            <div className="report-weekly-picker" title={isEn ? 'Select weekly start date' : '주간 시작 날짜 선택'}>
+              <span className="report-picker-label">{isEn ? 'Start' : '시작일'}</span>
+              <input
+                type="date"
+                className="report-date-input"
+                value={weeklyStartDate}
+                min="2026-09-01"
+                max={todayIso}
+                onChange={(e) => {
+                  if (e.target.value) setWeeklyStartDate(e.target.value);
+                }}
+                aria-label={isEn ? 'Weekly Start Date' : '주간 시작 날짜'}
+              />
+              <span className="report-range-badge">
+                {selectedWeek ? `~ ${selectedWeek.endIso} (7일간)` : ''}
+              </span>
+            </div>
           ) : (
             <select
               className="report-month-select"

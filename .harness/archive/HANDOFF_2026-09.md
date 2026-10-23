@@ -1,5 +1,21 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-23: 고양이(블루) 사서 커서 이미지 신규 일러스트 교체 및 WebP 변환
+- 작업 브랜치: `feat/cat-cursor-image-update`
+- **사용자 요청**:
+  - 새로 그린 블루 커서 이미지 적용 (`cat_01` = 기본 커서, `cat_02` = 클릭 시 잠깐 보여지는 커서).
+  - 화질 저하 없이 WebP로 변환하고, 화면에 보이는 크기는 이전과 동일하게 유지.
+- **작업 내용**:
+  1. 원본(11811×11811 PNG) 분석: 캔버스 대비 캐릭터 알파 바운딩 박스 비율이 기존 `cat_03`/`cat_04`와 사실상 동일(기본 0.558×0.780 vs 0.563×0.780)함을 확인 → 정사각 리사이즈만으로 표시 크기(200px 박스) 유지.
+  2. `public/cursors/cat/cat_01.webp`, `cat_02.webp` 생성: LANCZOS 600×600(표시 200px 기준 3x, 레티나 대응), WebP q92 / alpha_quality 100 (각 약 35KB / 32KB). 기존 300px 대비 해상도 2배.
+  3. `public/cursors/cat/cat_01_cursor.png` 생성: OS 네이티브 CSS 커서용(91×128, 핫스팟 6 6 유지). CSS `cursor` 호환성을 위해 PNG 유지.
+  4. `app/data/librarians.js`: 블루 `image`/`imageHover` 경로 교체, 클릭 포즈 앞발 끝 실측값으로 `tipHover`를 `{ x: 0.13, y: 0.346 }`로 보정(기본 `tip`은 실측 결과 동일하여 유지).
+  5. `app/index.css`: `[data-librarian='cat']` 네이티브 커서 경로 교체.
+  6. 레거시 에셋(`cat_03.webp`, `cat_04.webp`, `cat_03_cursor.png`) 제거. 원본 대용량 PNG는 배포 번들에 포함되지 않도록 `public/` 밖으로 이동.
+- **검증**:
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+  - 기존/신규 이미지를 200px로 나란히 렌더링하여 표시 크기·포인터 위치 일치 확인
+
 ## 2026-10-22: BETA 피드백 설문조사 디스코드 웹훅 연동 및 실시간 알림 카드 구현
 - 작업 브랜치: `feat/survey-discord-webhook-integration`
 - **사용자 요청**:
