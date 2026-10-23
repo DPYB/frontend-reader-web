@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../store/authStore';
 import { useLibrarian } from '../store/librarianStore';
-import { fetchMonthlyReport } from '../api/reportApi';
+import { fetchMonthlyReport, fetchWeeklyReport, getAvailableWeeks } from '../api/reportApi';
 import { downloadReportAsPdf } from '../lib/pdfExport';
 import { genreLabel } from '../data/genres';
 import { useLanguage } from '../store/languageStore';
@@ -64,7 +64,7 @@ const EMPTY_REPORT_DATA = {
     dominantGenre: null,
     isBiased: false,
     unreadGenres: [],
-    analysisText: '이번 달 독서 기록이 축적되면 장르 밸런스를 분석해 드립니다.',
+    analysisText: '독서 기록이 축적되면 장르 밸런스를 분석해 드립니다.',
   },
   footprint: {
     topScraps: [],
@@ -128,15 +128,28 @@ export default function MonthlyReport() {
   const { librarian } = useLibrarian();
   const reportRef = useRef(null);
 
+  // 리포트 기간 주기 ('weekly': 주간, 'monthly': 월간)
+  const [periodType, setPeriodType] = useState('monthly');
+
   const availableMonths = useMemo(() => getAvailableMonths(), []);
+  const availableWeeks = useMemo(() => getAvailableWeeks(), []);
+
   const [year, setYear] = useState(() => availableMonths[0]?.year || 2026);
   const [month, setMonth] = useState(() => availableMonths[0]?.month || 9);
+  const [selectedWeekKey, setSelectedWeekKey] = useState(() => {
+    const first = availableWeeks[0];
+    return first ? `${first.year}-W${first.weekNumber}` : '';
+  });
+
+  const selectedWeek = useMemo(() => {
+    return availableWeeks.find((w) => `${w.year}-W${w.weekNumber}` === selectedWeekKey) || availableWeeks[0] || null;
+  }, [availableWeeks, selectedWeekKey]);
 
   const [, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [reportData, setReportData] = useState(EMPTY_REPORT_DATA);
 
-  // 이번 달 독서 활동 유무 판별 (완독, 세션, 스크랩, 장르 중 1개라도 존재하는지)
+  // 활동 유무 판별 (완독, 세션, 스크랩, 장르 중 1개라도 존재하는지)
   const hasActivity = useMemo(() => {
     const ov = reportData.overview;
     const rh = reportData.rhythm;
@@ -149,13 +162,19 @@ export default function MonthlyReport() {
     return Boolean(hasCount || hasWeekly || hasScraps || hasGenres);
   }, [reportData]);
 
-  // 연/월 변경 시 백엔드 조회
+  // 연/월 또는 주차 변경 시 백엔드 조회
   useEffect(() => {
     let cancelled = false;
     async function loadReport() {
       setLoading(true);
       try {
-        const data = await fetchMonthlyReport({ year, month });
+        let data = null;
+        if (periodType === 'weekly' && selectedWeek) {
+          data = await fetchWeeklyReport(selectedWeek);
+        } else {
+          data = await fetchMonthlyReport({ year, month });
+        }
+
         if (!cancelled && data) {
           // 요일 데이터 (백엔드 실제 데이터 유지)
           const dayOfWeek = Array.isArray(data.rhythm?.dayOfWeek) && data.rhythm.dayOfWeek.length > 0
@@ -247,7 +266,7 @@ export default function MonthlyReport() {
     return () => {
       cancelled = true;
     };
-  }, [year, month]);
+  }, [periodType, year, month, selectedWeek]);
 
   // 도넛 차트 1위 장르 계산
   const topGenre = useMemo(() => {
@@ -264,6 +283,7 @@ export default function MonthlyReport() {
       await downloadReportAsPdf({
         element: reportRef.current,
         librarianName: librarian.displayName || librarian.name || '사서',
+        title: periodType === 'weekly' ? '주간_독서_리포트' : '월간_독서_리포트',
       });
     } catch (error) {
       console.error('[MonthlyReport] PDF 다운로드 에러:', error);
@@ -276,32 +296,58 @@ export default function MonthlyReport() {
   // 사서별 맞춤 멘트 생성 (07번 섹션)
   const libType = String(librarian.type || librarian.id || '').toUpperCase();
   const libName = librarian.displayName || librarian.name || '사서';
+
   const librarianSpeech = useMemo(() => {
     if (reportData.librarianDiscovery?.message) {
       return reportData.librarianDiscovery.message;
     }
+    const isW = periodType === 'weekly';
+    const periodName = isW ? (selectedWeek?.shortLabel || '이번 주') : `${month}월`;
+    const nextPeriodName = isW ? '다음 주' : '다음 달';
+
     if (!hasActivity) {
       if (libType.includes('CAT') || libType.includes('BLUE')) {
-        return `${libName} 사서다 냥! 🐾 ${month}월에는 아직 기록된 독서 활동이 없다 냥. 서재에서 책을 읽거나 타이머를 켜두면, 내가 멋지게 분석해 줄게 냥! 🐟📖`;
+        return `${libName} 사서다 냥! 🐾 ${periodName}에는 아직 기록된 독서 활동이 없다 냥. 서재에서 책을 읽거나 타이머를 켜두면, 내가 멋지게 분석해 줄게 냥! 🐟📖`;
       }
       if (libType.includes('SHOEBILL') || libType.includes('STORK')) {
-        return `${libName} 사서다두둥. 🏛️ ${month}월의 독서 관찰 기록이 아직 없다두둥. 서재에 책을 등록하고 독서 타이머를 시작해보라두둥.`;
+        return `${libName} 사서다두둥. 🏛️ ${periodName}의 독서 관찰 기록이 아직 없다두둥. 서재에 책을 등록하고 독서 타이머를 시작해보라두둥.`;
       }
       if (libType.includes('SEA_SLUG') || libType.includes('NUDI')) {
-        return `${libName} 사서야누누... 🌊 ${month}월에는 아직 마음에 닿은 책의 흔적이 없었어누누. 천천히 한 페이지를 펼치고 이야기를 들려줘누누.`;
+        return `${libName} 사서야누누... 🌊 ${periodName}에는 아직 마음에 닿은 책의 흔적이 없었어누누. 천천히 한 페이지를 펼치고 이야기를 들려줘누누.`;
       }
       if (libType.includes('GECKO')) {
-        return `${libName} 사서다크크! 🦎 ${month}월에 함께 나눈 책 이야기가 아직 없다크크. 언제든 좋아하는 책을 펼치고 찾아와달라크크!`;
+        return `${libName} 사서다크크! 🦎 ${periodName}에 함께 나눈 책 이야기가 아직 없다크크. 언제든 좋아하는 책을 펼치고 찾아와달라크크!`;
       }
-      return `${month}월의 독서 기록이 아직 없습니다. 책을 읽고 타이머를 시작해 보세요!`;
+      return `${periodName}의 독서 기록이 아직 없습니다. 책을 읽고 타이머를 시작해 보세요!`;
     }
     if (libType.includes('SHOEBILL') || libType.includes('STORK')) {
-      return `독자님의 ${month}월 독서는 깊은 사색과 절제된 집중이 깃들어 있었습니다두둥. 비 오는 날과 심야 시간에 특히 철학적 문장에 많은 흔적을 남기셨더군요. 언제나 품격 있는 독서 여정을 제가 정성껏 보좌하겠습니다두둥.`;
+      return `독자님의 ${periodName} 독서는 깊은 사색과 절제된 집중이 깃들어 있었습니다두둥. 비 오는 날과 심야 시간에 특히 철학적 문장에 많은 흔적을 남기셨더군요. 언제나 품격 있는 독서 여정을 제가 정성껏 보좌하겠습니다두둥.`;
     }
-    return `집사님의 ${month}월 독서는 호기심과 모험이 넘쳐났다 냥! 🐾 특히 주말 밤마다 책에 푹 빠져서 스크랩을 잔뜩 남겼어 냥. 내가 골라준 다음 달 처방 책도 마음에 쏙 들 거다 냥! 🐟📖`;
-  }, [reportData.librarianDiscovery?.message, hasActivity, libType, libName, month]);
+    return `집사님의 ${periodName} 독서는 호기심과 모험이 넘쳐났다 냥! 🐾 특히 주말 밤마다 책에 푹 빠져서 스크랩을 잔뜩 남겼어 냥. 내가 골라준 ${nextPeriodName} 처방 책도 마음에 쏙 들 거다 냥! 🐟📖`;
+  }, [reportData.librarianDiscovery?.message, hasActivity, libType, libName, periodType, selectedWeek, month]);
 
   const { overview, rhythm, taste, balance, footprint, librarianDiscovery, prescription } = reportData;
+
+  // 타이틀 및 서브타이틀 동적 생성
+  const reportMainTitle = periodType === 'weekly'
+    ? (isEn ? t('report.weeklyTitle', "'s Weekly Reading Report") : t('report.weeklyTitle', ' 사서의 주간 독서 리포트'))
+    : (isEn ? t('report.monthlyTitle', "'s Monthly Reading Report") : t('report.monthlyTitle', ' 사서의 월간 독서 리포트'));
+
+  const reportSubtitle = periodType === 'weekly'
+    ? (isEn
+      ? `An analysis of reading habits and preferences accumulated during ${selectedWeek?.label || 'this week'}.`
+      : `${selectedWeek?.label || '이번 주'} 동안 축적된 나의 독서 습관과 취향을 사서의 시선으로 분석했습니다.`)
+    : (isEn
+      ? `An analysis of reading habits and preferences accumulated during ${year}-${String(month).padStart(2, '0')}.`
+      : `${year}년 ${month}월 동안 축적된 나의 독서 습관과 취향을 사서의 시선으로 분석했습니다.`);
+
+  const emptyTitleText = periodType === 'weekly'
+    ? (isEn ? `Awaiting Reading Records for ${selectedWeek?.shortLabel || 'This Week'}` : `${selectedWeek?.shortLabel || selectedWeek?.label || '이번 주'} 독서 기록 대기 중`)
+    : (isEn ? `Awaiting Reading Records for ${year}-${String(month).padStart(2, '0')}` : `${year}년 ${month}월 독서 기록 대기 중`);
+
+  const emptyDescText = periodType === 'weekly'
+    ? t('report.emptyDescWeekly', '이번 주에는 아직 완료된 독서나 타이머 세션 기록이 없습니다. 서재에서 책을 읽거나 타이머를 시작하면 사서가 풍성한 분석을 완성해 드려요!')
+    : t('report.emptyDesc', '이번 달에는 아직 완료된 독서나 타이머 세션 기록이 없습니다. 서재에서 책을 읽거나 타이머를 시작하면 사서가 풍성한 분석을 완성해 드려요!');
 
   return (
     <div className="report-container">
@@ -318,35 +364,72 @@ export default function MonthlyReport() {
       {/* ── 리포트 상단 컨트롤 헤더 ── */}
       <div className="report-header">
         <div className="report-title-area">
+          <div className="report-period-and-badge">
+            <div className="report-period-toggle" role="tablist" aria-label="리포트 주기 선택">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={periodType === 'weekly'}
+                className={`report-period-btn ${periodType === 'weekly' ? 'active' : ''}`}
+                onClick={() => setPeriodType('weekly')}
+              >
+                {t('report.tabWeekly', '주간 리포트')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={periodType === 'monthly'}
+                className={`report-period-btn ${periodType === 'monthly' ? 'active' : ''}`}
+                onClick={() => setPeriodType('monthly')}
+              >
+                {t('report.tabMonthly', '월간 리포트')}
+              </button>
+            </div>
+          </div>
+
           <h1 className="report-title">
             <span className="librarian-badge">
               [{librarian.displayName || librarian.name}]
             </span>
-            {isEn ? "'s Monthly Reading Report" : ' 사서의 월간 독서 리포트'}
+            {reportMainTitle}
           </h1>
           <p className="report-subtitle">
-            {isEn
-              ? `An analysis of reading habits and preferences accumulated during ${year}-${String(month).padStart(2, '0')}.`
-              : `${year}년 ${month}월 동안 축적된 나의 독서 습관과 취향을 사서의 시선으로 분석했습니다.`}
+            {reportSubtitle}
           </p>
         </div>
 
         <div className="report-actions">
-          <select
-            className="report-month-select"
-            value={`${year}-${month}`}
-            onChange={(e) => {
-              const [y, m] = e.target.value.split('-');
-              setYear(Number(y));
-              setMonth(Number(m));
-            }}
-          >
-            {availableMonths.map((opt) => (
-              <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
-                {isEn ? `${opt.year}-${String(opt.month).padStart(2, '0')}` : opt.label}
-              </option>
-            ))}
-          </select>
+          {periodType === 'weekly' ? (
+            <select
+              className="report-month-select"
+              value={selectedWeekKey}
+              onChange={(e) => setSelectedWeekKey(e.target.value)}
+              aria-label="주간 선택"
+            >
+              {availableWeeks.map((opt) => (
+                <option key={`${opt.year}-W${opt.weekNumber}`} value={`${opt.year}-W${opt.weekNumber}`}>
+                  {isEn ? `${opt.year} W${String(opt.weekNumber).padStart(2, '0')} (${opt.startDate} ~ ${opt.endDate})` : opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              className="report-month-select"
+              value={`${year}-${month}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split('-');
+                setYear(Number(y));
+                setMonth(Number(m));
+              }}
+              aria-label="월간 선택"
+            >
+              {availableMonths.map((opt) => (
+                <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
+                  {isEn ? `${opt.year}-${String(opt.month).padStart(2, '0')}` : opt.label}
+                </option>
+              ))}
+            </select>
+          )}
 
           <button
             className="report-download-btn"
@@ -358,16 +441,16 @@ export default function MonthlyReport() {
         </div>
       </div>
 
-      {/* ── 활동 없는 달 친절한 안내 배너 ── */}
+      {/* ── 활동 없는 기간 친절한 안내 배너 ── */}
       {!hasActivity && (
         <div className="report-empty-banner">
           <div className="report-empty-icon">🌱</div>
           <div className="report-empty-content">
             <h3 className="report-empty-title">
-              {isEn ? `Awaiting Reading Records for ${year}-${String(month).padStart(2, '0')}` : `${year}년 ${month}월 독서 기록 대기 중`}
+              {emptyTitleText}
             </h3>
             <p className="report-empty-desc">
-              {t('report.emptyDesc', '이번 달에는 아직 완료된 독서나 타이머 세션 기록이 없습니다. 서재에서 책을 읽거나 타이머를 시작하면 사서가 풍성한 분석을 완성해 드려요!')}
+              {emptyDescText}
             </p>
           </div>
         </div>
@@ -375,11 +458,13 @@ export default function MonthlyReport() {
 
       {/* ── 인쇄 및 PDF 캡처 대상 본문 래퍼 ── */}
       <div className="report-paper" ref={reportRef}>
-        {/* 01. 이번 달 한눈에 보기 */}
+        {/* 01. 이번 주 / 이번 달 한눈에 보기 */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">01</span>
-            <h2 className="report-card-title">{t('report.card01Title', '이번 달 한눈에 보기')}</h2>
+            <h2 className="report-card-title">
+              {periodType === 'weekly' ? t('report.card01TitleWeekly', '이번 주 한눈에 보기') : t('report.card01TitleMonthly', '이번 달 한눈에 보기')}
+            </h2>
           </div>
           <div className="overview-grid">
             <div className="overview-stat-box">
@@ -554,7 +639,9 @@ export default function MonthlyReport() {
                 )}
               </div>
               <div className="taste-keywords-box">
-                <div className="taste-keywords-label">💬 이번 달 사서와 나눈 주요 대화 키워드</div>
+                <div className="taste-keywords-label">
+                  {periodType === 'weekly' ? '💬 이번 주 사서와 나눈 주요 대화 키워드' : '💬 이번 달 사서와 나눈 주요 대화 키워드'}
+                </div>
                 <div className="taste-keywords-list">
                   {taste?.keywords && taste.keywords.length > 0 ? (
                     taste.keywords.map((kw) => (
@@ -605,7 +692,9 @@ export default function MonthlyReport() {
             <div className="report-empty-placeholder">
               <span className="empty-placeholder-icon">✍️</span>
               <p className="empty-placeholder-text">
-                이번 달에 수집된 문장 스크랩이 없습니다.<br />책을 읽으며 마음을 울린 문장을 카메라 OCR이나 수동으로 스크랩해 보세요.
+                {periodType === 'weekly' ? '이번 주에 수집된 문장 스크랩이 없습니다.' : '이번 달에 수집된 문장 스크랩이 없습니다.'}
+                <br />
+                책을 읽으며 마음을 울린 문장을 카메라 OCR이나 수동으로 스크랩해 보세요.
               </p>
             </div>
           )}
@@ -692,11 +781,13 @@ export default function MonthlyReport() {
           </div>
         </section>
 
-        {/* 08. 다음 달 독서 처방 */}
+        {/* 08. 다음 주 / 다음 달 독서 처방 */}
         <section className="report-card">
           <div className="report-card-header">
             <span className="report-card-num">08</span>
-            <h2 className="report-card-title">다음 달 독서 처방 (추천 도서 · 장르)</h2>
+            <h2 className="report-card-title">
+              {periodType === 'weekly' ? '다음 주 독서 처방 (추천 도서 · 장르)' : '다음 달 독서 처방 (추천 도서 · 장르)'}
+            </h2>
           </div>
           <div className="prescription-genre-banner">
             추천 장르 테마: <span className="prescription-genre-highlight">{genreLabel(prescription?.recommendedGenre) || prescription?.recommendedGenre}</span>
@@ -733,7 +824,9 @@ export default function MonthlyReport() {
             <div className="report-empty-placeholder">
               <span className="empty-placeholder-icon">💊</span>
               <p className="empty-placeholder-text">
-                독서 활동이 축적되면 사서가 딱 맞는 다음 달 처방 도서를 엄선해 드립니다.
+                {periodType === 'weekly'
+                  ? '독서 활동이 축적되면 사서가 딱 맞는 다음 주 처방 도서를 엄선해 드립니다.'
+                  : '독서 활동이 축적되면 사서가 딱 맞는 다음 달 처방 도서를 엄선해 드립니다.'}
               </p>
             </div>
           )}

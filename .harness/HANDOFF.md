@@ -1,5 +1,34 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: 채팅창 '?' 도움말 버튼 제거 및 주간(Weekly) 독서 리포트 지원 구현
+- 작업 브랜치: `feat/chat-remove-help-btn-and-weekly-reading-report`
+- **사용자 요청**:
+  - 채팅창 누르면 새 대화 버튼 오른쪽에 있는 '?' 버튼에 설명 나오는데 그거 없애기 ('?' 버튼도 함께 제거).
+  - 독서 리포트가 월간만 되어 있는데 주간도 가능하게 구현.
+- **작업 내용**:
+  1. `app/features/room/chat/ChatHeader.jsx`:
+     - 상단 헤더의 `showHelp` 상태 및 '?' 버튼/설명 팝오버 래퍼(`.lc-help-btn-wrap`) 완전 제거. 미사용 `useState` import 정리.
+  2. `app/api/reportApi.js`:
+     - `getAvailableWeeks()`: 서비스 런칭 시점(2026년 9월)부터 현재까지의 ISO-8601 기반 주차 목록(월~일 주차, 목요일 기준 월 소속) 동적 생성 및 최신순 반환 함수 구현 및 export.
+     - `deriveWeeklyReportFromMonthly(monthlyData, weekInfo)`: 백엔드 주간 API 부재 시 월간 리포트 데이터를 기반으로 주간 스케일(주간 목표 1권, 1주 환산 페이지/시간, 최대 7일 Streak, 주간 피드백)로 정규화하는 어댑터 함수 구현.
+     - `fetchWeeklyReport(weekInfo)`: `/reports/weekly` API 호출 시도 및 graceful fallback 연동 구현 및 export.
+  3. `app/i18n/translations.js`:
+     - `ko`, `en` 리포트 다국어 번역 키(`tabWeekly`, `tabMonthly`, `weeklyTitle`, `monthlyTitle`, `card01TitleWeekly`, `card01TitleMonthly`, `emptyDescWeekly`) 추가.
+  4. `app/pages/MonthlyReport.jsx`:
+     - `periodType` ('monthly' | 'weekly') 상태 및 `availableWeeks`, `selectedWeek` 상태 관리 연동.
+     - 상단 헤더에 주간/월간 세그먼트 전환 탭 컴포넌트(`.report-period-toggle`) 배치.
+     - `periodType === 'weekly'`일 때 주차 선택 드롭다운 노출 및 `fetchWeeklyReport(selectedWeek)` 비동기 조회.
+     - 타이틀, 서브타이틀, 빈 상태 안내문, 카드 01(이번 주 한눈에 보기), 카드 03 키워드, 카드 05 문장 스크랩, 카드 07 사서 관찰기, 카드 08 처방 제목의 주간/월간 분기 처리.
+     - PDF 다운로드 시 `title` 매개변수에 주간/월간 리포트명(`주간_독서_리포트` vs `월간_독서_리포트`) 전달.
+  5. `app/pages/MonthlyReport.css`:
+     - `.report-period-and-badge`, `.report-period-toggle`, `.report-period-btn`, `.report-period-btn.active` 스타일링 추가.
+  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 내 서재 책등(Spine) 제목 숨김(3D 뷰어 유지) 및 간편로그인(소셜 로그인) UI 비활성화
 - 작업 브랜치: `feat/disable-social-login-and-hide-shelf-spine-title`
 - **사용자 요청**:
@@ -97,34 +126,5 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-22: 사서 대화창 토론 모드 UI 비활성화 및 소셜 로그인 실패 원인 분석 점검
-- 작업 브랜치: `feat/check-social-login-and-disable-debate`
-- **사용자 요청**:
-  - 카카오 로그인, 구글 로그인이 현재 동작하지 않는 원인을 프론트엔드와 백엔드 양쪽에서 점검하여 파악.
-  - 사서 대화창 상단 모드 탭에서 토론 모드를 사용자가 선택하지 못하도록 UI적으로 비활성화(막아두기).
-- **소셜 로그인 점검 결과**:
-  1. **Google 소셜 로그인 실패 원인**:
-     - `triggerGoogleLogin`에서 `window.google.accounts.id.prompt()`(One Tap) 호출 시, Google Cloud Console의 **'승인된 자바스크립트 원본(Authorized JavaScript Origins)'**에 현재 배포 도메인(예: `https://frontend-reader-web.pages.dev`, `https://dpyb.ai0208.xyz`)이 등록되어 있지 않으면 `notification.isNotDisplayed()`로 인해 즉시 `Google 로그인 창이 차단되었거나 표시할 수 없는 환경입니다` 에러 발생.
-     - Cloudflare Pages 빌드 환경변수에 `VITE_GOOGLE_CLIENT_ID`가 미설정된 경우 즉시 클라이언트 ID 누락 에러 발생.
-     - 백엔드 Cloud Run(`Core API 백엔드`) 환경변수에 `GOOGLE_CLIENT_ID`가 미설정되거나 불일치할 경우 백엔드 토큰 검증(audience mismatch) 실패(401).
-  2. **Kakao 소셜 로그인 실패 원인**:
-     - Kakao Developers 콘솔의 **[내 애플케이션] > [플랫폼] > [Web 플랫폼 등록]**에 배포 도메인이 등록되어 있지 않으면 Kakao SDK 실행 시 `KOE006`(미등록 도메인) 오류 발생.
-     - Cloudflare Pages 환경변수에 `VITE_KAKAO_JAVASCRIPT_KEY`가 주입되지 않은 경우 SDK 초기화 실패.
-- **토론 모드 UI 비활성화 작업 내용**:
-  1. `app/i18n/translations.js`:
-     - `chat.modeDebateDisabled` ('토론 모드는 준비 중입니다.' / 'Discussion mode is coming soon.'), `chat.modeDebateTag` ('준비중' / 'Coming Soon') 다국어 키 추가.
-  2. `app/features/room/chat/ChatModeTabs.jsx`:
-     - 토론 모드 버튼에 `disabled`, `aria-disabled="true"`, `lc-mode-tab--disabled` 부여.
-     - '준비중' 뱃지 텍스트(`.lc-mode-tab-tag`) 렌더링 및 툴팁(`title`) 연동, 클릭 이벤트 차단.
-  3. `app/features/room/LibrarianChat.css`:
-     - `.lc-mode-tab.lc-mode-tab--disabled`, `.lc-mode-tab:disabled` 스타일 (`cursor: not-allowed`, `opacity: 0.55`, `pointer-events: auto`) 및 `.lc-mode-tab-tag` 뱃지 캡슐 스타일링 추가.
-  4. `app/features/room/LibrarianChat.jsx`:
-     - `handleChangeMode` 핸들러에서 `if (mode === 'debate') return;` 가드 로직을 추가하여 코드 레벨에서도 진입 차단.
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
 
 

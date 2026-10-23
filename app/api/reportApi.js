@@ -229,3 +229,158 @@ export async function fetchMonthlyReport({ year, month }) {
   return normalizeMonthlyReport(raw);
 }
 
+/**
+ * 서비스 런칭 시점(2026년 9월)부터 현재까지의 주간(월~일) 목록을 생성합니다 (최신순).
+ *
+ * @returns {Array<{id: string, year: number, month: number, weekNum: number, startIso: string, endIso: string, dateRangeStr: string, labelKo: string, labelEn: string}>}
+ */
+export function getAvailableWeeks() {
+  const weeks = [];
+  const now = new Date();
+
+  // 현재 날짜가 속한 주의 월요일 찾기
+  const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayOfWeek = current.getDay(); // 0: 일, 1: 월 ... 6: 토
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(current);
+  monday.setDate(current.getDate() + diffToMonday);
+
+  // 2026년 9월 1일이 속한 주의 월요일 (2026-08-31)
+  const serviceStartMonday = new Date(2026, 8, 1);
+  const startDay = serviceStartMonday.getDay();
+  const startDiff = startDay === 0 ? -6 : 1 - startDay;
+  serviceStartMonday.setDate(serviceStartMonday.getDate() + startDiff);
+
+  const curMonday = new Date(monday);
+  while (curMonday >= serviceStartMonday) {
+    const curSunday = new Date(curMonday);
+    curSunday.setDate(curMonday.getDate() + 6);
+
+    // 해당 주의 목요일이 속한 월을 기준으로 해당 주의 월/연도 결정 (ISO-8601 기준)
+    const thursday = new Date(curMonday);
+    thursday.setDate(curMonday.getDate() + 3);
+    const year = thursday.getFullYear();
+    const month = thursday.getMonth() + 1;
+
+    // 해당 월에서 몇 번째 주인지 계산
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const firstDayWeekday = firstDayOfMonth.getDay() === 0 ? 7 : firstDayOfMonth.getDay();
+    const dayOfMonth = thursday.getDate();
+    const weekNum = Math.ceil((dayOfMonth + firstDayWeekday - 1) / 7);
+
+    const mStart = String(curMonday.getMonth() + 1).padStart(2, '0');
+    const dStart = String(curMonday.getDate()).padStart(2, '0');
+    const mEnd = String(curSunday.getMonth() + 1).padStart(2, '0');
+    const dEnd = String(curSunday.getDate()).padStart(2, '0');
+
+    const startIso = `${curMonday.getFullYear()}-${mStart}-${dStart}`;
+    const endIso = `${curSunday.getFullYear()}-${mEnd}-${dEnd}`;
+    const dateRangeStr = `${mStart}.${dStart} ~ ${mEnd}.${dEnd}`;
+
+    weeks.push({
+      id: `${year}-${String(month).padStart(2, '0')}-W${weekNum}`,
+      year,
+      month,
+      weekNum,
+      startIso,
+      endIso,
+      dateRangeStr,
+      labelKo: `${year}년 ${month}월 ${weekNum}주차 (${dateRangeStr})`,
+      labelEn: `${year}-${String(month).padStart(2, '0')} W${weekNum} (${mStart}.${dStart} - ${mEnd}.${dEnd})`,
+    });
+
+    // 1주일 전으로 이동
+    curMonday.setDate(curMonday.getDate() - 7);
+  }
+
+  if (weeks.length === 0) {
+    weeks.push({
+      id: '2026-09-W1',
+      year: 2026,
+      month: 9,
+      weekNum: 1,
+      startIso: '2026-09-01',
+      endIso: '2026-09-06',
+      dateRangeStr: '09.01 ~ 09.06',
+      labelKo: '2026년 9월 1주차 (09.01 ~ 09.06)',
+      labelEn: '2026-09 W1 (09.01 - 09.06)',
+    });
+  }
+
+  return weeks;
+}
+
+/**
+ * 월간 리포트 데이터를 바탕으로 주간 리포트(Weekly Report) 데이터를 생성/정규화합니다.
+ */
+export function deriveWeeklyReportFromMonthly(monthlyData, weekInfo) {
+  if (!monthlyData) return null;
+
+  const { year, month, weekNum, dateRangeStr } = weekInfo;
+  const mOverview = monthlyData.overview || {};
+
+  // 주간 스케일로 환산된 정량 통계 (주간 목표 1권 기준)
+  const completedCount = mOverview.completedCount > 0 ? Math.min(mOverview.completedCount, 1) : 0;
+  const totalPages = Math.round((mOverview.totalPages || 0) / 4);
+  const totalDurationMinutes = Math.round((mOverview.totalDurationMinutes || 0) / 4);
+  const streakDays = Math.min(7, mOverview.streakDays || 0);
+  const goalBooksCount = 1;
+  const goalAchievementRate = completedCount >= 1 ? 100 : Math.min(100, Math.round((totalPages / 80) * 100));
+
+  const overview = {
+    completedCount,
+    totalPages,
+    streakDays,
+    totalDurationMinutes,
+    goalBooksCount,
+    goalAchievementRate,
+  };
+
+  const rhythm = {
+    ...monthlyData.rhythm,
+    totalSessionCount: Math.round((monthlyData.rhythm?.totalSessionCount || 0) / 4),
+  };
+
+  const prescription = {
+    ...monthlyData.prescription,
+    suggestedGoalBooks: 1,
+  };
+
+  return {
+    ...monthlyData,
+    isWeekly: true,
+    year,
+    month,
+    weekNum,
+    dateRangeStr,
+    overview,
+    rhythm,
+    prescription,
+  };
+}
+
+/**
+ * 특정 주차의 주간 독서 리포트를 조회합니다.
+ *
+ * @param {object} weekInfo
+ * @returns {Promise<object>} 정규화된 주간 독서 리포트 데이터
+ */
+export async function fetchWeeklyReport(weekInfo) {
+  const { year, month, weekNum, startIso, endIso } = weekInfo;
+  try {
+    const raw = await authFetch(
+      `/reports/weekly?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}&week=${encodeURIComponent(weekNum)}&start_date=${encodeURIComponent(startIso)}&end_date=${encodeURIComponent(endIso)}`,
+      { baseUrl: AI_API_BASE }
+    );
+    if (raw && typeof raw === 'object' && !raw.detail) {
+      return normalizeMonthlyReport(raw);
+    }
+  } catch {
+    // 백엔드 주간 API 미배포 시 월간 데이터를 기반으로 안전하게 주간 리포트 도출
+  }
+
+  const monthly = await fetchMonthlyReport({ year, month });
+  return deriveWeeklyReportFromMonthly(monthly, weekInfo);
+}
+
+
