@@ -251,7 +251,7 @@ img,
  * 하위 요소로 자연스럽게 내려간다. 황새는 아직 전용 커서 에셋이 없어 기본 커서.
  */
 [data-librarian='cat'] {
-  cursor: url('/cursors/cat/cat_03_cursor.png') 6 6, auto;
+  cursor: url('/cursors/cat/cat_01_cursor.png') 6 6, auto;
 }
 
 /*
