@@ -61,14 +61,23 @@ function hasKorean(text) {
 
 /**
  * 책등(Spine) 캔버스 텍스처 생성
- * - 너비 128px, 높이 1024px (비율 1:8)
+ * - 너비 256px, 높이 2048px (고해상도 1:8 비율, 선명도 극대화)
  * - 배경: spineColor + 낮은 opacity의 질감 텍스처
  * - 상하 북바인딩 금박/은박 장식선
- * - 제목(title) 세로 배치 (한글: 위에서 아래로 세로 정렬 / 영문: 90도 회전)
+ * - 제목(title) 세로 배치:
+ *    * 한글: 위에서 아래로 세로 정렬
+ *    * 영문: 90도 회전
+ *    * [사용자 요구] 텍스트 크기는 책에 관계없이 모두 동일한 크기로 통일
+ *    * [사용자 요구] 3D 책 두께/높이 비율(aspectRatio)을 반영하여 글자가 가로로 늘어나거나 왜곡되지 않도록 보정
+ *
+ * @param {string} title
+ * @param {string} spineColor
+ * @param {HTMLImageElement|null} sharedImg
+ * @param {object} [dimensions] - { thickness, height }
  */
-export function createSpineTexture(title, spineColor, sharedImg) {
-  const width = 128;
-  const height = 1024;
+export function createSpineTexture(title, spineColor, sharedImg, dimensions = {}) {
+  const width = 256;
+  const height = 2048;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -89,37 +98,37 @@ export function createSpineTexture(title, spineColor, sharedImg) {
     ctx.restore();
   }
 
-  // 3. 상하 클래식 북바인딩 엠보싱 라인
+  // 3. 상하 클래식 북바인딩 엠보싱 라인 (고해상도 256x2048 스케일 반영)
   const isLight = getContrastTextColor(spineColor) === '#261b14';
   const lineGold = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 230, 160, 0.4)';
   const lineShade = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.35)';
 
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   // 상단 장식선 2줄
-  [50, 58].forEach((y) => {
+  [100, 116].forEach((y) => {
     ctx.strokeStyle = lineGold;
     ctx.beginPath();
-    ctx.moveTo(16, y);
-    ctx.lineTo(width - 16, y);
+    ctx.moveTo(32, y);
+    ctx.lineTo(width - 32, y);
     ctx.stroke();
     ctx.strokeStyle = lineShade;
     ctx.beginPath();
-    ctx.moveTo(16, y + 1);
-    ctx.lineTo(width - 16, y + 1);
+    ctx.moveTo(32, y + 2);
+    ctx.lineTo(width - 32, y + 2);
     ctx.stroke();
   });
 
   // 하단 장식선 2줄
-  [height - 58, height - 50].forEach((y) => {
+  [height - 116, height - 100].forEach((y) => {
     ctx.strokeStyle = lineGold;
     ctx.beginPath();
-    ctx.moveTo(16, y);
-    ctx.lineTo(width - 16, y);
+    ctx.moveTo(32, y);
+    ctx.lineTo(width - 32, y);
     ctx.stroke();
     ctx.strokeStyle = lineShade;
     ctx.beginPath();
-    ctx.moveTo(16, y + 1);
-    ctx.lineTo(width - 16, y + 1);
+    ctx.moveTo(32, y + 2);
+    ctx.lineTo(width - 32, y + 2);
     ctx.stroke();
   });
 
@@ -130,74 +139,100 @@ export function createSpineTexture(title, spineColor, sharedImg) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
+    // 3D 공간 상에서 텍스처가 BoxGeometry +Z면(책등)에 매핑될 때의 가로 늘어남(왜곡) 보정
+    // 캔버스 종횡비: 256 / 2048 = 0.125
+    // 3D 면의 실제 종횡비: thickness / height
+    // BoxGeometry UV 매핑 시 가로로 (thickness / height) / (256 / 2048) 배만큼 확대되므로,
+    // 캔버스에서 가로 스케일을 그 역수로 압축하여 3D 월드 상에서 1:1 원래 글꼴 비율이 유지되도록 함.
+    const bookThickness = Math.max(0.06, Number(dimensions?.thickness) || 0.22);
+    const bookHeight = Math.max(0.3, Number(dimensions?.height) || 1.1);
+    const canvasAspect = width / height; // 0.125
+    const meshAspect = bookThickness / bookHeight;
+    const rawSx = canvasAspect / meshAspect;
+
     const isKo = hasKorean(title);
 
     if (isKo) {
-      // 한글 제목: 위에서 아래로 세로쓰기
-      // 글자 수에 따라 폰트 크기 및 간격 자동 최적화
-      const maxChars = 14;
+      // 한글 제목: 세로쓰기
+      // 사용자 요구사항: "텍스트 크기는 모두 동일하게"
+      const FIXED_FONT_SIZE = 58;
+      const FIXED_STEP = 78;
+
+      // 캔버스 폭을 벗어나지 않도록 스케일 클램프
+      const maxAllowedSx = (width * 0.72) / FIXED_FONT_SIZE;
+      const effectiveSx = Math.max(0.35, Math.min(maxAllowedSx, rawSx));
+
+      // 최대 표시 가능 글자 수 (상하 장식선 및 여백 제외)
+      const startY = 190;
+      const endY = height - 190;
+      const availableHeight = endY - startY;
+      const maxChars = Math.floor(availableHeight / FIXED_STEP);
+
       let displayTitle = title.trim();
       if (displayTitle.length > maxChars) {
         displayTitle = displayTitle.substring(0, maxChars - 1) + '…';
       }
 
       const charCount = displayTitle.length;
-      const startY = 110;
-      const endY = height - 110;
-      const availableHeight = endY - startY;
-      const maxFontSize = 42;
-      const minFontSize = 26;
-      const calculatedFontSize = Math.max(
-        minFontSize,
-        Math.min(maxFontSize, Math.floor(availableHeight / (charCount * 1.35)))
-      );
+      const totalTextHeight = (charCount - 1) * FIXED_STEP;
+      const actualStartY = (height - totalTextHeight) / 2;
 
-      ctx.font = `600 ${calculatedFontSize}px 'MemomentKkukkukk', 'Pretendard', sans-serif`;
+      ctx.save();
+      ctx.translate(width / 2, 0);
+      ctx.scale(effectiveSx, 1);
+
+      ctx.font = `600 ${FIXED_FONT_SIZE}px 'MemomentKkukkukk', 'Pretendard', sans-serif`;
 
       // 글자별 렌더링 (그림자 효과로 가독성 향상)
-      ctx.shadowColor = isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 3;
+      ctx.shadowColor = isLight ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
-
-      const step = Math.min(calculatedFontSize * 1.45, availableHeight / charCount);
-      const totalTextHeight = (charCount - 1) * step;
-      const actualStartY = startY + (availableHeight - totalTextHeight) / 2;
+      ctx.shadowOffsetY = 2;
 
       for (let i = 0; i < charCount; i++) {
         const char = displayTitle[i];
-        const y = actualStartY + i * step;
-        ctx.fillText(char, width / 2, y);
+        const y = actualStartY + i * FIXED_STEP;
+        ctx.fillText(char, 0, y);
       }
-      ctx.shadowColor = 'transparent';
+      ctx.restore();
     } else {
-      // 영문 제목: 90도 시계방향 회전하여 세로 책등을 따라 깔끔하게 한 줄 배치
+      // 영문 제목: 90도 회전 배치
+      // 사용자 요구사항: "텍스트 크기는 모두 동일하게"
+      const ENG_FONT_SIZE = 52;
+      const maxAllowedSx = (width * 0.72) / ENG_FONT_SIZE;
+      const effectiveSx = Math.max(0.35, Math.min(maxAllowedSx, rawSx));
+
       ctx.save();
       ctx.translate(width / 2, height / 2);
+      ctx.scale(effectiveSx, 1);
       ctx.rotate(Math.PI / 2);
 
-      let fontSize = 34;
-      ctx.font = `700 ${fontSize}px 'Outfit', 'Inter', sans-serif`;
-      const maxWidth = height - 200;
-      let textWidth = ctx.measureText(title).width;
+      ctx.font = `700 ${ENG_FONT_SIZE}px 'Outfit', 'Inter', sans-serif`;
 
-      if (textWidth > maxWidth) {
-        fontSize = Math.max(22, Math.floor(fontSize * (maxWidth / textWidth)));
-        ctx.font = `700 ${fontSize}px 'Outfit', 'Inter', sans-serif`;
+      const maxTextWidth = height - 420;
+      let displayTitle = title.trim();
+      if (ctx.measureText(displayTitle).width > maxTextWidth) {
+        while (displayTitle.length > 3 && ctx.measureText(displayTitle + '…').width > maxTextWidth) {
+          displayTitle = displayTitle.slice(0, -1).trim();
+        }
+        displayTitle += '…';
       }
 
-      ctx.shadowColor = isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 3;
+      ctx.shadowColor = isLight ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
+      ctx.shadowOffsetY = 2;
 
-      ctx.fillText(title, 0, 0);
+      ctx.fillText(displayTitle, 0, 0);
       ctx.restore();
     }
   }
 
   const canvasTexture = new THREE.CanvasTexture(canvas);
   canvasTexture.colorSpace = THREE.SRGBColorSpace;
+  canvasTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  canvasTexture.magFilter = THREE.LinearFilter;
+  canvasTexture.generateMipmaps = true;
   canvasTexture.needsUpdate = true;
   return canvasTexture;
 }
