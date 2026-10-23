@@ -86,6 +86,53 @@ async function compressImage(file) {
   });
 }
 
+// 첫방문 설문 기본 상태
+const INITIAL_FIRST_FORM = {
+  device: '',
+  deviceDetail: '',
+  browser: '',
+  browserOther: '',
+  similarServiceUsed: '', // 'yes' | 'no'
+  similarServiceName: '',
+  bookRecordWays: [], // ids
+  bookRecordWayOther: '',
+  signupDifficulty: '',
+  signupDifficultyDetail: '',
+  signupDifficultyOther: '',
+  understanding: '',
+  designScore: 0,
+  featuresUsed: [],
+  featuresOther: '',
+  confusingPart: '',
+  ageGroup: '',
+  ageGroupOther: '',
+};
+
+// 재방문 설문 기본 상태
+const INITIAL_RETURNING_FORM = {
+  device: '',
+  deviceDetail: '',
+  browser: '',
+  browserOther: '',
+  featuresUsed: [],
+  featuresOther: '',
+  inconvenience: '',
+  inconvenienceImage: null,
+  inconvenienceImageName: '',
+  bugEncounter: '',
+  bugImage: null,
+  bugImageName: '',
+  aiHelpfulness: '',
+  mostUsefulFeature: '',
+  returnReason: '',
+  speedSatisfaction: '',
+  speedComment: '',
+  unnecessaryFeature: '',
+  desiredFeature: '',
+  overallSatisfaction: 0,
+  freeFeedback: '',
+};
+
 export default function BetaSurveyModal({ isOpen, onClose }) {
   // 'select' | 'first_visit' | 'returning' | 'completed'
   const [step, setStep] = useState('select');
@@ -93,51 +140,16 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
   const modalContentRef = useRef(null);
 
   // --- 첫방문 설문 상태 ---
-  const [firstForm, setFirstForm] = useState({
-    device: '',
-    deviceDetail: '',
-    browser: '',
-    browserOther: '',
-    similarServiceUsed: '', // 'yes' | 'no'
-    similarServiceName: '',
-    bookRecordWays: [], // ids
-    bookRecordWayOther: '',
-    signupDifficulty: '',
-    signupDifficultyDetail: '',
-    signupDifficultyOther: '',
-    understanding: '',
-    designScore: 0,
-    featuresUsed: [],
-    featuresOther: '',
-    confusingPart: '',
-    ageGroup: '',
-    ageGroupOther: '',
-  });
+  const [firstForm, setFirstForm] = useState(INITIAL_FIRST_FORM);
 
   // --- 재방문 설문 상태 ---
-  const [returningForm, setReturningForm] = useState({
-    device: '',
-    deviceDetail: '',
-    browser: '',
-    browserOther: '',
-    featuresUsed: [],
-    featuresOther: '',
-    inconvenience: '',
-    inconvenienceImage: null,
-    inconvenienceImageName: '',
-    bugEncounter: '',
-    bugImage: null,
-    bugImageName: '',
-    aiHelpfulness: '',
-    mostUsefulFeature: '',
-    returnReason: '',
-    speedSatisfaction: '',
-    speedComment: '',
-    unnecessaryFeature: '',
-    desiredFeature: '',
-    overallSatisfaction: 0,
-    freeFeedback: '',
-  });
+  const [returningForm, setReturningForm] = useState(INITIAL_RETURNING_FORM);
+
+  // 폼 리셋 헬퍼
+  const resetForms = useCallback(() => {
+    setFirstForm(INITIAL_FIRST_FORM);
+    setReturningForm(INITIAL_RETURNING_FORM);
+  }, []);
 
   // 모달 오픈/닫힘 시 바디 스크롤 락 및 상태 리셋
   useEffect(() => {
@@ -145,16 +157,17 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
-      // 잠시 후 초기화
+      // 잠시 후 초기화 (닫힘 애니메이션 배려)
       const timer = setTimeout(() => {
         setStep('select');
+        resetForms();
       }, 300);
       return () => clearTimeout(timer);
     }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, resetForms]);
 
   // ESC 키로 닫기
   useEffect(() => {
@@ -278,6 +291,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
     }
 
     setIsSubmitting(false);
+    setFirstForm(INITIAL_FIRST_FORM);
     setStep('completed');
     scrollToTop();
   };
@@ -307,6 +321,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
     }
 
     setIsSubmitting(false);
+    setReturningForm(INITIAL_RETURNING_FORM);
     setStep('completed');
     scrollToTop();
   };

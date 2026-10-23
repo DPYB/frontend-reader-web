@@ -1,5 +1,40 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-23: 책등(Spine) 텍스트 선명화·왜곡 보정·크기 통일 및 블루 서재 선반 이동 책 두께 일관성 개선
+- 작업 브랜치: `fix/book-spine-text-and-thickness`
+- **사용자 요청**:
+  - 책등(Spine)에 들어가는 책 제목이 선명하지 않고 책 모양(두께/높이 비율)에 따라 글자가 늘어나는 문제 해결.
+  - 책등 텍스트 크기는 책에 관계없이 모두 동일한 크기로 통일.
+  - 고양이(블루) 서재에서 책을 다른 선반으로 옮겼을 때 책 두께가 이상하게 바뀌는 현상 해결.
+- **원인 분석**:
+  1. **책등 텍스트 흐림 & 왜곡 늘어남**:
+     - 기존 `createSpineTexture`의 캔버스 크기가 128×1024로 고정되어 있어 화면 확대 및 고해상도 환경에서 텍스트가 흐려짐.
+     - Three.js `BoxGeometry`의 +Z 면(책등) UV 매핑이 [0,1]x[0,1]로 매핑되는데, 책마다 3D 치수(`thickness / height`) 비율이 제각각임에도 1:8 고정 비율 캔버스 전체에 텍스트를 그려 두꺼운 책은 글자가 가로로 뚱뚱하게 늘어나고 얇은 책은 홀쭉해짐.
+     - 글자 수에 따라 폰트 크기(26~42px)가 변동되어 책마다 글자 크기가 들쭉날쭉함.
+  2. **블루 서재 선반 이동 시 두께 왜곡**:
+     - `CAT_SHELVES`에서 상단 벽선반(선반 0)은 카메라 거리 $Z=-0.4$ ($D \approx 24.4$), 높이 0.8인 반면, 하단 책장 선반(선반 1~4)은 카메라 거리 $Z=4.61$ ($D \approx 19.39$)로 카메라에 5유닛 가까움.
+     - 하단 선반의 원근 보정을 위해 `bookHeight`는 0.54로 줄였으나 `book.thickness`는 전혀 보정하지 않아, 하단 선반으로 옮기면 높이 대비 두께 비율이 1.5배 가까이 뚱뚱해지고 화면상 겉보기 두께도 비정상적으로 비대해짐.
+     - 선반 폭(2.13 vs 1.65) 불균형으로 인해 권수에 따른 압축(squeeze) 왜곡 심화.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/bookTextureHelper.js`:
+     - `createSpineTexture(title, spineColor, sharedImg, dimensions)` 개선:
+       - 캔버스 해상도를 256×2048(기존 대비 픽셀 4배)로 상향하고, Three.js 밉맵 필터링(`minFilter: LinearMipmapLinearFilter`, `generateMipmaps: true`)을 적용하여 텍스트 선명도 극대화.
+       - 3D 메쉬의 종횡비(`meshAspect = thickness / height`)와 캔버스 종횡비(`canvasAspect = 256 / 2048`)를 계산하여, 가로 스케일 $S_x = \text{canvasAspect} / \text{meshAspect}$를 적용. 3D 박스 매핑 시 $1/S_x$로 확대되는 왜곡을 사전에 상쇄하여 월드 공간 상에서 글자의 가로:세로 비율이 정확히 1:1 원래 글꼴 비율로 렌더링되도록 구현.
+       - 텍스트 크기 통일: 글자 수에 따른 가변 폰트 크기 로직을 제거하고 한글 58px / 자간 78px, 영문 52px 고정 크기로 전면 통일. 책등 높이 초과 시 말줄임표(…) 처리.
+       - 상하 클래식 북바인딩 금박/은박 장식선 고해상도(256x2048) 좌표 및 라인 두께 스케일링.
+  2. `app/features/bookshelf3d/Book3D.jsx`:
+     - `dynamicSpineMap` 텍스처 생성 시 `size` 프로퍼티로부터 `thickness`와 `height`를 추출하여 `createSpineTexture`에 전달하고, 메모이제이션 의존성 배열에 추가.
+  3. `app/features/room/shelfLayout.js`:
+     - `CAT_SHELVES`에 선반별 `thicknessScale` 정의 (선반 0: `1.0`, 선반 1~4: `0.54 / 0.8 = 0.675`).
+     - `placeBooks` 내 `shelfThicknessScale` 적용: 선반 높이 축소 및 카메라 원근 거리에 비례하여 두께를 스케일링함으로써 선반 0과 선반 1~4 간 책 이동 시에도 책의 물리적 종횡비(높이 대 두께 비)와 화면상 겉보기 두께가 완벽하게 일정하도록 개선.
+     - 압축(squeeze) 판별 시에도 `shelfThicknessScale`을 반영하여 선반 폭(1.65) 내에서 도서 수용 시 불필요한 찌그러짐 방지.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 고양이(블루) 사서 커서 이미지 신규 일러스트 교체 및 WebP 변환
 - 작업 브랜치: `feat/cat-cursor-image-update`
 - **사용자 요청**:
