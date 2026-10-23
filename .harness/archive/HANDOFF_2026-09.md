@@ -1,5 +1,35 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-22: 사서 대화창 토론 모드 UI 비활성화 및 소셜 로그인 실패 원인 분석 점검
+- 작업 브랜치: `feat/check-social-login-and-disable-debate`
+- **사용자 요청**:
+  - 카카오 로그인, 구글 로그인이 현재 동작하지 않는 원인을 프론트엔드와 백엔드 양쪽에서 점검하여 파악.
+  - 사서 대화창 상단 모드 탭에서 토론 모드를 사용자가 선택하지 못하도록 UI적으로 비활성화(막아두기).
+- **소셜 로그인 점검 결과**:
+  1. **Google 소셜 로그인 실패 원인**:
+     - `triggerGoogleLogin`에서 `window.google.accounts.id.prompt()`(One Tap) 호출 시, Google Cloud Console의 **'승인된 자바스크립트 원본(Authorized JavaScript Origins)'**에 현재 배포 도메인(예: `https://frontend-reader-web.pages.dev`, `https://dpyb.ai0208.xyz`)이 등록되어 있지 않으면 `notification.isNotDisplayed()`로 인해 즉시 `Google 로그인 창이 차단되었거나 표시할 수 없는 환경입니다` 에러 발생.
+     - Cloudflare Pages 빌드 환경변수에 `VITE_GOOGLE_CLIENT_ID`가 미설정된 경우 즉시 클라이언트 ID 누락 에러 발생.
+     - 백엔드 Cloud Run(`Core API 백엔드`) 환경변수에 `GOOGLE_CLIENT_ID`가 미설정되거나 불일치할 경우 백엔드 토큰 검증(audience mismatch) 실패(401).
+  2. **Kakao 소셜 로그인 실패 원인**:
+     - Kakao Developers 콘솔의 **[내 애플케이션] > [플랫폼] > [Web 플랫폼 등록]**에 배포 도메인이 등록되어 있지 않으면 Kakao SDK 실행 시 `KOE006`(미등록 도메인) 오류 발생.
+     - Cloudflare Pages 환경변수에 `VITE_KAKAO_JAVASCRIPT_KEY`가 주입되지 않은 경우 SDK 초기화 실패.
+- **토론 모드 UI 비활성화 작업 내용**:
+  1. `app/i18n/translations.js`:
+     - `chat.modeDebateDisabled` ('토론 모드는 준비 중입니다.' / 'Discussion mode is coming soon.'), `chat.modeDebateTag` ('준비중' / 'Coming Soon') 다국어 키 추가.
+  2. `app/features/room/chat/ChatModeTabs.jsx`:
+     - 토론 모드 버튼에 `disabled`, `aria-disabled="true"`, `lc-mode-tab--disabled` 부여.
+     - '준비중' 뱃지 텍스트(`.lc-mode-tab-tag`) 렌더링 및 툴팁(`title`) 연동, 클릭 이벤트 차단.
+  3. `app/features/room/LibrarianChat.css`:
+     - `.lc-mode-tab.lc-mode-tab--disabled`, `.lc-mode-tab:disabled` 스타일 (`cursor: not-allowed`, `opacity: 0.55`, `pointer-events: auto`) 및 `.lc-mode-tab-tag` 뱃지 캡슐 스타일링 추가.
+  4. `app/features/room/LibrarianChat.jsx`:
+     - `handleChangeMode` 핸들러에서 `if (mode === 'debate') return;` 가드 로직을 추가하여 코드 레벨에서도 진입 차단.
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-22: 로그인 페이지 소셜 로그인(카카오, Google) 및 회원가입 버튼 UI 활성화
 - 작업 브랜치: `feat/enable-social-login-and-signup-ui`
 - **사용자 요청**:
