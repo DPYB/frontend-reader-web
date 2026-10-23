@@ -58,6 +58,7 @@ const CAT_SHELVES = [
     bookHeight: 0.8,
     heightVar: 0.27,
     capacity: 10, // 이 권수를 넘으면 다음 선반으로
+    thicknessScale: 1.0,
   },
   {
     id: 'shelf2',
@@ -70,6 +71,7 @@ const CAT_SHELVES = [
     bookHeight: 0.54,
     heightVar: 0.27,
     capacity: 10,
+    thicknessScale: 0.54 / 0.8,
   },
   {
     id: 'shelf3',
@@ -82,6 +84,7 @@ const CAT_SHELVES = [
     bookHeight: 0.54,
     heightVar: 0.27,
     capacity: 10,
+    thicknessScale: 0.54 / 0.8,
   },
   {
     id: 'shelf4',
@@ -94,6 +97,7 @@ const CAT_SHELVES = [
     bookHeight: 0.54,
     heightVar: 0.27,
     capacity: 10,
+    thicknessScale: 0.54 / 0.8,
   },
   {
     id: 'shelf5',
@@ -106,6 +110,7 @@ const CAT_SHELVES = [
     bookHeight: 0.54,
     heightVar: 0.27,
     capacity: 10,
+    thicknessScale: 0.54 / 0.8,
   },
 ];
 
@@ -600,9 +605,18 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES, customAssignments =
     const dirX = new THREE.Vector3(1, 0, 0).applyEuler(euler);
     const up = new THREE.Vector3(0, 1, 0).applyEuler(euler);
 
+    // 고양이(blue) 서재 및 선반 원근/높이 축소에 맞춘 선반별 두께 스케일 보정
+    // shelf.thicknessScale이 명시되어 있으면 우선 사용하고,
+    // 로컬 스토리지 이전 캐시 대응을 위해 고양이 서재 하단 선반(shelf2~5)은 bookHeight 비율로 자동 계산
+    const shelfThicknessScale = shelf.thicknessScale ?? (
+      shelf.id && ['shelf2', 'shelf3', 'shelf4', 'shelf5'].includes(shelf.id) && shelf.bookHeight
+        ? shelf.bookHeight / (shelves[0]?.bookHeight || 0.8)
+        : 1
+    );
+
     const n = shelfBooks.length;
     const gaps = GAP * (n - 1);
-    const sumT = shelfBooks.reduce((a, b) => a + b.thickness, 0);
+    const sumT = shelfBooks.reduce((a, b) => a + (b.thickness || 0.2) * shelfThicknessScale, 0);
     // 폭 초과 시에만 압축(squeeze). 여유 있으면 원래 두께 유지.
     let scale = 1;
     if (sumT + gaps > shelf.width) {
@@ -610,7 +624,8 @@ export function placeBooks(books, shelves = DEFAULT_SHELVES, customAssignments =
     }
     let cursor = -shelf.width / 2; // 왼쪽 끝부터 오른쪽으로 채움
     shelfBooks.forEach((book, bookIdx) => {
-      const t = book.thickness * scale;
+      const naturalT = (book.thickness || 0.2) * shelfThicknessScale;
+      const t = naturalT * scale;
       const centerOffset = cursor + t / 2;
       cursor += t + GAP;
 

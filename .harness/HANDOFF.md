@@ -1,5 +1,40 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: 책등(Spine) 텍스트 선명화·왜곡 보정·크기 통일 및 블루 서재 선반 이동 책 두께 일관성 개선
+- 작업 브랜치: `fix/book-spine-text-and-thickness`
+- **사용자 요청**:
+  - 책등(Spine)에 들어가는 책 제목이 선명하지 않고 책 모양(두께/높이 비율)에 따라 글자가 늘어나는 문제 해결.
+  - 책등 텍스트 크기는 책에 관계없이 모두 동일한 크기로 통일.
+  - 고양이(블루) 서재에서 책을 다른 선반으로 옮겼을 때 책 두께가 이상하게 바뀌는 현상 해결.
+- **원인 분석**:
+  1. **책등 텍스트 흐림 & 왜곡 늘어남**:
+     - 기존 `createSpineTexture`의 캔버스 크기가 128×1024로 고정되어 있어 화면 확대 및 고해상도 환경에서 텍스트가 흐려짐.
+     - Three.js `BoxGeometry`의 +Z 면(책등) UV 매핑이 [0,1]x[0,1]로 매핑되는데, 책마다 3D 치수(`thickness / height`) 비율이 제각각임에도 1:8 고정 비율 캔버스 전체에 텍스트를 그려 두꺼운 책은 글자가 가로로 뚱뚱하게 늘어나고 얇은 책은 홀쭉해짐.
+     - 글자 수에 따라 폰트 크기(26~42px)가 변동되어 책마다 글자 크기가 들쭉날쭉함.
+  2. **블루 서재 선반 이동 시 두께 왜곡**:
+     - `CAT_SHELVES`에서 상단 벽선반(선반 0)은 카메라 거리 $Z=-0.4$ ($D \approx 24.4$), 높이 0.8인 반면, 하단 책장 선반(선반 1~4)은 카메라 거리 $Z=4.61$ ($D \approx 19.39$)로 카메라에 5유닛 가까움.
+     - 하단 선반의 원근 보정을 위해 `bookHeight`는 0.54로 줄였으나 `book.thickness`는 전혀 보정하지 않아, 하단 선반으로 옮기면 높이 대비 두께 비율이 1.5배 가까이 뚱뚱해지고 화면상 겉보기 두께도 비정상적으로 비대해짐.
+     - 선반 폭(2.13 vs 1.65) 불균형으로 인해 권수에 따른 압축(squeeze) 왜곡 심화.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/bookTextureHelper.js`:
+     - `createSpineTexture(title, spineColor, sharedImg, dimensions)` 개선:
+       - 캔버스 해상도를 256×2048(기존 대비 픽셀 4배)로 상향하고, Three.js 밉맵 필터링(`minFilter: LinearMipmapLinearFilter`, `generateMipmaps: true`)을 적용하여 텍스트 선명도 극대화.
+       - 3D 메쉬의 종횡비(`meshAspect = thickness / height`)와 캔버스 종횡비(`canvasAspect = 256 / 2048`)를 계산하여, 가로 스케일 $S_x = \text{canvasAspect} / \text{meshAspect}$를 적용. 3D 박스 매핑 시 $1/S_x$로 확대되는 왜곡을 사전에 상쇄하여 월드 공간 상에서 글자의 가로:세로 비율이 정확히 1:1 원래 글꼴 비율로 렌더링되도록 구현.
+       - 텍스트 크기 통일: 글자 수에 따른 가변 폰트 크기 로직을 제거하고 한글 58px / 자간 78px, 영문 52px 고정 크기로 전면 통일. 책등 높이 초과 시 말줄임표(…) 처리.
+       - 상하 클래식 북바인딩 금박/은박 장식선 고해상도(256x2048) 좌표 및 라인 두께 스케일링.
+  2. `app/features/bookshelf3d/Book3D.jsx`:
+     - `dynamicSpineMap` 텍스처 생성 시 `size` 프로퍼티로부터 `thickness`와 `height`를 추출하여 `createSpineTexture`에 전달하고, 메모이제이션 의존성 배열에 추가.
+  3. `app/features/room/shelfLayout.js`:
+     - `CAT_SHELVES`에 선반별 `thicknessScale` 정의 (선반 0: `1.0`, 선반 1~4: `0.54 / 0.8 = 0.675`).
+     - `placeBooks` 내 `shelfThicknessScale` 적용: 선반 높이 축소 및 카메라 원근 거리에 비례하여 두께를 스케일링함으로써 선반 0과 선반 1~4 간 책 이동 시에도 책의 물리적 종횡비(높이 대 두께 비)와 화면상 겉보기 두께가 완벽하게 일정하도록 개선.
+     - 압축(squeeze) 판별 시에도 `shelfThicknessScale`을 반영하여 선반 폭(1.65) 내에서 도서 수용 시 불필요한 찌그러짐 방지.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 고양이(블루) 사서 커서 이미지 신규 일러스트 교체 및 WebP 변환
 - 작업 브랜치: `feat/cat-cursor-image-update`
 - **사용자 요청**:
@@ -85,35 +120,3 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 인터랙션 결함 수정 및 안정화
-- 작업 브랜치: `fix/bookshelf-drag-drop-interaction-v2`
-- **사용자 요청**:
-  - 머지 완료 후 실제 서재에서 책 드래그 이동이 동작하지 않는 현상 재확인 및 해결.
-- **원인 분석**:
-  1. **ThreeEvent vs Native PointerEvent 좌표 누락**: `Book3D.jsx`의 `onPointerDown`에서 전달된 이벤트 `e`는 R3F `ThreeEvent`로, `e.clientX`가 직접 존재하지 않아 `undefined`가 됨. 이로 인해 `Math.hypot(NaN, NaN)`이 되어 6px 드래그 임계값 체크가 절대 true가 되지 못하고 드래그 모드가 발동되지 않음.
-  2. **DragPlane의 3D 이벤트 차단**: 3D 공간의 거대한 투명 평면(`DragPlane`)이 `stopPropagation()`을 호출하여 레이캐스트 이벤트가 차단되거나 좌표계 왜곡이 발생함.
-  3. **실시간 스냅 프리뷰 피드백 부재**: 드래그 중인 도서가 목표 선반 위에 올랐을 때 목표 선반 위치로 이동하는 시각적 스냅이 없어 사용자 체감이 부족했음.
-  4. **드래그 종료 시 click 이벤트 간섭**: 마우스/터치를 뗐을 때 즉시 모달 열림(`onClick`)이 발동될 수 있는 레이스 컨디션 존재.
-- **작업 내용**:
-  1. `app/features/bookshelf3d/Book3D.jsx`:
-     - `onPointerDown`에서 R3F `ThreeEvent`의 `nativeEvent`로부터 `clientX`, `clientY`를 안전하게 추출하여 `onDragInitiate`로 전달.
-     - `isDragging` 시 목표 선반 스냅 위치(`position`)를 기준으로 살짝 떠오르고(`lift = 0.22`, `forwardPull = 0.35`, `z + 0.18`), 크기가 1.08배 커지며 골드 글로우가 켜지도록 3D 모션 개선.
-  2. `app/features/room/shelfBookStorage.js`:
-     - `findTargetShelfIndex(clientX, clientY, sceneRect, bounds)` 신설 및 export: 16:9 컨테이너 좌표계(`sceneRect`)를 기준으로 각 선반의 2D 바운드 퍼센트(`top`, `height`, `left`, `width`)를 분석하여 현재 마우스/터치가 위치한 목표 선반 인덱스를 100% 오차 없이 정밀 판별.
-  3. `app/features/room/ShelfDropZones.jsx`:
-     - 레이캐스트 차단 우려가 있는 불필요한 히트박스를 제거하고, 순수하게 목표 선반(`activeTargetShelfIdx`) 바닥 및 후면의 은은한 글로우 하이라이트 평면만 그리는 시각적 가이드 컴포넌트로 최적화.
-  4. `app/features/room/LibraryScene.jsx`:
-     - 16:9 배경 박스에 `sceneContentRef` 연결.
-     - `effectiveShelfGroups` 및 `placements` 연동: 도서 드래그 중 목표 선반(`hoveredDropShelfIdx`) 위에 있을 때 임시 선반 배치를 실시간 반영하여 책이 목표 선반 위치로 즉시 스냅 이동하는 프리뷰 제공.
-     - `handleGlobalPointerMove`에서 `findTargetShelfIndex`로 `hoveredDropShelfIdx` 실시간 갱신.
-     - `handleGlobalPointerUp`에서 목표 선반 이동 확정 및 `saveShelfAssignments` 영구 저장.
-     - `justDroppedRef` 도입(150ms 보호 윈도우): 도서 드래그 완료 직후 발생하는 `onClick` 이벤트에서 도서 상세 모달이 열리지 않도록 완벽 분리.
-     - 불필요하고 이벤트를 방해하던 3D `DragPlane` 제거.
-  5. `app/index.css`:
-     - `body.reading-room.is-dragging-book`에 `user-select: none !important; -webkit-user-select: none !important; touch-action: none !important;` 추가로 제스처 간섭 원천 차단.
-  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)

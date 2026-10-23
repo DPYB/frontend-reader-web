@@ -1,6 +1,39 @@
 # HANDOFF (2026-09 아카이브)
 
-## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 및 선반별 배치 영속화 구현
+## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 인터랙션 결함 수정 및 안정화
+- 작업 브랜치: `fix/bookshelf-drag-drop-interaction-v2`
+- **사용자 요청**:
+  - 머지 완료 후 실제 서재에서 책 드래그 이동이 동작하지 않는 현상 재확인 및 해결.
+- **원인 분석**:
+  1. **ThreeEvent vs Native PointerEvent 좌표 누락**: `Book3D.jsx`의 `onPointerDown`에서 전달된 이벤트 `e`는 R3F `ThreeEvent`로, `e.clientX`가 직접 존재하지 않아 `undefined`가 됨. 이로 인해 `Math.hypot(NaN, NaN)`이 되어 6px 드래그 임계값 체크가 절대 true가 되지 못하고 드래그 모드가 발동되지 않음.
+  2. **DragPlane의 3D 이벤트 차단**: 3D 공간의 거대한 투명 평면(`DragPlane`)이 `stopPropagation()`을 호출하여 레이캐스트 이벤트가 차단되거나 좌표계 왜곡이 발생함.
+  3. **실시간 스냅 프리뷰 피드백 부재**: 드래그 중인 도서가 목표 선반 위에 올랐을 때 목표 선반 위치로 이동하는 시각적 스냅이 없어 사용자 체감이 부족했음.
+  4. **드래그 종료 시 click 이벤트 간섭**: 마우스/터치를 뗐을 때 즉시 모달 열림(`onClick`)이 발동될 수 있는 레이스 컨디션 존재.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/Book3D.jsx`:
+     - `onPointerDown`에서 R3F `ThreeEvent`의 `nativeEvent`로부터 `clientX`, `clientY`를 안전하게 추출하여 `onDragInitiate`로 전달.
+     - `isDragging` 시 목표 선반 스냅 위치(`position`)를 기준으로 살짝 떠오르고(`lift = 0.22`, `forwardPull = 0.35`, `z + 0.18`), 크기가 1.08배 커지며 골드 글로우가 켜지도록 3D 모션 개선.
+  2. `app/features/room/shelfBookStorage.js`:
+     - `findTargetShelfIndex(clientX, clientY, sceneRect, bounds)` 신설 및 export: 16:9 컨테이너 좌표계(`sceneRect`)를 기준으로 각 선반의 2D 바운드 퍼센트(`top`, `height`, `left`, `width`)를 분석하여 현재 마우스/터치가 위치한 목표 선반 인덱스를 100% 오차 없이 정밀 판별.
+  3. `app/features/room/ShelfDropZones.jsx`:
+     - 레이캐스트 차단 우려가 있는 불필요한 히트박스를 제거하고, 순수하게 목표 선반(`activeTargetShelfIdx`) 바닥 및 후면의 은은한 글로우 하이라이트 평면만 그리는 시각적 가이드 컴포넌트로 최적화.
+  4. `app/features/room/LibraryScene.jsx`:
+     - 16:9 배경 박스에 `sceneContentRef` 연결.
+     - `effectiveShelfGroups` 및 `placements` 연동: 도서 드래그 중 목표 선반(`hoveredDropShelfIdx`) 위에 있을 때 임시 선반 배치를 실시간 반영하여 책이 목표 선반 위치로 즉시 스냅 이동하는 프리뷰 제공.
+     - `handleGlobalPointerMove`에서 `findTargetShelfIndex`로 `hoveredDropShelfIdx` 실시간 갱신.
+     - `handleGlobalPointerUp`에서 목표 선반 이동 확정 및 `saveShelfAssignments` 영구 저장.
+     - `justDroppedRef` 도입(150ms 보호 윈도우): 도서 드래그 완료 직후 발생하는 `onClick` 이벤트에서 도서 상세 모달이 열리지 않도록 완벽 분리.
+     - 불필요하고 이벤트를 방해하던 3D `DragPlane` 제거.
+  5. `app/index.css`:
+     - `body.reading-room.is-dragging-book`에 `user-select: none !important; -webkit-user-select: none !important; touch-action: none !important;` 추가로 제스처 간섭 원천 차단.
+  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
+
 - 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
 - **사용자 요청**:
   - 서재 선반에 책이 있을 때, 드래그로 사용자가 원하는 선반에 꽂을 수 있게 이동 가능하게 구현.
