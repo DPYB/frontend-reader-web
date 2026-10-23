@@ -1,5 +1,25 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: BETA 설문조사 Google Sheets 연동 및 듀얼 파이프라인(디스코드+시트) 구축
+- 작업 브랜치: `feat/survey-google-sheets-integration`
+- **사용자 요청**:
+  - BETA 피드백 설문조사 데이터를 나중에 GA4/대시보드 형태로 데이터 분석할 수 있도록 옵션 B(Google Sheets 연동) 구현 요청.
+- **작업 내용**:
+  1. `app/features/survey/googleSheetsSurvey.js` 신설:
+     - `sendSurveyToGoogleSheets(type, form)`: Google Apps Script 웹 앱 엔드포인트 연동 (`VITE_GOOGLE_SHEETS_SURVEY_URL` 및 기본 URL 폴백).
+     - Apps Script 302 리디렉션 및 브라우저 CORS 제약 회피를 위해 `mode: 'no-cors'`, `headers: { 'Content-Type': 'text/plain;charset=utf-8' }` 방식으로 안전하고 신속하게 스프레드시트에 행(Row) 누적 전송.
+  2. `app/features/survey/BetaSurveyModal.jsx`:
+     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`에서 `Promise.allSettled`를 적용하여 Discord 실시간 알림 웹훅과 Google Sheets 데이터 저장을 병렬로 비동기 동시 전송.
+     - 한쪽 네트워크 실패 시에도 상호 간섭 없이 안전한 전송 보장 및 UI 완료 처리.
+  3. `.env.example`:
+     - `VITE_GOOGLE_SHEETS_SURVEY_URL` 환경 변수 문서화.
+  4. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: BETA 설문조사 제출 후 폼 상태 초기화(리셋) 처리
 - 작업 브랜치: `fix/beta-survey-reset-on-submit`
 - **사용자 요청**:
@@ -93,30 +113,6 @@
   5. `app/pages/MonthlyReport.css`:
      - `.report-period-and-badge`, `.report-period-toggle`, `.report-period-btn`, `.report-period-btn.active` 스타일링 추가.
   6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: 내 서재 책등(Spine) 제목 숨김(3D 뷰어 유지) 및 간편로그인(소셜 로그인) UI 비활성화
-- 작업 브랜치: `feat/disable-social-login-and-hide-shelf-spine-title`
-- **사용자 요청**:
-  - 내 서재에 등록된 책 책등(Spine)에 들어간 제목(하얀색 글씨)을 아예 없애고, 책을 클릭했을 때 보이는 3D 상세 화면에서만 spine 제목 유지.
-  - 간편로그인(카카오, Google 로그인) 버튼 UI적으로 비활성화.
-- **작업 내용**:
-  1. `app/features/bookshelf3d/Book3D.jsx`:
-     - `showSpineTitle` prop 추가 (기본값 `true`).
-     - `dynamicSpineMap` 텍스처 생성 시 `showSpineTitle`이 false인 경우 도서 제목을 빈 문자열(`''`)로 전달하여, 책등에 제목 텍스트 없이 책등 색상 + 은은한 질감 텍스처 + 상하 클래식 북바인딩 라인만 깔끔하게 렌더링되도록 구현.
-  2. `app/features/room/LibraryScene.jsx`:
-     - 내 서재 씬의 모든 선반 도서 렌더링 시 `<Book3D showSpineTitle={false} ... />`로 설정하여 선반 위의 책등 제목 완전 숨김.
-  3. `app/features/room/Book3DViewer.jsx`:
-     - 도서 상세 모달 3D 뷰어에서는 `<Book3D showSpineTitle={true} ... />`로 명시하여 3D 뷰어 화면에서 책등 제목이 고해상도로 선명하게 유지되도록 구현.
-  4. `app/pages/LoginPage.jsx`:
-     - `BUTTONS` 내 `kakao`, `google` 툴팁을 `카카오 로그인 (준비 중)` / `Google 로그인 (준비 중)`으로 변경.
-     - `isButtonDisabled(id)`에서 `kakao`, `google`을 항상 비활성화(`true`)로 지정하여 호버 시 밝기 효과 차단 및 `cursor: not-allowed` 적용.
-     - `handleClick(id)`에서 `kakao`, `google` 클릭 시 핸들러 실행을 차단하고 `!isButtonDisabled` 가드 적용 (ESLint `no-unused-vars` 준수).
-  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

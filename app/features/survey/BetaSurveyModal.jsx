@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './BetaSurveyModal.css';
 import { sendSurveyToDiscord } from './discordSurveyWebhook';
+import { sendSurveyToGoogleSheets } from './googleSheetsSurvey';
 
 // 질문 상수 및 옵션 정의
 const FIRST_VISIT_BOOK_RECORD_OPTIONS = [
@@ -285,9 +286,12 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
     }
 
     try {
-      await sendSurveyToDiscord('first_visit', firstForm);
+      await Promise.allSettled([
+        sendSurveyToDiscord('first_visit', firstForm),
+        sendSurveyToGoogleSheets('first_visit', firstForm),
+      ]);
     } catch (err) {
-      console.error('Failed to send survey to Discord webhook:', err);
+      console.error('Failed to dispatch survey payloads:', err);
     }
 
     setIsSubmitting(false);
@@ -315,9 +319,12 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
     }
 
     try {
-      await sendSurveyToDiscord('returning', returningForm);
+      await Promise.allSettled([
+        sendSurveyToDiscord('returning', returningForm),
+        sendSurveyToGoogleSheets('returning', returningForm),
+      ]);
     } catch (err) {
-      console.error('Failed to send survey to Discord webhook:', err);
+      console.error('Failed to dispatch survey payloads:', err);
     }
 
     setIsSubmitting(false);
