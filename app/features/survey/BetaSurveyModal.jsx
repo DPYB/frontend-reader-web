@@ -712,7 +712,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               <textarea
                 className="beta-textarea"
                 rows={3}
-                placeholder="예: 책을 어떻게 등록하는지 모름, 다음 액션을 모르겠음, 버튼 위치를 찾기 어려움 등"
+                placeholder="예: 책을 어떻게 등록하는지 모름, 다음 액션을 모르겠음, 버튼 위치를 찾기 어려움, 사용해보려고 했지만 잘 안되는 기능 등"
                 value={firstForm.confusingPart}
                 onChange={(e) => setFirstForm({ ...firstForm, confusingPart: e.target.value })}
               />
@@ -1105,7 +1105,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     key={score}
-                    className={`beta-star-btn ${returningForm.overallSatisfaction >= score ? 'active' : ''}`}
+                    className={`beta-star-btn ${returningForm.overallSatisfaction === score ? 'active' : ''}`}
                     onClick={() => setReturningForm({ ...returningForm, overallSatisfaction: score })}
                     aria-label={`${score}점`}
                   >

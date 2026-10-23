@@ -125,6 +125,49 @@
   color: var(--text-h);
 }
 
+/* Weekly Date Picker (주간 시작 날짜 선택기) */
+.report-weekly-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.report-picker-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.report-date-input {
+  background: transparent;
+  border: none;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.report-range-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
 .report-download-btn {
   display: inline-flex;
   align-items: center;
@@ -955,7 +998,8 @@
   .gnb,
   .report-actions,
   .report-download-btn,
-  .report-month-select {
+  .report-month-select,
+  .report-weekly-picker {
     display: none !important;
   }
 
