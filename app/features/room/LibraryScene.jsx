@@ -801,6 +801,7 @@ export default function LibraryScene() {
               key={b.id}
               title={b.title}
               author={b.author}
+              showSpineTitle={false}
               coverUrl={b.coverUrl || b.cover_url || b.coverImage}
               position={b.position}
               size={b.size}

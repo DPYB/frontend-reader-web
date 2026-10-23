@@ -107,6 +107,7 @@ export default function Book3DViewer({
               selected={false}
               showEdges={false}
               interactive={false}
+              showSpineTitle={true}
             />
           </group>
 

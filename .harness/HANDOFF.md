@@ -1,5 +1,29 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: 내 서재 책등(Spine) 제목 숨김(3D 뷰어 유지) 및 간편로그인(소셜 로그인) UI 비활성화
+- 작업 브랜치: `feat/disable-social-login-and-hide-shelf-spine-title`
+- **사용자 요청**:
+  - 내 서재에 등록된 책 책등(Spine)에 들어간 제목(하얀색 글씨)을 아예 없애고, 책을 클릭했을 때 보이는 3D 상세 화면에서만 spine 제목 유지.
+  - 간편로그인(카카오, Google 로그인) 버튼 UI적으로 비활성화.
+- **작업 내용**:
+  1. `app/features/bookshelf3d/Book3D.jsx`:
+     - `showSpineTitle` prop 추가 (기본값 `true`).
+     - `dynamicSpineMap` 텍스처 생성 시 `showSpineTitle`이 false인 경우 도서 제목을 빈 문자열(`''`)로 전달하여, 책등에 제목 텍스트 없이 책등 색상 + 은은한 질감 텍스처 + 상하 클래식 북바인딩 라인만 깔끔하게 렌더링되도록 구현.
+  2. `app/features/room/LibraryScene.jsx`:
+     - 내 서재 씬의 모든 선반 도서 렌더링 시 `<Book3D showSpineTitle={false} ... />`로 설정하여 선반 위의 책등 제목 완전 숨김.
+  3. `app/features/room/Book3DViewer.jsx`:
+     - 도서 상세 모달 3D 뷰어에서는 `<Book3D showSpineTitle={true} ... />`로 명시하여 3D 뷰어 화면에서 책등 제목이 고해상도로 선명하게 유지되도록 구현.
+  4. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 내 `kakao`, `google` 툴팁을 `카카오 로그인 (준비 중)` / `Google 로그인 (준비 중)`으로 변경.
+     - `isButtonDisabled(id)`에서 `kakao`, `google`을 항상 비활성화(`true`)로 지정하여 호버 시 밝기 효과 차단 및 `cursor: not-allowed` 적용.
+     - `handleClick(id)`에서 `kakao`, `google` 클릭 시 핸들러 실행을 차단하고 `!isButtonDisabled` 가드 적용 (ESLint `no-unused-vars` 준수).
+  5. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 책등(Spine) 텍스트 선명화·왜곡 보정·크기 통일 및 블루 서재 선반 이동 책 두께 일관성 개선
 - 작업 브랜치: `fix/book-spine-text-and-thickness`
 - **사용자 요청**:
@@ -103,20 +127,4 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-22: 로그인 페이지 소셜 로그인(카카오, Google) 및 회원가입 버튼 UI 활성화
-- 작업 브랜치: `feat/enable-social-login-and-signup-ui`
-- **사용자 요청**:
-  - 카카오 로그인, 구글 로그인, 회원가입 버튼 UI적으로 막아둔 것 활성화 요청.
-- **작업 내용**:
-  1. `app/pages/LoginPage.jsx`:
-     - `BUTTONS` 배열 내 `signup`, `kakao`, `google` 툴팁에서 `(준비 중)` / `(Coming Soon)` 문구 제거 및 정식 라벨로 복원.
-     - `isButtonDisabled(id)` 함수에서 `signup`, `kakao`, `google` 비활성화 조건 제거 (요청 중 `loading`일 때만 클릭 방지).
-     - `handleClick(id)` 핸들러에서 `signup`, `kakao`, `google` 정상 분기 활성화 (`navigate('/signup')`, `handleKakaoClick()`, `handleGoogleClick()`).
-     - 호버 시 밝기 및 드롭섀도우 효과(`login-layer-img--hover`), 마우스 커서 포인터(`cursor: pointer`) 정상화.
-  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
 

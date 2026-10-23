@@ -43,6 +43,7 @@ function getBookTexture() {
 export default function Book3D({
   title = '',
   author = '',
+  showSpineTitle = true,
   coverUrl = null,
   position = [0, 0, 0],
   size = [0.22, 1.2, 0.85],
@@ -90,16 +91,17 @@ export default function Book3D({
 
   const bookThickness = size?.[0] ?? 0.22;
   const bookHeight = size?.[1] ?? 1.2;
+  const spineTitle = showSpineTitle ? title : '';
 
-  // 책등(Spine) 캔버스 텍스처: 도서 이름 표시 + 책등 장식선 + 질감 텍스처
+  // 책등(Spine) 캔버스 텍스처: 도서 이름 표시(showSpineTitle이 true일 때만) + 책등 장식선 + 질감 텍스처
   const dynamicSpineMap = useMemo(() => {
     if (spineMap) return spineMap;
     void textureVer;
-    return createSpineTexture(title, spineColor, getSharedTextureImage(), {
+    return createSpineTexture(spineTitle, spineColor, getSharedTextureImage(), {
       thickness: bookThickness,
       height: bookHeight,
     });
-  }, [spineMap, title, spineColor, textureVer, bookThickness, bookHeight]);
+  }, [spineMap, spineTitle, spineColor, textureVer, bookThickness, bookHeight]);
 
   // 앞표지(Front Cover) 캔버스 텍스처: 책 표지 이미지 + 투명도 낮춘 질감 텍스처 오버레이
   const dynamicCoverMap = useMemo(() => {
