@@ -41,7 +41,11 @@ function dataURLtoBlob(dataurl) {
 export function buildFirstVisitDiscordPayload(form) {
   const fields = [];
 
-  // 1. 나이대 & 디자인 점수
+  // 1. 이용 환경 & 나이대 & 디자인 점수
+  const browser = form.browser === '기타' && form.browserOther ? `기타 (${form.browserOther})` : (form.browser || '미선택');
+  const device = form.device ? `${form.device}${form.deviceDetail ? ` (${form.deviceDetail})` : ''}` : '미선택';
+  fields.push({ name: '💻 이용 환경', value: `기기: ${device}\n브라우저: ${browser}`, inline: false });
+
   const age = form.ageGroup === '기타' && form.ageGroupOther ? `기타 (${form.ageGroupOther})` : (form.ageGroup || '미선택');
   fields.push({ name: '🎂 연령대', value: age, inline: true });
 
@@ -83,11 +87,11 @@ export function buildFirstVisitDiscordPayload(form) {
 
   // 5. 회원가입/로그인 과정의 난이도
   const signupMap = {
-    social_error: '① 소셜 로그인 오류',
-    many_required: '② 필수 입력 항목이 많음',
-    lack_guidance: '③ 다음 단계 안내 부족',
-    no_issue: '④ 불편 없음',
-    other: form.signupDifficultyOther ? `⑤ 기타 (${form.signupDifficultyOther})` : '⑤ 기타',
+    lack_guidance: form.signupDifficultyDetail
+      ? `① 다음 단계 안내 부족 (${form.signupDifficultyDetail})`
+      : '① 다음 단계 안내 부족',
+    no_issue: '② 불편 없음',
+    other: form.signupDifficultyOther ? `③ 기타 (${form.signupDifficultyOther})` : '③ 기타',
   };
   fields.push({
     name: '🔐 회원가입/로그인 과정',
@@ -137,7 +141,8 @@ export function buildReturningDiscordPayload(form) {
 
   // 1. 이용 환경 & 종합 만족도
   const browser = form.browser === '기타' && form.browserOther ? `기타 (${form.browserOther})` : (form.browser || '미선택');
-  fields.push({ name: '💻 이용 환경', value: `기기: ${form.device || '미선택'}\n브라우저: ${browser}`, inline: true });
+  const device = form.device ? `${form.device}${form.deviceDetail ? ` (${form.deviceDetail})` : ''}` : '미선택';
+  fields.push({ name: '💻 이용 환경', value: `기기: ${device}\n브라우저: ${browser}`, inline: true });
 
   const overallStars = form.overallSatisfaction > 0 ? '⭐'.repeat(form.overallSatisfaction) + ` (${form.overallSatisfaction}점 / 5점)` : '미평가';
   fields.push({ name: '🏆 종합 만족도', value: overallStars, inline: true });

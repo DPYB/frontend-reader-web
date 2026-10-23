@@ -1,5 +1,27 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-22: BETA 피드백 설문조사 디스코드 웹훅 연동 및 실시간 알림 카드 구현
+- 작업 브랜치: `feat/survey-discord-webhook-integration`
+- **사용자 요청**:
+  - BETA 피드백 설문조사 제출 시 디스코드 웹훅 채널(#beta-feedback)로 실시간 알림이 전송되도록 연동 구현 (옵션 A: 프론트엔드 직접 연동).
+  - 웹후크 봇 이름 및 프로필 설정, 전송 포맷 최적화.
+- **작업 내용**:
+  1. `app/features/survey/discordSurveyWebhook.js` 신설:
+     - `sendSurveyToDiscord(type, formData)`: Discord Webhook 엔드포인트 연동 (`VITE_DISCORD_SURVEY_WEBHOOK_URL`).
+     - 첫 방문 설문: 연령대, 디자인 만족도(별점), 서비스 이해도, 유사 서비스 경험, 기존 독서 기록 방식, 회원가입 난이도, 사용 기능, 헷갈렸던 점을 체계적인 Discord Embed 카드로 포맷팅.
+     - 재방문 설문: 기기/브라우저 환경, 종합 만족도(별점), 속도 체감, 유용한 기능, 재방문 이유, AI 사서 도움 정도, 불편사항, 버그 제보, 추가 희망 기능 등을 Discord Embed 카드로 포맷팅.
+     - 이미지 첨부 지원: 불편사항/버그 캡처 이미지가 첨부된 경우, DataURL을 Blob으로 변환하여 `FormData` 멀티파트 첨부파일(`attachment://inconvenience.jpg`, `attachment://bug.jpg`)로 전송 및 Embed 내 인라인 렌더링.
+  2. `app/features/survey/BetaSurveyModal.jsx`:
+     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`에 `sendSurveyToDiscord` 호출 연동 (로컬 스토리지 백업 보존 및 비동기 예외 안전 처리).
+  3. `.env.example`:
+     - `VITE_DISCORD_SURVEY_WEBHOOK_URL` 환경 변수 문서화.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-22: 사서 대화창 토론 모드 UI 비활성화 및 소셜 로그인 실패 원인 분석 점검
 - 작업 브랜치: `feat/check-social-login-and-disable-debate`
 - **사용자 요청**:

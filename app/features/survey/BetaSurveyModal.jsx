@@ -11,11 +11,9 @@ const FIRST_VISIT_BOOK_RECORD_OPTIONS = [
 ];
 
 const SIGNUP_DIFFICULTY_OPTIONS = [
-  { id: 'social_error', label: '① 소셜 로그인 오류' },
-  { id: 'many_required', label: '② 필수 입력 항목이 많음' },
-  { id: 'lack_guidance', label: '③ 다음 단계 안내 부족' },
-  { id: 'no_issue', label: '④ 불편 없음' },
-  { id: 'other', label: '⑤ 기타' },
+  { id: 'lack_guidance', label: '① 다음 단계 안내 부족' },
+  { id: 'no_issue', label: '② 불편 없음' },
+  { id: 'other', label: '③ 기타' },
 ];
 
 const UNDERSTANDING_OPTIONS = [
@@ -96,11 +94,16 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
 
   // --- 첫방문 설문 상태 ---
   const [firstForm, setFirstForm] = useState({
+    device: '',
+    deviceDetail: '',
+    browser: '',
+    browserOther: '',
     similarServiceUsed: '', // 'yes' | 'no'
     similarServiceName: '',
     bookRecordWays: [], // ids
     bookRecordWayOther: '',
     signupDifficulty: '',
+    signupDifficultyDetail: '',
     signupDifficultyOther: '',
     understanding: '',
     designScore: 0,
@@ -114,6 +117,7 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
   // --- 재방문 설문 상태 ---
   const [returningForm, setReturningForm] = useState({
     device: '',
+    deviceDetail: '',
     browser: '',
     browserOther: '',
     featuresUsed: [],
@@ -425,10 +429,81 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               </p>
             </div>
 
-            {/* Q1. 유사 서비스 사용 경험 */}
+            {/* Q1. 기기 / 브라우저 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
                 <span className="beta-q-num">1</span>
+                어떤 기기와 브라우저로 사용하셨나요?
+              </label>
+              <div className="beta-sub-question">
+                <span className="beta-sub-title">📱 사용 기기</span>
+                <div className="beta-radio-row">
+                  {DEVICE_OPTIONS.map((dev) => (
+                    <label
+                      key={dev}
+                      className={`beta-radio-chip ${firstForm.device === dev ? 'selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="firstDevice"
+                        value={dev}
+                        checked={firstForm.device === dev}
+                        onChange={() => setFirstForm({ ...firstForm, device: dev })}
+                      />
+                      <span>{dev}</span>
+                    </label>
+                  ))}
+                </div>
+                {firstForm.device && (
+                  <div className="beta-sub-input-wrap">
+                    <input
+                      type="text"
+                      className="beta-text-input"
+                      placeholder="구체적인 기기 종류를 입력해 주세요 (예: 아이폰 17, 갤럭시 S24, 아이패드 프로, 맥북 등)"
+                      value={firstForm.deviceDetail}
+                      onChange={(e) => setFirstForm({ ...firstForm, deviceDetail: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="beta-sub-question">
+                <span className="beta-sub-title">🌐 브라우저</span>
+                <div className="beta-radio-row">
+                  {BROWSER_OPTIONS.map((brw) => (
+                    <label
+                      key={brw}
+                      className={`beta-radio-chip ${firstForm.browser === brw ? 'selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="firstBrowser"
+                        value={brw}
+                        checked={firstForm.browser === brw}
+                        onChange={() => setFirstForm({ ...firstForm, browser: brw })}
+                      />
+                      <span>{brw}</span>
+                    </label>
+                  ))}
+                </div>
+                {firstForm.browser === '기타' && (
+                  <div className="beta-sub-input-wrap">
+                    <input
+                      type="text"
+                      className="beta-text-input"
+                      placeholder="사용 중인 브라우저를 입력해 주세요 (예: Whale, Firefox, Samsung Internet 등)"
+                      value={firstForm.browserOther}
+                      onChange={(e) => setFirstForm({ ...firstForm, browserOther: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Q2. 유사 서비스 사용 경험 */}
+            <section className="beta-question-card">
+              <label className="beta-question-label">
+                <span className="beta-q-num">2</span>
                 이 서비스와 비슷한 서비스를 평소 사용해 보신 적이 있나요?
               </label>
               <div className="beta-radio-row">
@@ -466,10 +541,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               )}
             </section>
 
-            {/* Q2. 평소 독서 기록 관리 방법 */}
+            {/* Q3. 평소 독서 기록 관리 방법 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">2</span>
+                <span className="beta-q-num">3</span>
                 평소 읽은 책이나 독서 기록을 어떻게 관리하시나요?
                 <span className="beta-q-hint">(해당하는 것을 모두 선택해 주세요)</span>
               </label>
@@ -491,10 +566,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               </div>
             </section>
 
-            {/* Q3. 가입 및 시작 과정 불편점 */}
+            {/* Q4. 가입 및 시작 과정 불편점 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">3</span>
+                <span className="beta-q-num">4</span>
                 가입 및 시작 과정에서 막히거나 불편했던 점이 있었나요?
               </label>
               <div className="beta-options-list">
@@ -514,6 +589,17 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
                   </label>
                 ))}
               </div>
+              {firstForm.signupDifficulty === 'lack_guidance' && (
+                <div className="beta-sub-input-wrap">
+                  <input
+                    type="text"
+                    className="beta-text-input"
+                    placeholder="어떤 부분에서 다음 단계 안내가 부족했는지 구체적으로 적어주세요."
+                    value={firstForm.signupDifficultyDetail}
+                    onChange={(e) => setFirstForm({ ...firstForm, signupDifficultyDetail: e.target.value })}
+                  />
+                </div>
+              )}
               {firstForm.signupDifficulty === 'other' && (
                 <div className="beta-sub-input-wrap">
                   <input
@@ -527,10 +613,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               )}
             </section>
 
-            {/* Q4. 서비스 정체성 이해도 */}
+            {/* Q5. 서비스 정체성 이해도 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">4</span>
+                <span className="beta-q-num">5</span>
                 서비스에 처음 접속했을 때, 이 서비스가 무엇을 하는 곳인지 바로 이해됐나요?
               </label>
               <div className="beta-options-list">
@@ -552,10 +638,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               </div>
             </section>
 
-            {/* Q5. 화면 디자인과 구성 (1~5점) */}
+            {/* Q6. 화면 디자인과 구성 (1~5점) */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">5</span>
+                <span className="beta-q-num">6</span>
                 화면 디자인과 구성은 어떠셨나요? (1~5점)
               </label>
               <div className="beta-rating-table">
@@ -585,10 +671,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               </div>
             </section>
 
-            {/* Q6. 사용해 본 기능 다중 선택 */}
+            {/* Q7. 사용해 본 기능 다중 선택 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">6</span>
+                <span className="beta-q-num">7</span>
                 사용해 본 기능을 모두 선택해 주세요.
               </label>
               <div className="beta-chip-grid">
@@ -617,10 +703,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               </div>
             </section>
 
-            {/* Q7. 헷갈리거나 막막했던 부분 */}
+            {/* Q8. 헷갈리거나 막막했던 부분 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">7</span>
+                <span className="beta-q-num">8</span>
                 처음 사용하면서 헷갈리거나 막막했던 부분이 있었나요?
               </label>
               <textarea
@@ -632,10 +718,10 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
               />
             </section>
 
-            {/* Q8. 연령대 */}
+            {/* Q9. 연령대 */}
             <section className="beta-question-card">
               <label className="beta-question-label">
-                <span className="beta-q-num">8</span>
+                <span className="beta-q-num">9</span>
                 연령대를 선택해 주세요.
               </label>
               <div className="beta-radio-row">
@@ -724,6 +810,17 @@ export default function BetaSurveyModal({ isOpen, onClose }) {
                     </label>
                   ))}
                 </div>
+                {returningForm.device && (
+                  <div className="beta-sub-input-wrap">
+                    <input
+                      type="text"
+                      className="beta-text-input"
+                      placeholder="구체적인 기기 종류를 입력해 주세요 (예: 아이폰 17, 갤럭시 S24, 아이패드 프로, 맥북 등)"
+                      value={returningForm.deviceDetail}
+                      onChange={(e) => setReturningForm({ ...returningForm, deviceDetail: e.target.value })}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="beta-sub-question">

@@ -1,5 +1,31 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: BETA 설문조사 첫방문 기기/브라우저 선택 추가, 기기 구체적 모델 입력란 및 가입 불편 보기 정돈
+- 작업 브랜치: `feat/beta-survey-device-and-options-update`
+- **사용자 요청**:
+  - 첫 방문 설문조사에서 재방문과 동일하게 기기, 브라우저 선택하는 항목 추가.
+  - 첫방문, 재방문 둘 다 기기 선택 시 구체적인 기기 종류 (예: 아이폰 17, 아이패드 프로 등)를 적을 수 있는 입력란 제공.
+  - '가입 및 시작 과정에서 막히거나 불편했던 점이 있었나요?' 질문에 대한 보기로 3, 4, 5번만 유지.
+  - '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란 생성.
+- **작업 내용**:
+  1. `app/features/survey/BetaSurveyModal.jsx`:
+     - `SIGNUP_DIFFICULTY_OPTIONS` 배열에서 불필요한 1, 2번 보기를 제거하고 '다음 단계 안내 부족', '불편 없음', '기타' 3가지 보기만 유지.
+     - `firstForm` 상태에 `device`, `deviceDetail`, `browser`, `browserOther`, `signupDifficultyDetail` 필드 추가.
+     - `returningForm` 상태에 `deviceDetail` 필드 추가.
+     - 첫방문 설문지에 재방문과 동일한 '어떤 기기와 브라우저로 사용하셨나요?' 섹션을 Q1으로 배치하고, 기기 선택 시 구체적인 모델명(예: 아이폰 17, 아이패드 프로 등)을 입력할 수 있는 텍스트 인풋 연동.
+     - 재방문 설문지의 기기 선택 시에도 동일하게 구체적인 기기 종류를 입력할 수 있는 인풋 연동.
+     - 첫방문 설문지 Q4(가입 및 시작 과정 불편점)에서 '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란(`signupDifficultyDetail`) 동적 렌더링.
+     - 첫방문 설문 질문 번호(Q1~Q9) 체계적 재정렬.
+  2. `app/features/survey/discordSurveyWebhook.js`:
+     - `buildFirstVisitDiscordPayload`: `💻 이용 환경` 필드(기기, 구체적 모델명, 브라우저) 추가 및 '다음 단계 안내 부족' 구체적 내용 반영.
+     - `buildReturningDiscordPayload`: `💻 이용 환경` 필드에 기기 구체적 모델명(`deviceDetail`) 병기 반영.
+  3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 채팅창 '?' 도움말 버튼 제거 및 주간(Weekly) 독서 리포트 지원 구현
 - 작업 브랜치: `feat/chat-remove-help-btn-and-weekly-reading-report`
 - **사용자 요청**:
@@ -104,27 +130,6 @@
   - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
   - 기존/신규 이미지를 200px로 나란히 렌더링하여 표시 크기·포인터 위치 일치 확인
 
-## 2026-10-22: BETA 피드백 설문조사 디스코드 웹훅 연동 및 실시간 알림 카드 구현
-- 작업 브랜치: `feat/survey-discord-webhook-integration`
-- **사용자 요청**:
-  - BETA 피드백 설문조사 제출 시 디스코드 웹훅 채널(#beta-feedback)로 실시간 알림이 전송되도록 연동 구현 (옵션 A: 프론트엔드 직접 연동).
-  - 웹후크 봇 이름 및 프로필 설정, 전송 포맷 최적화.
-- **작업 내용**:
-  1. `app/features/survey/discordSurveyWebhook.js` 신설:
-     - `sendSurveyToDiscord(type, formData)`: Discord Webhook 엔드포인트 연동 (`VITE_DISCORD_SURVEY_WEBHOOK_URL`).
-     - 첫 방문 설문: 연령대, 디자인 만족도(별점), 서비스 이해도, 유사 서비스 경험, 기존 독서 기록 방식, 회원가입 난이도, 사용 기능, 헷갈렸던 점을 체계적인 Discord Embed 카드로 포맷팅.
-     - 재방문 설문: 기기/브라우저 환경, 종합 만족도(별점), 속도 체감, 유용한 기능, 재방문 이유, AI 사서 도움 정도, 불편사항, 버그 제보, 추가 희망 기능 등을 Discord Embed 카드로 포맷팅.
-     - 이미지 첨부 지원: 불편사항/버그 캡처 이미지가 첨부된 경우, DataURL을 Blob으로 변환하여 `FormData` 멀티파트 첨부파일(`attachment://inconvenience.jpg`, `attachment://bug.jpg`)로 전송 및 Embed 내 인라인 렌더링.
-  2. `app/features/survey/BetaSurveyModal.jsx`:
-     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`에 `sendSurveyToDiscord` 호출 연동 (로컬 스토리지 백업 보존 및 비동기 예외 안전 처리).
-  3. `.env.example`:
-     - `VITE_DISCORD_SURVEY_WEBHOOK_URL` 환경 변수 문서화.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
 
 
 
