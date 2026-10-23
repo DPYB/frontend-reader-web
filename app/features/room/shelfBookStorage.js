@@ -73,8 +73,33 @@ export function reconcileShelfGroups(books = [], shelves = [], savedAssignments 
     bookMap.set(idStr, b);
   });
 
-  // 저장된 배치가 전혀 없는 경우: 기존 순차 배치 로직 적용
+  // 저장된 로컬 스토리지가 없을 때: 도서 자체의 shelfTier/shelfOrder를 기반으로 복원
   if (!savedAssignments || Object.keys(savedAssignments).length === 0) {
+    const hasServerPlacements = books.some((b) => (b.shelfTier ?? 0) > 0 || (b.shelfOrder ?? 0) > 0);
+
+    if (hasServerPlacements) {
+      const groups = shelves.map(() => []);
+      // shelfTier와 shelfOrder 기준으로 정렬 후 선반에 분배
+      const sorted = [...books].sort((a, b) =>
+        (a.shelfTier ?? 0) - (b.shelfTier ?? 0) || (a.shelfOrder ?? 0) - (b.shelfOrder ?? 0)
+      );
+      sorted.forEach((b) => {
+        const tier = Math.max(0, Math.min(shelves.length - 1, b.shelfTier ?? 0));
+        const cap = shelves[tier]?.capacity && shelves[tier].capacity > 0 ? shelves[tier].capacity : Infinity;
+        if (groups[tier].length < cap) {
+          groups[tier].push(b);
+        } else {
+          const fallbackTier = groups.findIndex((g, i) => g.length < (shelves[i].capacity || Infinity));
+          if (fallbackTier !== -1) {
+            groups[fallbackTier].push(b);
+          } else {
+            groups[tier].push(b);
+          }
+        }
+      });
+      return groups;
+    }
+
     let ptr = 0;
     return shelves.map((shelf) => {
       const cap = shelf.capacity && shelf.capacity > 0 ? shelf.capacity : Infinity;

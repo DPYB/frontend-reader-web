@@ -1,5 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: 3D 책장 선반(Shelf Placement) 배치 영속화 API 연동
+- 작업 브랜치: `feat/shelf-placements-persistence`
+- **사용자 요청**:
+  - 선반 단(0, 1, 2단) 및 좌우 순서 드래그 앤 드롭 배치가 localStorage에만 보관되어 새로고침/기기 변경 시 풀리는 문제를 해결하기 위해, 백엔드 DB(shelf_tier, shelf_order) 일괄 업데이트 API(`PUT /api/v1/library/books/shelf-placements`) 연동 및 복원 로직 구현.
+- **작업 내용**:
+  1. `app/api/bookApi.js`:
+     - `updateShelfPlacements(assignments, librarianType)` 함수 구현: 선반별 도서 ID 목록(`{ "0": [id1, id2], "1": [id3] }`)과 사서 타입을 백엔드 `PUT /api/v1/library/books/shelf-placements`로 전송.
+  2. `app/store/BooksProvider.jsx`:
+     - `toFrontBook` 모델 변환 시 백엔드 응답의 `shelfTier` 및 `shelfOrder` 필드를 프론트 도서 모델에 보존.
+  3. `app/features/room/LibraryScene.jsx`:
+     - `handleGlobalPointerUp` 드래그 앤 드롭 종료 시 `saveShelfAssignments`(로컬스토리지) 직후 `updateShelfPlacements(newAssignments, librarianId)`를 호출하여 백엔드 DB에 영속화. 게스트 모드(`isGuest`) 예외 가드 및 에러 안전 처리.
+     - `useEffect` 의존성 배열에 `isGuest` 추가하여 React Hook Lint 규칙 준수.
+  4. `app/features/room/shelfBookStorage.js`:
+     - `reconcileShelfGroups`: 로컬스토리지에 저장된 배치가 없을 때(!savedAssignments), 도서 자체의 `shelfTier`와 `shelfOrder`를 기반으로 선반 그룹을 복원하고 선반별 용량(capacity)을 고려하여 자동 배치되도록 개선.
+  5. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: BETA 설문조사 Google Sheets 연동 및 듀얼 파이프라인(디스코드+시트) 구축
 - 작업 브랜치: `feat/survey-google-sheets-integration`
 - **사용자 요청**:
@@ -84,35 +105,6 @@
      - `buildFirstVisitDiscordPayload`: `💻 이용 환경` 필드(기기, 구체적 모델명, 브라우저) 추가 및 '다음 단계 안내 부족' 구체적 내용 반영.
      - `buildReturningDiscordPayload`: `💻 이용 환경` 필드에 기기 구체적 모델명(`deviceDetail`) 병기 반영.
   3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: 채팅창 '?' 도움말 버튼 제거 및 주간(Weekly) 독서 리포트 지원 구현
-- 작업 브랜치: `feat/chat-remove-help-btn-and-weekly-reading-report`
-- **사용자 요청**:
-  - 채팅창 누르면 새 대화 버튼 오른쪽에 있는 '?' 버튼에 설명 나오는데 그거 없애기 ('?' 버튼도 함께 제거).
-  - 독서 리포트가 월간만 되어 있는데 주간도 가능하게 구현.
-- **작업 내용**:
-  1. `app/features/room/chat/ChatHeader.jsx`:
-     - 상단 헤더의 `showHelp` 상태 및 '?' 버튼/설명 팝오버 래퍼(`.lc-help-btn-wrap`) 완전 제거. 미사용 `useState` import 정리.
-  2. `app/api/reportApi.js`:
-     - `getAvailableWeeks()`: 서비스 런칭 시점(2026년 9월)부터 현재까지의 ISO-8601 기반 주차 목록(월~일 주차, 목요일 기준 월 소속) 동적 생성 및 최신순 반환 함수 구현 및 export.
-     - `deriveWeeklyReportFromMonthly(monthlyData, weekInfo)`: 백엔드 주간 API 부재 시 월간 리포트 데이터를 기반으로 주간 스케일(주간 목표 1권, 1주 환산 페이지/시간, 최대 7일 Streak, 주간 피드백)로 정규화하는 어댑터 함수 구현.
-     - `fetchWeeklyReport(weekInfo)`: `/reports/weekly` API 호출 시도 및 graceful fallback 연동 구현 및 export.
-  3. `app/i18n/translations.js`:
-     - `ko`, `en` 리포트 다국어 번역 키(`tabWeekly`, `tabMonthly`, `weeklyTitle`, `monthlyTitle`, `card01TitleWeekly`, `card01TitleMonthly`, `emptyDescWeekly`) 추가.
-  4. `app/pages/MonthlyReport.jsx`:
-     - `periodType` ('monthly' | 'weekly') 상태 및 `availableWeeks`, `selectedWeek` 상태 관리 연동.
-     - 상단 헤더에 주간/월간 세그먼트 전환 탭 컴포넌트(`.report-period-toggle`) 배치.
-     - `periodType === 'weekly'`일 때 주차 선택 드롭다운 노출 및 `fetchWeeklyReport(selectedWeek)` 비동기 조회.
-     - 타이틀, 서브타이틀, 빈 상태 안내문, 카드 01(이번 주 한눈에 보기), 카드 03 키워드, 카드 05 문장 스크랩, 카드 07 사서 관찰기, 카드 08 처방 제목의 주간/월간 분기 처리.
-     - PDF 다운로드 시 `title` 매개변수에 주간/월간 리포트명(`주간_독서_리포트` vs `월간_독서_리포트`) 전달.
-  5. `app/pages/MonthlyReport.css`:
-     - `.report-period-and-badge`, `.report-period-toggle`, `.report-period-btn`, `.report-period-btn.active` 스타일링 추가.
-  6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

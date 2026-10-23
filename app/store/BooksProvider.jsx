@@ -28,6 +28,8 @@ function toFrontBook(summary) {
     status: bookApi.toKoreanStatus(summary.readingStatus, summary.progress ?? 0),
     coverUrl: summary.coverUrl ?? null,
     progress: summary.progress ?? 0,
+    shelfTier: summary.shelfTier ?? null,
+    shelfOrder: summary.shelfOrder ?? null,
     colorIdx: visual.colorIdx,
     spineColor: visual.spineColor,
     coverColor: visual.coverColor,
