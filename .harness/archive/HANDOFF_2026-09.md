@@ -1,5 +1,41 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 및 선반별 배치 영속화 구현
+- 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
+- **사용자 요청**:
+  - 서재 선반에 책이 있을 때, 드래그로 사용자가 원하는 선반에 꽂을 수 있게 이동 가능하게 구현.
+  - 백엔드 �  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+�여, 가벼운 클릭 시 도서 상세 모달 오픈 경험과 완벽히 분리.
+     - 도서 드래�  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+��처 opacity 낮추기.
+- **작업 내용**:
+  1. **사서 프로필 사진 4종 배경 컬러 `#F7F3ED` 통일**:
+     - 사서 4종(`cat`, `stork`, `nudi`, `gecko`)의 프로필 이미지 배경을 분석하여 따뜻한 아이보리 톤(`#F7F3ED`, RGB: 247, 243, 237)으로 일괄 통일.
+       - `cat.webp`, `stork.webp`: 기존 `#F7F3ED` 배경 유지.
+       - `nudi.webp`: 투명 RGBA 채널을 `#F7F3ED` 캔버스에 합성하여 WebP(Q95)로 변환.
+       - `gecko.webp`: 기존 순백색(`#FFFFFF`) 배경을 `#F7F3ED`로 치환/블렌딩하여 WebP(Q95)로 변환.
+     - 통일된 4종 WebP 파일을 `public/profile/librarian/`에 배치하고, `app/data/librarians.js`의 `profileImage` 경로를 `/profile/librarian/{id}.webp`로 매핑.
+     - CSS 스타일 레벨에서도 일관된 배경색 보장:
+       - `app/pages/LibrarianProfiles.css`: `.lp-avatar`에 `background: #f7f3ed;` 지정 (다크모드에서도 일관된 톤 유지).
+       - `app/components/Gnb.css`: `.gnb-profile`, `.gnb-sheet-librarian-avatar img`에 `background: #f7f3ed;` 지정.
+       - `app/features/room/LibrarianChat.css`: `.lc-mobile-fab-avatar`, `.lc-chat-toggle-avatar-wrap`에 `background: #f7f3ed;` 지정.
+  2. **블루 커서 클릭 모션 이미지(`cat_04.webp`) 화질 개선 및 선명화(Sharpen)**:
+     - `public/cursors/cat/cat_04.webp` 화질 분석: 클릭 시 브라우저 서브픽셀 렌더링 및 모션 전환 시 엣지가 뭉개져 보이는 현상 확인.
+     - Pillow 언샤프 마스크(`ImageFilter.UnsharpMask(radius=1.2, percent=160, threshold=3)`) 및 미세 콘트라스트(1.05x) 보정을 적용하고 손실을 최소화한 WebP Q98로 재인코딩하여 선명도 및 캐릭터 윤곽 복원.
+     - `app/features/room/LibrarianCursor.css`: `.librarian-cursor-img`에 `image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; transform: translateZ(0); backface-visibility: hidden;` 추가로 실시간 커서 트랜스폼 중 GPU 텍스처 보간 시 흐려짐(blur) 원천 차단.
+  3. **3D 도서 뒤표지(Back Cover) 텍스처 투명도(Opacity) 완화**:
+     - 원인 분석: 기존 앞표지/책등은 캔버스 합성으로 `globalAlpha = 0.35` 수준의 은은한 오버레이를 적용했으나, 뒤표지는 `Book3D.jsx`에서 raw grayscale 텍스처를 100% full opacity로 덮어씌워 지나치게 어둡고 탁해 보였음.
+     - `app/features/bookshelf3d/bookTextureHelper.js`: `createBackCoverTexture(coverColor, sharedImg)` 신설. 텍스처 오버레이 `globalAlpha = 0.16`로 대폭 완화하여 부드럽고 고급스러운 종이 질감을 구현하고, 클래식 음각/양각 테두리 프레임 데코레이션 추가.
+     - `app/features/bookshelf3d/Book3D.jsx`: `dynamicBackCoverMap` 캔버스 텍스처 메모이제이션 및 언마운트 시 dispose 처리, `backCover` 머티리얼에 `map: activeBackCoverMap`, `bumpScale: 0.005` 적용.
+  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-19: 도서 상세 모달 내 3D/2D 도서 뷰어 전환 기능 및 선호도 저장 구현
 - 작업 브랜치: `feat/book-detail-2d-3d-toggle`
 - **사용자 요청**:
@@ -565,7 +601,6 @@
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
-
 
 ## 2026-10-09: 슈빌(황새) 서재 커서 크기 배율 최적화 (게코 < 슈빌 < 기존)
 - 작업 브랜치: `feat/adjust-shoebill-cursor-size`
@@ -1398,7 +1433,6 @@
      - `.lc-library-view` 및 `.lc-library-list`의 `max-height`를 flex 레이아웃에 맞게 확장하여 서재 도서 목록이 460px 뷰포트 내에서 쾌적하게 렌더링되도록 개선.
 - **검증**: `npm run typecheck` 통과 (0 errors), `npm run lint` 통과 (0 errors), `npm run build` 성공
 
-
 ## 2026-09-21: 대화창 '✨ 새 대화' 버튼 및 세션/스트리밍 초기화 구현
 - 작업 브랜치: `feat/chat-new-session-button`
 - **사용자 요청**: 대화창 상단에 `[✨ 새 대화]` 버튼을 배치하고, 클릭 시 새로운 `sessionId` 발급 및 `sessionStorage` 저장, 메시지 배열 및 턴/도서/토론 상태 초기화, 진행 중인 스트리밍 요청 취소(`abortController.abort()`) 및 토론 모드 2턴 이상 미마무리 시 확인창 로직을 구현해달라.
@@ -2052,6 +2086,7 @@
   - `.githooks/pre-commit` 훅 스크립트 추가 (소스 코드 수정 시 `STATE.md` 누락 방지 non-blocking 안내) 및 실행 권한(`chmod +x`) 부여
   - `package.json` scripts에 `"prepare": "git config core.hooksPath .githooks || true"` 추가하여 협업 시 자동 훅 경로 등록
   - 로컬 git 환경 `git config core.hooksPath .githooks` 설정 완료
+
 ## 2026-09-17: 사서 토론 UI 버그 수정 및 세로 스크롤 레이아웃 구조 개편
 - 작업 브랜치: `fix/debate-layout-persona-name`
 - **사서/페르소나 전환 버튼 이름 누락 방어 (`LibrarianChat.jsx`)**:
@@ -2207,6 +2242,7 @@
   - 원본 파일은 `MonthlyReport.legacy.jsx`, `MonthlyReport.legacy.css`로 안전하게 백업 보존.
 - **API 및 데이터 정규화 레이어 확장 (`reportApi.js`)**:
   - `genreStats` 및 `weatherBooks` 필드 정규화 추가. 백엔드 실데이터 연동과 견본 데이터 스마트 병합 지원.
+
 ## 2026-09-17: 사서별(블루/슈빌/누디/게코) 대화 세션 및 말풍선 도화지 분리 격리
 - 작업 브랜치: `feat/librarian-chat-session-isolation`
 - **사서별 메시지 히스토리 도화지 및 세션 ID 분리 (`LibrarianChat.jsx`, `librarianStore.js`, `LibraryScene.jsx`)**:
@@ -2330,6 +2366,7 @@
   - `detectGenreCode(str)`: 3글자 이하 영문 단축어('it', 'ai', 'sf')에 대해 단어 경계(`\b`) 독립 단어 정규식 검사를 적용하여 일반 영단어 내 부분 문자열 오탐 원천 차단.
 - **등록 폼 장르 보존 (`app/pages/RegisterBook.jsx`)**:
   - `GENRE_CODES.includes(code)`를 최우선 적용하여 이미 검증된 추천 장르가 불필요한 별칭 탐색 없이 100% 온전히 보존되도록 개선.
+
 ## 2026-09-20: 추천 도서 응답 시 서재 도서 오인 방지 3중 방어막 및 번호 매김 추천 카드 복원
 - **원인 분석**:
   - AI 에이전트가 추천 도서 표준 마크다운(`### 📖 {제목}`) 대신 일반 텍스트 문맥에서 `📚\n누디가 건네는 따뜻한 온기의 책` 또는 `### 📚 ...` 형태로 응답을 시작함.
@@ -2361,6 +2398,7 @@
     - `getGenreSubLabel`: 세부 `subject`나 `displayGenre`가 없을 때 무조건 `(컴퓨터/IT)`를 붙이던 하드코딩을 제거. 서버가 내려준 세부 주제가 있을 때만 괄호로 명시하고, 없을 경우 KDC 10대 표준 대분류명(`기술과학`)으로 정돈하여 의학/요리/실용서의 오해 소지 원천 제거.
     - 장르 선택 `<select>` 드롭다운 옵션에서도 `기술과학 (컴퓨터/IT)` 등 고정 수식어 제거하고 `g.label` 표준 라벨로 렌더링.
 - **검증**:
+
 ## 2026-09-28: GNB 사서별 서비스 이름 이미지 WebP 변환 및 최적화
 - 작업 브랜치: `feat/librarian-name-webp`
 - **배경 및 원인 분석**:
@@ -2370,6 +2408,7 @@
   - `public/name/`: 기존 PNG 4종 삭제 및 고해상도 최적화 WebP(`name_{cat,gecko,nudi,stork}.webp`) 신규 생성.
   - `app/data/librarians.js`: 4종 사서의 `nameImage` 경로 및 fallback 기본 확장자를 `.png`에서 `.webp`로 수정.
   - `app/components/Gnb.jsx`: `nameImage` fallback 경로를 `.webp`로 변경.
+
 ## 2026-09-28: 프론트엔드 라우트 코드 스플리팅 & 벤더 분할 & 렌더링 성능 최적화
 - 작업 브랜치: `feat/frontend-performance-refactor`
 - **배경 및 원인 분석**:
@@ -2388,7 +2427,3 @@
   - `npx tsc --noEmit` 통과 (0 errors).
   - `npm run lint` 통과 (0 errors).
   - `npm run build` 정상 통과 (3.01초 만에 완료, 벤더 청크 4종 및 페이지 청크 정상 분리 산출 확인).
-
-
-
-

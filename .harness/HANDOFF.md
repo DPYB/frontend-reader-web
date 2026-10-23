@@ -1,5 +1,21 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-23: 고양이(블루) 사서 커서 이미지 신규 일러스트 교체 및 WebP 변환
+- 작업 브랜치: `feat/cat-cursor-image-update`
+- **사용자 요청**:
+  - 새로 그린 블루 커서 이미지 적용 (`cat_01` = 기본 커서, `cat_02` = 클릭 시 잠깐 보여지는 커서).
+  - 화질 저하 없이 WebP로 변환하고, 화면에 보이는 크기는 이전과 동일하게 유지.
+- **작업 내용**:
+  1. 원본(11811×11811 PNG) 분석: 캔버스 대비 캐릭터 알파 바운딩 박스 비율이 기존 `cat_03`/`cat_04`와 사실상 동일(기본 0.558×0.780 vs 0.563×0.780)함을 확인 → 정사각 리사이즈만으로 표시 크기(200px 박스) 유지.
+  2. `public/cursors/cat/cat_01.webp`, `cat_02.webp` 생성: LANCZOS 600×600(표시 200px 기준 3x, 레티나 대응), WebP q92 / alpha_quality 100 (각 약 35KB / 32KB). 기존 300px 대비 해상도 2배.
+  3. `public/cursors/cat/cat_01_cursor.png` 생성: OS 네이티브 CSS 커서용(91×128, 핫스팟 6 6 유지). CSS `cursor` 호환성을 위해 PNG 유지.
+  4. `app/data/librarians.js`: 블루 `image`/`imageHover` 경로 교체, 클릭 포즈 앞발 끝 실측값으로 `tipHover`를 `{ x: 0.13, y: 0.346 }`로 보정(기본 `tip`은 실측 결과 동일하여 유지).
+  5. `app/index.css`: `[data-librarian='cat']` 네이티브 커서 경로 교체.
+  6. 레거시 에셋(`cat_03.webp`, `cat_04.webp`, `cat_03_cursor.png`) 제거. 원본 대용량 PNG는 배포 번들에 포함되지 않도록 `public/` 밖으로 이동.
+- **검증**:
+  - `npm run check:harness`, `npm run lint`, `npm run typecheck`, `npm run build` 통과
+  - 기존/신규 이미지를 200px로 나란히 렌더링하여 표시 크기·포인터 위치 일치 확인
+
 ## 2026-10-22: BETA 피드백 설문조사 디스코드 웹훅 연동 및 실시간 알림 카드 구현
 - 작업 브랜치: `feat/survey-discord-webhook-integration`
 - **사용자 요청**:
@@ -96,42 +112,6 @@
   5. `app/index.css`:
      - `body.reading-room.is-dragging-book`에 `user-select: none !important; -webkit-user-select: none !important; touch-action: none !important;` 추가로 제스처 간섭 원천 차단.
   6. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 및 선반별 배치 영속화 구현
-- 작업 브랜치: `feat/bookshelf-drag-and-drop-placement`
-- **사용자 요청**:
-  - 서재 선반에 책이 있을 때, 드래그로 사용자가 원하는 선반에 꽂을 수 있게 이동 가능하게 구현.
-  - 백엔드 �  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-�여, 가벼운 클릭 시 도서 상세 모달 오픈 경험과 완벽히 분리.
-     - 도서 드래�  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-��처 opacity 낮추기.
-- **작업 내용**:
-  1. **사서 프로필 사진 4종 배경 컬러 `#F7F3ED` 통일**:
-     - 사서 4종(`cat`, `stork`, `nudi`, `gecko`)의 프로필 이미지 배경을 분석하여 따뜻한 아이보리 톤(`#F7F3ED`, RGB: 247, 243, 237)으로 일괄 통일.
-       - `cat.webp`, `stork.webp`: 기존 `#F7F3ED` 배경 유지.
-       - `nudi.webp`: 투명 RGBA 채널을 `#F7F3ED` 캔버스에 합성하여 WebP(Q95)로 변환.
-       - `gecko.webp`: 기존 순백색(`#FFFFFF`) 배경을 `#F7F3ED`로 치환/블렌딩하여 WebP(Q95)로 변환.
-     - 통일된 4종 WebP 파일을 `public/profile/librarian/`에 배치하고, `app/data/librarians.js`의 `profileImage` 경로를 `/profile/librarian/{id}.webp`로 매핑.
-     - CSS 스타일 레벨에서도 일관된 배경색 보장:
-       - `app/pages/LibrarianProfiles.css`: `.lp-avatar`에 `background: #f7f3ed;` 지정 (다크모드에서도 일관된 톤 유지).
-       - `app/components/Gnb.css`: `.gnb-profile`, `.gnb-sheet-librarian-avatar img`에 `background: #f7f3ed;` 지정.
-       - `app/features/room/LibrarianChat.css`: `.lc-mobile-fab-avatar`, `.lc-chat-toggle-avatar-wrap`에 `background: #f7f3ed;` 지정.
-  2. **블루 커서 클릭 모션 이미지(`cat_04.webp`) 화질 개선 및 선명화(Sharpen)**:
-     - `public/cursors/cat/cat_04.webp` 화질 분석: 클릭 시 브라우저 서브픽셀 렌더링 및 모션 전환 시 엣지가 뭉개져 보이는 현상 확인.
-     - Pillow 언샤프 마스크(`ImageFilter.UnsharpMask(radius=1.2, percent=160, threshold=3)`) 및 미세 콘트라스트(1.05x) 보정을 적용하고 손실을 최소화한 WebP Q98로 재인코딩하여 선명도 및 캐릭터 윤곽 복원.
-     - `app/features/room/LibrarianCursor.css`: `.librarian-cursor-img`에 `image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; transform: translateZ(0); backface-visibility: hidden;` 추가로 실시간 커서 트랜스폼 중 GPU 텍스처 보간 시 흐려짐(blur) 원천 차단.
-  3. **3D 도서 뒤표지(Back Cover) 텍스처 투명도(Opacity) 완화**:
-     - 원인 분석: 기존 앞표지/책등은 캔버스 합성으로 `globalAlpha = 0.35` 수준의 은은한 오버레이를 적용했으나, 뒤표지는 `Book3D.jsx`에서 raw grayscale 텍스처를 100% full opacity로 덮어씌워 지나치게 어둡고 탁해 보였음.
-     - `app/features/bookshelf3d/bookTextureHelper.js`: `createBackCoverTexture(coverColor, sharedImg)` 신설. 텍스처 오버레이 `globalAlpha = 0.16`로 대폭 완화하여 부드럽고 고급스러운 종이 질감을 구현하고, 클래식 음각/양각 테두리 프레임 데코레이션 추가.
-     - `app/features/bookshelf3d/Book3D.jsx`: `dynamicBackCoverMap` 캔버스 텍스처 메모이제이션 및 언마운트 시 dispose 처리, `backCover` 머티리얼에 `map: activeBackCoverMap`, `bumpScale: 0.005` 적용.
-  4. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
