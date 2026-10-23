@@ -1,6 +1,23 @@
 # HANDOFF (2026-09 아카이브)
 
-## 2026-10-20: 3D 책장 도서 드래그 앤 드롭 이동 인터랙션 결함 수정 및 안정화
+## 2026-10-22: 로그인 페이지 소셜 로그인(카카오, Google) 및 회원가입 버튼 UI 활성화
+- 작업 브랜치: `feat/enable-social-login-and-signup-ui`
+- **사용자 요청**:
+  - 카카오 로그인, 구글 로그인, 회원가입 버튼 UI적으로 막아둔 것 활성화 요청.
+- **작업 내용**:
+  1. `app/pages/LoginPage.jsx`:
+     - `BUTTONS` 배열 내 `signup`, `kakao`, `google` 툴팁에서 `(준비 중)` / `(Coming Soon)` 문구 제거 및 정식 라벨로 복원.
+     - `isButtonDisabled(id)` 함수에서 `signup`, `kakao`, `google` 비활성화 조건 제거 (요청 중 `loading`일 때만 클릭 방지).
+     - `handleClick(id)` 핸들러에서 `signup`, `kakao`, `google` 정상 분기 활성화 (`navigate('/signup')`, `handleKakaoClick()`, `handleGoogleClick()`).
+     - 호버 시 밝기 및 드롭섀도우 효과(`login-layer-img--hover`), 마우스 커서 포인터(`cursor: pointer`) 정상화.
+  2. 하네스 문서(`STATE.md`, `HANDOFF.md`, `HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
+
 - 작업 브랜치: `fix/bookshelf-drag-drop-interaction-v2`
 - **사용자 요청**:
   - 머지 완료 후 실제 서재에서 책 드래그 이동이 동작하지 않는 현상 재확인 및 해결.
