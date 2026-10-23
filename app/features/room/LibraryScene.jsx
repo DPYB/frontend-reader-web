@@ -24,6 +24,7 @@ import {
   moveBookAssignment,
   findTargetShelfIndex,
 } from './shelfBookStorage';
+import { updateShelfPlacements } from '../../api/bookApi';
 import {
   BG_ASPECT,
   getBgSrc,
@@ -683,7 +684,17 @@ export default function LibraryScene() {
         setShelfAssignments((prevAssignments) => {
           const freshGroups = reconcileShelfGroups(sourceBooks, activeConfig.shelves, prevAssignments);
           const newAssignments = moveBookAssignment(freshGroups, info.bookId, hoveredDropShelfIdx);
+
+          // 1) 기존 로컬 스토리지 캐싱 유지
           saveShelfAssignments(librarianId, currentUserId, newAssignments);
+
+          // 2) 백엔드 DB 영속화 동기화
+          if (!isGuest) {
+            updateShelfPlacements(newAssignments, librarianId).catch((err) => {
+              console.warn('선반 배치 서버 저장 실패 (로컬 저장은 유지됨):', err);
+            });
+          }
+
           return newAssignments;
         });
 
@@ -718,7 +729,7 @@ export default function LibraryScene() {
       window.removeEventListener('touchmove', handleGlobalPointerMove);
       window.removeEventListener('touchend', handleGlobalPointerUp);
     };
-  }, [hoveredDropShelfIdx, librarianId, currentUserId, activeConfig.shelves, sourceBooks, currentShelfBounds]);
+  }, [hoveredDropShelfIdx, librarianId, currentUserId, isGuest, activeConfig.shelves, sourceBooks, currentShelfBounds]);
 
   const { camera } = activeConfig;
   const activeShelf = workingConfig.shelves[activeIdx] || workingConfig.shelves[0];

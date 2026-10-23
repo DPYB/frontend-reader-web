@@ -447,4 +447,23 @@ export function getBookCoverPresignedUrl({ contentType = 'image/webp' } = {}) {
   });
 }
 
+/**
+ * 3D 책장 선반별 도서 단/순서 일괄 업데이트 (선반 배치 영속화).
+ * 백엔드(backend-core-api): PUT /api/v1/library/books/shelf-placements
+ *
+ * @param {Record<string|number, Array<string|number>>} assignments - 선반별 도서 ID 목록 { "0": [12, 15], "1": [7, 8] }
+ * @param {string|null} [librarianType=null] - "CAT" | "SHOEBILL" | "SEA_SLUG" | "GECKO"
+ * @returns {Promise<{ status: string, updatedCount: number }>}
+ */
+export function updateShelfPlacements(assignments, librarianType = null) {
+  return authFetch('/library/books/shelf-placements', {
+    method: 'PUT',
+    body: {
+      librarianType: librarianType ? String(librarianType).toUpperCase() : null,
+      assignments,
+    },
+  });
+}
+
+
 
