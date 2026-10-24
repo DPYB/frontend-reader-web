@@ -1,5 +1,26 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-25: 회원가입 폼 비밀번호 유효성 검사 실시간 인라인 에러/성공 피드백 및 성별 기본값 정비
+- 작업 브랜치: `feat/signup-validation-feedback`
+- **사용자 요청**:
+  - 회원가입 화면에서 비밀번호 복잡도 조건(8자 이상, 영문 대/소문자, 숫자, 특수문자) 미충족 시 어떤 조건이 빠졌는지 실시간으로 명확히 안내 문구를 띄워주고 버튼 비활성화 원인을 바로 알 수 있도록 개선.
+- **원인 및 배경**:
+  - 회원가입 페이지(`SignupPage.jsx`)의 비밀번호 정규식(`PW_RE`)은 영문 대문자(`A-Z`)를 필수로 요구하고 있었으나, 플레이스홀더에는 `"8자 이상 영문+숫자+특수문자"`로만 표기되어 사용자가 소문자만 입력하는 경우가 다수 발생.
+  - 대문자 등 복잡도 조건이 누락되었을 때 시각적 인라인 에러 문구(`signup-error`)가 일체 표시되지 않아 사용자는 폼을 다 채웠는데도 '가입하기' 버튼이 `disabled`(🚫 커서) 상태로 멈추는 심각한 UX 마찰을 겪음.
+  - 성별(`gender`) 라디오 버튼 역시 미선택 시 버튼이 잠기지만 기본값이 빈 문자열(`''`)로 설정되어 있어 미선택 누락 위험이 컸음.
+- **작업 내용**:
+  1. `app/pages/SignupPage.jsx`:
+     - `getPasswordErrorMessage(pw)` 헬퍼 함수 신설: 8자 미만, 영문 대문자 누락, 영문 소문자 누락, 숫자 누락, 특수문자 누락 조건을 순차 검사하여 미충족된 규칙을 1초 만에 알 수 있는 친절한 한국어 에러 메시지 반환.
+     - 비밀번호 인풋 플레이스홀더를 `"8자 이상 영문 대/소문자+숫자+특수문자"`로 명확히 수정.
+     - 비밀번호 인풋 하단에 실시간 피드백 렌더링: 미충족 시 빨간색 에러 문구(`.signup-error`), 통과 시 초록색 성공 문구(`.signup-success`, "사용 가능한 안전한 비밀번호입니다.") 즉시 노출.
+     - `form.gender` 기본값을 `'선택 안 함'`으로 설정하여 성별 미선택으로 인한 버튼 비활성화 방지.
+  2. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-24: PC(데스크톱) 내 서재 이용가이드 플로팅 버튼 추가 (타이머 위)
 - 작업 브랜치: `feat/pc-guide-button-above-timer`
 - **사용자 요청**:
@@ -64,8 +85,8 @@
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
 
-## 2026-10-23: BETA 설문조사 제출 후 폼 상태 초기화(리셋) 처리
-- 작업 브랜치: `fix/beta-survey-reset-on-submit`
+## 2026-10-23: BETA 설문조사 제출 완료 시 폼 상태(첫방문/재방문) 자동 초기화 처리
+- 작업 브랜치: `fix/beta-survey-reset-after-submit`
 - **사용자 요청**:
   - 설문 제출 후에 다시 설문지로 들어가면 이전에 작성한 내용이 그대로 남아있는데, 제출 후에는 작성 내용이 리셋되도록 개선.
 - **원인 분석**:
@@ -83,31 +104,3 @@
   - `npm run lint` 통과 (0 errors, 0 warnings)
   - `npm run typecheck` 통과 (0 errors)
   - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: 독서 리포트 날짜 선택기 UI 개선(주간 시작일 지정) 및 BETA 설문 버그 수정
-- 작업 브랜치: `feat/report-date-picker-and-survey-fixes`
-- **사용자 요청**:
-  1. 주간 월간 선택 버튼을 날짜 왼쪽에 배치하고, 주간 선택 시 시작 날짜(7일 자동 계산)를 설정할 수 있도록 변경.
-  2. 첫방문 설문: '처음 사용하면서 헷갈리거나 막막했던 부분이 있었나요?' 질문 예시에 '사용해보려고 했지만 잘 안되는 것이 있는지'도 함께 안내.
-  3. 재방문 설문: '오늘의 만족도는 어느 정도인가요?'에서 1보다 높은 점수를 선택할 때 하위 점수들이 같이 선택되는 버그 수정.
-- **작업 내용**:
-  1. `app/pages/MonthlyReport.jsx` & `MonthlyReport.css`:
-     - 상단 헤더 타이틀 영역에 있던 주간/월간 세그먼트 토글 버튼(`.report-period-toggle`)을 우측 컨트롤 영역(`.report-actions`) 내 날짜 선택기 바로 왼쪽으로 이동.
-     - 주간 리포트 선택 시 고정 주차 드롭다운 대신 날짜 피커(`<input type="date" />`)를 제공하여 사용자가 원하는 주간 시작일을 직관적으로 선택할 수 있도록 구현.
-     - 시작일 선택 시 시작일로부터 6일 뒤(`startDate + 6일 = 총 7일`)를 종료일로 자동 계산하여 `~ YYYY-MM-DD (7일간)` 배지 실시간 표시.
-     - `calculateWeekRange(startIsoStr)` 헬퍼 함수를 통해 주간 리포트 API 페이로드 규격에 맞춰 `fetchWeeklyReport(selectedWeek)` 비동기 조회 자동 갱신.
-     - 기본 주간 시작일을 오늘 기준 최근 7일치(`new Date() - 6일`)로 자동 설정하고 `min="2026-09-01"`, `max={todayIso}` 경계 보호.
-     - `.report-weekly-picker`, `.report-picker-label`, `.report-date-input`, `.report-range-badge` 반응형 및 테마 스타일링 적용, 인쇄 시 비인쇄 숨김 처리.
-  2. `app/features/survey/BetaSurveyModal.jsx`:
-     - 첫방문 설문 Q8(`confusingPart`) textarea의 placeholder 예시에 `사용해보려고 했지만 잘 안되는 기능 등` 문구 보강.
-     - 재방문 설문 Q11(`overallSatisfaction`) 만족도 버튼 렌더링 시 기존 범위 판별 조건(`>= score`)을 단일 일치 조건(`=== score`)으로 수정하여 하위 점수 동시 선택 버그 완벽 해결.
-  3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-
-
-

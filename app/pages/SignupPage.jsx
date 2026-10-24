@@ -14,6 +14,20 @@ const TERMS_FALLBACK_NAME = {
 
 // 비밀번호 정책: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PW_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+/**
+ * 비밀번호 실시간 유효성 검사 상세 에러 메시지 도출
+ */
+function getPasswordErrorMessage(pw) {
+  if (!pw) return '';
+  if (pw.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+  if (!/[A-Z]/.test(pw)) return '영문 대문자를 1자 이상 포함해야 합니다.';
+  if (!/[a-z]/.test(pw)) return '영문 소문자를 1자 이상 포함해야 합니다.';
+  if (!/\d/.test(pw)) return '숫자를 1자 이상 포함해야 합니다.';
+  if (!/[^A-Za-z0-9]/.test(pw)) return '특수문자를 1자 이상 포함해야 합니다.';
+  return '';
+}
+
 // 폼 표시용 성별(한글) → 백엔드 계약(MALE/FEMALE/null) 매핑
 const GENDER_MAP = { 남성: 'MALE', 여성: 'FEMALE', '선택 안 함': null };
 
@@ -55,7 +69,7 @@ export default function SignupPage() {
     password: '',
     passwordConfirm: '',
     birthDate: '',
-    gender: '',
+    gender: '선택 안 함',
   });
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -118,6 +132,7 @@ export default function SignupPage() {
 
   const maxBirthDate = maxBirthDateString();
   const pwValid = PW_RE.test(form.password);
+  const pwError = getPasswordErrorMessage(form.password);
   const pwMatch = form.password === form.passwordConfirm;
   // 당일/미래 날짜는 생년월일로 유효하지 않음 (문자열 비교로 충분: YYYY-MM-DD 형식)
   const birthDateValid = form.birthDate && form.birthDate <= maxBirthDate;
@@ -225,7 +240,7 @@ export default function SignupPage() {
                 id="signup-pw"
                 name="password"
                 type={pwRevealed ? 'text' : 'password'}
-                placeholder="8자 이상 영문+숫자+특수문자"
+                placeholder="8자 이상 영문 대/소문자+숫자+특수문자"
                 value={form.password}
                 onChange={handleChange}
                 autoComplete="new-password"
@@ -241,11 +256,17 @@ export default function SignupPage() {
                 <EyeIcon open={pwRevealed} />
               </button>
             </div>
-            {pwTouched && (
+            {form.password ? (
+              pwError ? (
+                <span className="signup-error">{pwError}</span>
+              ) : (
+                <span className="signup-success">사용 가능한 안전한 비밀번호입니다.</span>
+              )
+            ) : pwTouched ? (
               <span className="signup-hint">
                 비밀번호는 8자 이상이며 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다.
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* 비밀번호 재확인 */}
