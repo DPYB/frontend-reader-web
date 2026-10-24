@@ -138,3 +138,4 @@
 - 사서 서재(슈빌·누디) 3D 카메라 투영 시야각(fov: 28) 및 좌표 정합 보정 완료: 책 등록 즉시 4종 사서 서재 전원 1번 선반 및 전체 선반 정상 노출 보장
 - 미사용 레거시 고아(Orphan) 파일 정리 완료: app/features/bookshelf/ 5종, app/features/bookshelf3d/ 미사용 3종, LoginOverlay.*, global.css 삭제
 - AGENTS.md 컨벤션 준수 및 ESLint 규칙 미세 조정 완료: TermsModal.jsx 전용 CSS 분리, App.jsx/SignupPage.jsx 인라인 스타일 제거, React 19 ESLint 룰셋 정돈 (0 errors, 0 warnings 통과)
+- 독서 리포트 처방 도서 빈 상태 UX 개선: 활동 여부 기반 AI 서비스 지연 vs 독서 기록 부족 안내 분기, 빈 스켈레톤 기본값 제거, 추천 장르 조건부 렌더링 완료

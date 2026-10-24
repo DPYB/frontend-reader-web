@@ -78,8 +78,8 @@ const EMPTY_REPORT_DATA = {
     message: null,
   },
   prescription: {
-    recommendedGenre: '교양',
-    suggestedGoalBooks: 3,
+    recommendedGenre: null,
+    suggestedGoalBooks: null,
     advice: '',
     books: [],
   },
@@ -843,9 +843,11 @@ export default function MonthlyReport() {
               {periodType === 'weekly' ? '다음 주 독서 처방 (추천 도서 · 장르)' : '다음 달 독서 처방 (추천 도서 · 장르)'}
             </h2>
           </div>
-          <div className="prescription-genre-banner">
-            추천 장르 테마: <span className="prescription-genre-highlight">{genreLabel(prescription?.recommendedGenre) || prescription?.recommendedGenre}</span>
-          </div>
+          {prescription?.recommendedGenre && (
+            <div className="prescription-genre-banner">
+              추천 장르 테마: <span className="prescription-genre-highlight">{genreLabel(prescription?.recommendedGenre) || prescription?.recommendedGenre}</span>
+            </div>
+          )}
           {prescription?.advice && (
             <p className="prescription-advice-text">
               💡 {prescription.advice}
@@ -878,9 +880,11 @@ export default function MonthlyReport() {
             <div className="report-empty-placeholder">
               <span className="empty-placeholder-icon">💊</span>
               <p className="empty-placeholder-text">
-                {periodType === 'weekly'
-                  ? '독서 활동이 축적되면 사서가 딱 맞는 다음 주 처방 도서를 엄선해 드립니다.'
-                  : '독서 활동이 축적되면 사서가 딱 맞는 다음 달 처방 도서를 엄선해 드립니다.'}
+                {hasActivity
+                  ? '일시적인 AI 서비스 지연으로 추천 도서를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.'
+                  : (periodType === 'weekly'
+                    ? '독서 활동이 축적되면 사서가 딱 맞는 다음 주 처방 도서를 엄선해 드립니다.'
+                    : '독서 활동이 축적되면 사서가 딱 맞는 다음 달 처방 도서를 엄선해 드립니다.')}
               </p>
             </div>
           )}
