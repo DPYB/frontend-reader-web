@@ -1,5 +1,23 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-25: 월간 리포트 처방 도서 빈 상태 안내 분기 및 하드코딩 기본값 제거
+- 작업 브랜치: `feat/report-prescription-empty-notice`
+- **사용자 요청**:
+  - 월간/주간 독서 리포트에서 AI 서비스 지연 시 처방 도서 빈 상태와 독서 기록 부족 상태를 명확히 분기하고, 하드코딩된 기본 추천 장르/목표 권수 제거.
+- **작업 내용**:
+  1. `app/pages/MonthlyReport.jsx`:
+     - AI 처방 도서 빈 상태(`prescription.books.length === 0`) 시 `hasActivity` 기반 안내 분기:
+       - 독서 활동이 있는 경우: "일시적인 AI 서비스 지연으로 추천 도서를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요."
+       - 독서 활동이 없는 경우: "독서 활동이 축적되면 사서가 딱 맞는 다음 달(주) 처방 도서를 엄선해 드립니다."
+     - `EMPTY_REPORT_DATA` 내 `prescription.recommendedGenre`, `prescription.suggestedGoalBooks` 기본값을 `'교양'`/`3`에서 `null`로 변경하여 가짜 데이터 주입 차단.
+     - `prescription?.recommendedGenre`가 존재할 때만 추천 장르 테마 배너(`.prescription-genre-banner`)를 렌더링하도록 조건부 렌더링 적용.
+  2. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-10.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-25: 로그아웃 클라이언트 상태 무조건 리셋 및 로그인 페이지 전체 리로드 전환
 - 작업 브랜치: `feat/fix-logout-client-state-reset`
 - **사용자 요청**:
@@ -81,26 +99,6 @@
   4. `app/features/room/shelfBookStorage.js`:
      - `reconcileShelfGroups`: 로컬스토리지에 저장된 배치가 없을 때(!savedAssignments), 도서 자체의 `shelfTier`와 `shelfOrder`를 기반으로 선반 그룹을 복원하고 선반별 용량(capacity)을 고려하여 자동 배치되도록 개선.
   5. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: BETA 설문조사 Google Sheets 연동 및 듀얼 파이프라인(디스코드+시트) 구축
-- 작업 브랜치: `feat/survey-google-sheets-integration`
-- **사용자 요청**:
-  - BETA 피드백 설문조사 데이터를 나중에 GA4/대시보드 형태로 데이터 분석할 수 있도록 옵션 B(Google Sheets 연동) 구현 요청.
-- **작업 내용**:
-  1. `app/features/survey/googleSheetsSurvey.js` 신설:
-     - `sendSurveyToGoogleSheets(type, form)`: Google Apps Script 웹 앱 엔드포인트 연동 (`VITE_GOOGLE_SHEETS_SURVEY_URL` 및 기본 URL 폴백).
-     - Apps Script 302 리디렉션 및 브라우저 CORS 제약 회피를 위해 `mode: 'no-cors'`, `headers: { 'Content-Type': 'text/plain;charset=utf-8' }` 방식으로 안전하고 신속하게 스프레드시트에 행(Row) 누적 전송.
-  2. `app/features/survey/BetaSurveyModal.jsx`:
-     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`에서 `Promise.allSettled`를 적용하여 Discord 실시간 알림 웹훅과 Google Sheets 데이터 저장을 병렬로 비동기 동시 전송.
-     - 한쪽 네트워크 실패 시에도 상호 간섭 없이 안전한 전송 보장 및 UI 완료 처리.
-  3. `.env.example`:
-     - `VITE_GOOGLE_SHEETS_SURVEY_URL` 환경 변수 문서화.
-  4. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)
