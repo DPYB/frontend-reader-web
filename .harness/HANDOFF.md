@@ -1,5 +1,28 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-24: PC(데스크톱) 내 서재 이용가이드 플로팅 버튼 추가 (타이머 위)
+- 작업 브랜치: `feat/pc-guide-button-above-timer`
+- **사용자 요청**:
+  - PC로 접속해도 이용가이드가 보이게 해줘. 위치는 타이머 위에 두면 될 것 같아.
+- **원인 및 배경**:
+  - 모바일 UX에서는 사서 플로팅 FAB 미니 메뉴 내에 '서비스 이용 가이드'가 상시 포함되어 있어 언제든 모달을 열 수 있었으나, 데스크톱 환경에서는 최초 방문 시 1회 노출 후 닫히면 다시 열 수 있는 진입점이 없었음.
+- **작업 내용**:
+  1. `app/features/room/LibraryScene.jsx`:
+     - 데스크톱(`!calibrating && !isMobile`) 환경에서 독서 타이머 버튼 바로 위(`bottom: min(136px, calc(2vh + 120px))`, `right: min(16px, 2vw)`)에 서비스 이용 가이드 플로팅 버튼(`.lc-guide-toggle-btn`) 배치.
+     - 클릭 시 `setShowGuide(true)`를 호출하여 `ServiceGuideModal` 오픈 연동.
+     - `t('library.serviceGuideOpen', '서비스 이용 가이드 열기')` 툴팁 및 `t('library.serviceGuide', '이용 가이드')` 라벨 적용.
+  2. `app/features/room/LibrarianChat.css`:
+     - `.lc-chat-toggle-btn`, `.lc-timer-toggle-btn` 스타일 그룹에 `.lc-guide-toggle-btn` 셀렉터를 추가하여 고불투명도 글래스모피즘, 다크모드, 호버/액티브 애니메이션 일관성 완비.
+  3. `app/i18n/translations.js`:
+     - 한국어(`ko.library`): `serviceGuide: '이용 가이드'`, `serviceGuideOpen: '서비스 이용 가이드 열기'` 추가.
+     - 영어(`en.library`): `serviceGuide: 'User Guide'`, `serviceGuideOpen: 'Open Service User Guide'` 추가.
+  4. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 3D 책장 선반(Shelf Placement) 배치 영속화 API 연동
 - 작업 브랜치: `feat/shelf-placements-persistence`
 - **사용자 요청**:
@@ -78,32 +101,6 @@
   2. `app/features/survey/BetaSurveyModal.jsx`:
      - 첫방문 설문 Q8(`confusingPart`) textarea의 placeholder 예시에 `사용해보려고 했지만 잘 안되는 기능 등` 문구 보강.
      - 재방문 설문 Q11(`overallSatisfaction`) 만족도 버튼 렌더링 시 기존 범위 판별 조건(`>= score`)을 단일 일치 조건(`=== score`)으로 수정하여 하위 점수 동시 선택 버그 완벽 해결.
-  3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: BETA 설문조사 첫방문 기기/브라우저 선택 추가, 기기 구체적 모델 입력란 및 가입 불편 보기 정돈
-- 작업 브랜치: `feat/beta-survey-device-and-options-update`
-- **사용자 요청**:
-  - 첫 방문 설문조사에서 재방문과 동일하게 기기, 브라우저 선택하는 항목 추가.
-  - 첫방문, 재방문 둘 다 기기 선택 시 구체적인 기기 종류 (예: 아이폰 17, 아이패드 프로 등)를 적을 수 있는 입력란 제공.
-  - '가입 및 시작 과정에서 막히거나 불편했던 점이 있었나요?' 질문에 대한 보기로 3, 4, 5번만 유지.
-  - '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란 생성.
-- **작업 내용**:
-  1. `app/features/survey/BetaSurveyModal.jsx`:
-     - `SIGNUP_DIFFICULTY_OPTIONS` 배열에서 불필요한 1, 2번 보기를 제거하고 '다음 단계 안내 부족', '불편 없음', '기타' 3가지 보기만 유지.
-     - `firstForm` 상태에 `device`, `deviceDetail`, `browser`, `browserOther`, `signupDifficultyDetail` 필드 추가.
-     - `returningForm` 상태에 `deviceDetail` 필드 추가.
-     - 첫방문 설문지에 재방문과 동일한 '어떤 기기와 브라우저로 사용하셨나요?' 섹션을 Q1으로 배치하고, 기기 선택 시 구체적인 모델명(예: 아이폰 17, 아이패드 프로 등)을 입력할 수 있는 텍스트 인풋 연동.
-     - 재방문 설문지의 기기 선택 시에도 동일하게 구체적인 기기 종류를 입력할 수 있는 인풋 연동.
-     - 첫방문 설문지 Q4(가입 및 시작 과정 불편점)에서 '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란(`signupDifficultyDetail`) 동적 렌더링.
-     - 첫방문 설문 질문 번호(Q1~Q9) 체계적 재정렬.
-  2. `app/features/survey/discordSurveyWebhook.js`:
-     - `buildFirstVisitDiscordPayload`: `💻 이용 환경` 필드(기기, 구체적 모델명, 브라우저) 추가 및 '다음 단계 안내 부족' 구체적 내용 반영.
-     - `buildReturningDiscordPayload`: `💻 이용 환경` 필드에 기기 구체적 모델명(`deviceDetail`) 병기 반영.
   3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)

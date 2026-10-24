@@ -1321,6 +1321,30 @@ export default function LibraryScene() {
         />
       )}
 
+      {/* 데스크톱 전용 서비스 이용 가이드 플로팅 버튼 (타이머 위) */}
+      {!calibrating && !isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 'min(16px, 2vw)',
+            bottom: 'min(136px, calc(2vh + 120px))',
+            zIndex: 18,
+            fontSize: 17,
+          }}
+        >
+          <button
+            type="button"
+            className="lc-guide-toggle-btn"
+            onClick={() => setShowGuide(true)}
+            aria-label={t('library.serviceGuideOpen', '서비스 이용 가이드 열기')}
+            title={t('library.serviceGuideOpen', '서비스 이용 가이드 열기')}
+          >
+            <span style={{ fontSize: 20 }}>📖</span>
+            {t('library.serviceGuide', '이용 가이드')}
+          </button>
+        </div>
+      )}
+
       {/* 데스크톱 전용 독서 타이머 플로팅 버튼 (모바일은 사서 플로팅 미니 메뉴에 포함) */}
       {!calibrating && !isMobile && (
         <div
