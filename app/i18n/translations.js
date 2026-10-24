@@ -75,6 +75,8 @@ export const translations = {
       openBook: '책 열기',
       backToShelf: '선반으로',
       readingTimerStart: '독서 집중 타이머 시작',
+      serviceGuide: '이용 가이드',
+      serviceGuideOpen: '서비스 이용 가이드 열기',
     },
     chat: {
       title: '사서와의 대화',
@@ -371,6 +373,8 @@ export const translations = {
       openBook: 'Open Book',
       backToShelf: 'Back to Shelf',
       readingTimerStart: 'Start Reading Focus Timer',
+      serviceGuide: 'User Guide',
+      serviceGuideOpen: 'Open Service User Guide',
     },
     chat: {
       title: 'Chat with Librarian',

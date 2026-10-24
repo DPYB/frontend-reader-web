@@ -1,5 +1,31 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-23: BETA 설문조사 첫방문 기기/브라우저 선택 추가, 기기 구체적 모델 입력란 및 가입 불편 보기 정돈
+- 작업 브랜치: `feat/beta-survey-device-and-options-update`
+- **사용자 요청**:
+  - 첫 방문 설문조사에서 재방문과 동일하게 기기, 브라우저 선택하는 항목 추가.
+  - 첫방문, 재방문 둘 다 기기 선택 시 구체적인 기기 종류 (예: 아이폰 17, 아이패드 프로 등)를 적을 수 있는 입력란 제공.
+  - '가입 및 시작 과정에서 막히거나 불편했던 점이 있었나요?' 질문에 대한 보기로 3, 4, 5번만 유지.
+  - '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란 생성.
+- **작업 내용**:
+  1. `app/features/survey/BetaSurveyModal.jsx`:
+     - `SIGNUP_DIFFICULTY_OPTIONS` 배열에서 불필요한 1, 2번 보기를 제거하고 '다음 단계 안내 부족', '불편 없음', '기타' 3가지 보기만 유지.
+     - `firstForm` 상태에 `device`, `deviceDetail`, `browser`, `browserOther`, `signupDifficultyDetail` 필드 추가.
+     - `returningForm` 상태에 `deviceDetail` 필드 추가.
+     - 첫방문 설문지에 재방문과 동일한 '어떤 기기와 브라우저로 사용하셨나요?' 섹션을 Q1으로 배치하고, 기기 선택 시 구체적인 모델명(예: 아이폰 17, 아이패드 프로 등)을 입력할 수 있는 텍스트 인풋 연동.
+     - 재방문 설문지의 기기 선택 시에도 동일하게 구체적인 기기 종류를 입력할 수 있는 인풋 연동.
+     - 첫방문 설문지 Q4(가입 및 시작 과정 불편점)에서 '다음 단계 안내 부족' 선택 시 구체적으로 적을 수 있는 입력란(`signupDifficultyDetail`) 동적 렌더링.
+     - 첫방문 설문 질문 번호(Q1~Q9) 체계적 재정렬.
+  2. `app/features/survey/discordSurveyWebhook.js`:
+     - `buildFirstVisitDiscordPayload`: `💻 이용 환경` 필드(기기, 구체적 모델명, 브라우저) 추가 및 '다음 단계 안내 부족' 구체적 내용 반영.
+     - `buildReturningDiscordPayload`: `💻 이용 환경` 필드에 기기 구체적 모델명(`deviceDetail`) 병기 반영.
+  3. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-23: 채팅창 '?' 도움말 버튼 제거 및 주간(Weekly) 독서 리포트 지원 구현
 - 작업 브랜치: `feat/chat-remove-help-btn-and-weekly-reading-report`
 - **사용자 요청**:

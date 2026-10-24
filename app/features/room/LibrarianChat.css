@@ -841,7 +841,8 @@
    배경 3D 그래픽 투과로 인한 텍스트 가독성 저하를 방지하기 위해 불투명도를 높임 (85% 불투명도 적용)
    -------------------------------------------------------------------------- */
 .lc-chat-toggle-btn,
-.lc-timer-toggle-btn {
+.lc-timer-toggle-btn,
+.lc-guide-toggle-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -861,7 +862,8 @@
 }
 
 [data-theme="dark"] .lc-chat-toggle-btn,
-[data-theme="dark"] .lc-timer-toggle-btn {
+[data-theme="dark"] .lc-timer-toggle-btn,
+[data-theme="dark"] .lc-guide-toggle-btn {
   background: rgba(30, 22, 16, 0.85);
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2);
@@ -869,14 +871,16 @@
 }
 
 .lc-chat-toggle-btn:hover,
-.lc-timer-toggle-btn:hover {
+.lc-timer-toggle-btn:hover,
+.lc-guide-toggle-btn:hover {
   border-color: var(--accent);
   box-shadow: 0 6px 18px var(--accent-bg, rgba(255, 154, 60, 0.35)), inset 0 1px 2px rgba(255, 255, 255, 0.85);
   transform: translateY(-2px);
 }
 
 .lc-chat-toggle-btn:active,
-.lc-timer-toggle-btn:active {
+.lc-timer-toggle-btn:active,
+.lc-guide-toggle-btn:active {
   transform: translateY(0) scale(0.96);
 }
 
