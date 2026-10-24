@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import { useBooks } from '../store/booksStore';
 import MyPageReadingList from '../features/mypage/MyPageReadingList';
@@ -21,7 +21,6 @@ export default function MyPage() {
   const { t, isEn } = useLanguage();
   const { member, isGuest, logout, setMember } = useAuth();
   const { books } = useBooks();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const fileInputRef = useRef(null);
@@ -45,9 +44,10 @@ export default function MyPage() {
     } catch {
       // ignore
     } finally {
-      navigate('/login');
+      // 메모리 및 Context 상태의 완전한 클린 리셋을 위해 전체 리로드 전환
+      window.location.href = '/login';
     }
-  }, [loggingOut, logout, navigate]);
+  }, [loggingOut, logout]);
 
   // member는 로그인 시점에 GET /users/me 응답으로 채워짐 (AuthProvider)
   const profileImage = previewAvatarUrl || member?.profileImageUrl || member?.profile_image_url || DEFAULT_PROFILE_IMAGE;

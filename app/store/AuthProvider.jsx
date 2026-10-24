@@ -180,12 +180,19 @@ export function AuthProvider({ children }) {
 
 
   const logout = useCallback(async () => {
-    // 우회 모드에서는 서버 세션이 없으므로 로컬 상태만 정리한다.
-    if (!AUTH_BYPASS) await apiLogout();
-    clearChatSession();
-    setMember(null);
-    setRole(null);
-    setStatus('unauthenticated');
+    try {
+      // 우회 모드에서는 서버 세션이 없으므로 서버 호출을 건너뛴다.
+      if (!AUTH_BYPASS) await apiLogout();
+    } catch (err) {
+      console.warn('[AuthProvider] Server logout failed, forcing client reset:', err);
+    } finally {
+      // 서버 응답 성공/실패와 무관하게 클라이언트 메모리 상태를 무조건 100% 즉시 초기화
+      clearAccessToken();
+      clearChatSession();
+      setMember(null);
+      setRole(null);
+      setStatus('unauthenticated');
+    }
   }, []);
 
   const value = useMemo(

@@ -1,5 +1,27 @@
 # HANDOFF (세션별 서술 로그, append-only)
 
+## 2026-10-25: 로그아웃 클라이언트 상태 무조건 리셋 및 로그인 페이지 전체 리로드 전환
+- 작업 브랜치: `feat/fix-logout-client-state-reset`
+- **사용자 요청**:
+  - 로그아웃 버튼을 눌렀을 때 화면이 바로 로그인 화면으로 전환되지 않고 새로고침해야 풀리는 현상 및 새로고침 시 /auth/refresh 401 에러가 발생하는 문제 해결.
+- **원인 분석**:
+  - 백엔드 `POST /api/v1/auth/logout`은 정상적으로 `refresh_token` 쿠키를 삭제하고 204를 반환하고 있었으나,
+  - `AuthProvider.jsx`의 `logout()` 함수가 `apiLogout()` 호출 시 `try ... finally` 방어 없이 작성되어 있어 서버 통신 지연/예외 발생 시 클라이언트 메모리 상태(`member`, `role`, `status`) 초기화가 누락될 수 있었음.
+  - 또한 `Gnb.jsx`와 `MyPage.jsx`에서 로그아웃 후 단순 SPA 내부 라우팅(`navigate('/login')`)을 수행하여, 복잡한 React Context(도서/사서/채팅) 및 Three.js 3D 씬 인메모리 캐시가 완전히 비워지지 않은 채 화면에 잔류하는 결함이 발생. 사용자가 의아해하며 F5(새로고침)를 누르자 방금 쿠키가 삭제된 상태에서 `/auth/refresh`를 호출해 401이 발생한 것.
+- **작업 내용**:
+  1. `app/store/AuthProvider.jsx`:
+     - `logout()` 내부를 `try ... finally`로 전면 개편: 서버 로그아웃 API 성공/실패와 무관하게 `clearAccessToken()`, `clearChatSession()`, `setMember(null)`, `setRole(null)`, `setStatus('unauthenticated')`를 100% 즉시 동기 초기화.
+  2. `app/components/Gnb.jsx`:
+     - `handleLogout` 완료 시 `window.location.href = '/login'`으로 전환하여 브라우저의 모든 Context/메모리/3D 캐시를 클린 리셋하고 로그인 화면으로 즉시 전환.
+  3. `app/pages/MyPage.jsx`:
+     - `handleLogout` 완료 시 `window.location.href = '/login'`으로 전환 및 미사용 `useNavigate` import/변수 정리.
+  4. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
 ## 2026-10-25: 회원가입 폼 비밀번호 유효성 검사 실시간 인라인 에러/성공 피드백 및 성별 기본값 정비
 - 작업 브랜치: `feat/signup-validation-feedback`
 - **사용자 요청**:
@@ -79,26 +101,6 @@
   3. `.env.example`:
      - `VITE_GOOGLE_SHEETS_SURVEY_URL` 환경 변수 문서화.
   4. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
-- **검증**:
-  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
-  - `npm run lint` 통과 (0 errors, 0 warnings)
-  - `npm run typecheck` 통과 (0 errors)
-  - `npm run build` 통과 (Vite bundle 정상 빌드)
-
-## 2026-10-23: BETA 설문조사 제출 완료 시 폼 상태(첫방문/재방문) 자동 초기화 처리
-- 작업 브랜치: `fix/beta-survey-reset-after-submit`
-- **사용자 요청**:
-  - 설문 제출 후에 다시 설문지로 들어가면 이전에 작성한 내용이 그대로 남아있는데, 제출 후에는 작성 내용이 리셋되도록 개선.
-- **원인 분석**:
-  - `BetaSurveyModal.jsx` 컴포넌트 내부에서 `firstForm`과 `returningForm`의 초기 객체가 `useState` 내 인라인 객체로만 관리되고 있었음.
-  - 설문 제출 성공 시(`handleSubmitFirstVisit`, `handleSubmitReturning`) 완료 화면(`step === 'completed'`)으로 단계만 전환하고 폼 상태를 초기화하지 않았으며, 모달 닫힘(`!isOpen`) 처리 시에도 `setStep('select')`만 호출하고 폼 상태는 보존되어 모달 재진입 시 이전 작성 데이터가 그대로 노출됨.
-- **작업 내용**:
-  1. `app/features/survey/BetaSurveyModal.jsx`:
-     - 컴포넌트 외부에 `INITIAL_FIRST_FORM`, `INITIAL_RETURNING_FORM` 표준 초기 상태 상수 정의.
-     - 폼 상태 리셋 헬퍼 함수 `resetForms()` 구현.
-     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`: 디스코드 웹훅 전송 및 로컬 저장 성공 후, `setFirstForm(INITIAL_FIRST_FORM)` / `setReturningForm(INITIAL_RETURNING_FORM)`을 즉시 호출하여 작성 내용 리셋.
-     - 모달 닫힘(`!isOpen`) `useEffect` 핸들러: 모달 닫힘 애니메이션 타이머(300ms) 완료 시 `setStep('select')`와 함께 `resetForms()`를 실행하여 재진입 시 항상 깨끗한 빈 설문지로 시작되도록 보장.
-  2. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
 - **검증**:
   - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
   - `npm run lint` 통과 (0 errors, 0 warnings)

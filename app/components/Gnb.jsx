@@ -130,9 +130,10 @@ export default function Gnb() {
         } catch {
             // 로그아웃 실패해도 클라이언트 상태는 초기화하고 로그인 화면으로 이동
         } finally {
-            navigate('/login');
+            // 메모리 및 Context 상태의 완전한 클린 리셋을 위해 전체 리로드 전환
+            window.location.href = '/login';
         }
-    }, [loggingOut, logout, navigate]);
+    }, [loggingOut, logout]);
 
     const goTo = useCallback((path, state) => {
         setShowProfileMenu(false);
