@@ -1,5 +1,26 @@
 # HANDOFF (2026-09 아카이브)
 
+## 2026-10-23: BETA 설문조사 제출 완료 시 폼 상태(첫방문/재방문) 자동 초기화 처리
+- 작업 브랜치: `fix/beta-survey-reset-after-submit`
+- **사용자 요청**:
+  - 설문 제출 후에 다시 설문지로 들어가면 이전에 작성한 내용이 그대로 남아있는데, 제출 후에는 작성 내용이 리셋되도록 개선.
+- **원인 분석**:
+  - `BetaSurveyModal.jsx` 컴포넌트 내부에서 `firstForm`과 `returningForm`의 초기 객체가 `useState` 내 인라인 객체로만 관리되고 있었음.
+  - 설문 제출 성공 시(`handleSubmitFirstVisit`, `handleSubmitReturning`) 완료 화면(`step === 'completed'`)으로 단계만 전환하고 폼 상태를 초기화하지 않았으며, 모달 닫힘(`!isOpen`) 처리 시에도 `setStep('select')`만 호출하고 폼 상태는 보존되어 모달 재진입 시 이전 작성 데이터가 그대로 노출됨.
+- **작업 내용**:
+  1. `app/features/survey/BetaSurveyModal.jsx`:
+     - 컴포넌트 외부에 `INITIAL_FIRST_FORM`, `INITIAL_RETURNING_FORM` 표준 초기 상태 상수 정의.
+     - 폼 상태 리셋 헬퍼 함수 `resetForms()` 구현.
+     - `handleSubmitFirstVisit` 및 `handleSubmitReturning`: 디스코드 웹훅 전송 및 로컬 저장 성공 후, `setFirstForm(INITIAL_FIRST_FORM)` / `setReturningForm(INITIAL_RETURNING_FORM)`을 즉시 호출하여 작성 내용 리셋.
+     - 모달 닫힘(`!isOpen`) `useEffect` 핸들러: 모달 닫힘 애니메이션 타이머(300ms) 완료 시 `setStep('select')`와 함께 `resetForms()`를 실행하여 재진입 시 항상 깨끗한 빈 설문지로 시작되도록 보장.
+  2. 하네스 문서(`.harness/STATE.md`, `.harness/HANDOFF.md`, `.harness/archive/HANDOFF_2026-09.md`) 갱신 및 5세션 상한 롤링 아카이빙 유지.
+- **검증**:
+  - `npm run check:harness` 통과 (HANDOFF, PLAN, STATE, DECISIONS, archive 정상)
+  - `npm run lint` 통과 (0 errors, 0 warnings)
+  - `npm run typecheck` 통과 (0 errors)
+  - `npm run build` 통과 (Vite bundle 정상 빌드)
+
+
 ## 2026-10-23: 독서 리포트 날짜 선택기 UI 개선(주간 시작일 지정) 및 BETA 설문 버그 수정
 - 작업 브랜치: `feat/report-date-picker-and-survey-fixes`
 - **사용자 요청**:
